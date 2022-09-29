@@ -50,6 +50,7 @@ pdf:
 
 pdfclean:
 	latexmk -C -cd $(REPORT)
+	rm *.bbl *.xml
 
 clean:
 	$(RM) -rf $(BUILD_DIR) $(TARGET) $(TEST_TARGET) bin

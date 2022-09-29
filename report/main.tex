@@ -1,0 +1,78 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+
+% Essential packages
+\usepackage[english,danish]{babel}
+\usepackage[utf8]{inputenc}
+
+% Math packages
+\usepackage{amsmath,amsfonts,amssymb}
+
+% Programming packages
+\usepackage{listings}
+\usepackage{algorithm2e}
+\usepackage{courier}
+
+% Layout packages
+\usepackage{csquotes}
+\usepackage{booktabs}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{lipsum}
+\usepackage{url}
+\usepackage[style=numeric-comp]{biblatex}
+
+% Bibliography settings
+\addbibresource{bibliography.bib}
+\setlength{\columnsep}{4cm} %adjust base on your name length
+
+
+\begin{document}
+
+\pagenumbering{gobble}
+\input{cover}
+\newpage
+\ 
+% \newpage
+% \vfill
+% Dichiaro che il sottoscritto nonché autore del
+% documento è il responsabile del suo contenuto, e per le parti tratte da altri lavori, queste vengono espressamente dichiarate
+% citando le fonti.
+% \newpage
+% \
+\pagenumbering{arabic}
+% \newpage
+
+\selectlanguage{danish}
+\begin{abstract}
+    \lipsum[1]
+\end{abstract}
+% \newpage
+% \
+\newpage
+\selectlanguage{english}
+
+\tableofcontents
+% \listoftables NECESSARY?
+% \listoffigures NECESSARY?
+\newpage
+
+\pagestyle{fancy}
+
+% Core contents
+\input{chapters/1_introduction}
+\input{chapters/2_Prerequisites.tex}
+\input{chapters/3_Implementation.tex}
+\input{chapters/4_Evaluation.tex}
+\input{chapters/5_Conclusion.tex}
+
+% Bibliography
+\newpage
+\printbibliography
+
+% Appendix
+\appendix 
+\input{chapters/appendix}
+
+\end{document}
