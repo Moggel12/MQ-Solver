@@ -5,13 +5,12 @@ from sage.all_cmdline import *   # import sage library
 
 _sage_const_2 = Integer(2); _sage_const_1 = Integer(1); _sage_const_0 = Integer(0)
 from mob import mob_transform
-from fes import bruteforce
-from math import comb
+from fes import bruteforce, convert
 import numpy as np
-from monotonic_gray import monotonic_bounded
+# from monotonic_gray import monotonic_bounded
 
 def index_of(y_list):
-    return sum([b * _sage_const_2 **i for i, b in enumerate(y_list)])
+    return sum(b * _sage_const_2 **i for i, b in enumerate(y_list))
 
 def compute_u_values(system, n, n1, w):
     sols = bruteforce(system, R, n - n1, w + _sage_const_1 )
@@ -20,32 +19,38 @@ def compute_u_values(system, n, n1, w):
     ZV = {i: {j: GF(_sage_const_2 )(_sage_const_0 ) for j in range(sum(l))}  for i in range(n1)}
     for s in sols:
         y,z = sols[:n-n1], sols[n - n1:]
-        idx = index_of(y)
         if sum(y) <= w:
+            idx = index_of(y)
             V[idx] += _sage_const_1 
-        for i in range(n1):
+        for i in range(_sage_const_1 , n1 + _sage_const_1 ):
             if z[i] == _sage_const_0 :
-                ZV[i - _sage_const_1 ][idx] += _sage_const_1  # NOTICE: zero-indexing => i - 1 (reminder for future bugs)
+                idx = index_of(y)
+                ZV[i - _sage_const_1 ][idx] += _sage_const_1 
     return V, ZV
 
-def output_potentials():
-    pass
+def output_potentials(system, R, n1, w):
+    V, ZV = compute_u_values(system, n, n1, w + _sage_const_1 )
+    U = np.full(n1 + _sage_const_1 , GF(_sage_const_2 )(_sage_const_0 ))
+    U[_sage_const_0 ] = mob_transform(V, R.gens()[:n - n1])
+    for i in range(_sage_const_1 , n1 + _sage_const_1 ):
+        U[i] = mob_transform(ZV[i], R.gens()[:n - n1])
+    evals = np.full((n1 + _sage_const_1 , _sage_const_2 **(n - n1)), GF(_sage_const_2 )(_sage_const_0 ))
+    for i in range(n1 + _sage_const_1 ):
+        for y in range(_sage_const_2 **(n - n1)):
+            evals[i][y] = U[i](*convert(y, n1))
+    out = np.full((_sage_const_2 **(n - n1), n1 + _sage_const_1 ), GF(_sage_const_2 )(_sage_const_0 ))
+    for y_hat in range(_sage_const_2 **(n - n1)):
+        if evals[_sage_const_0 ][y_hat] == _sage_const_1 :
+            out[y_hat][_sage_const_0 ] = GF(_sage_const_2 )(_sage_const_1 )
+            for i in range(_sage_const_1 , n1 + _sage_const_1 ):
+                out[y][i] = evals[i][y] + _sage_const_1 
+    return out
 
 def solve():
     pass
 
-def test_u_values(system, n, n1, w): # Slow and methodical wins the race
-    F_tilde = product((f + GF(_sage_const_2 )(_sage_const_1 )) for f in system)
-    V, ZV = compute_u_values(system, n, n1, w)
-    for inp in prod([_sage_const_0 ,_sage_const_1 ], repeat=n):
-        y,z = inp[:n-n1], inp[n - n1:]
-        idx = index_of(y)
-        if V[idx] != sum(F_tilde(*y, *z_hat) for z_hat in prod([_sage_const_0 ,_sage_const_1 ], repeat=n1)):
-            return y
-        for i in range(n1):
-            if ZV[i][idx] != sum(F_tilde(*y, *(z_hat[:i]), _sage_const_0 , *(z_hat[i:])) for z_hat in prod[_sage_const_0 ,_sage_const_1 ], repeat=n1-_sage_const_1 ):
-                return y
-    
+def test_u_values(system, n1):
+    pass
 
 def main():
     pass

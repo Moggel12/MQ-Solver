@@ -41,7 +41,7 @@ def init(f, vars):
         s["d1"][k] = s["d2"][k-1,k] ^^ f[k + 1]
     return s
 
-def slice_int(f_sys, vars, m):
+def bitslice(f_sys, vars, m):
     f_sys_sliced = np.zeros(math.comb(len(vars) + 2 - 1, 2) + len(vars) + 1, dtype=int)
     for j, poly in enumerate(f_sys):
         f_sys_sliced[0] += int(poly.constant_coefficient()) << j
@@ -69,7 +69,38 @@ def partial_eval(f_sys, values, n):
             f_sys_eval[j - N + 1] = f_sys_eval[j - N + 1] ^^ f_sys[lex_idx(i, j, n) + n + 1]
     f_sys_eval = np.append(f_sys_eval, f_sys[lex_idx(N, N, n) + n + 1:]) # Append square terms
     return f_sys_eval
-            
+
+def bruteforce(system, R, n1, d):
+    system = preprocess(system, R.gens())
+    solutions = []
+    m = len(system)
+    n = len(R.gens())
+    sliced = bitslice(system, R.gens(), m)
+    for i in range(2^(n - n1)):
+        print(convert(i, n - n1), end="")
+        if hamming_weight(i) > d:
+            continue
+        print(" x")
+        pe_sliced = partial_eval(sliced, convert(i, n - n1), n - n1)
+        sub_sol = run_fes(pe_sliced, R.gens()[(n - n1):])
+        if sub_sol:
+            solutions += [convert(i, n1) + convert(s, n - n1) for s in sub_sol]
+    return solutions
+
+def hamming_weight(x):
+    x -= (x >> 1) & 0x5555555555555555
+    x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333)
+    x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f
+    return ((x * 0x0101010101010101) & 0xffffffffffffffff ) >> 56
+
+def preprocess(f_sys, vars):
+    for i, f in enumerate(f_sys):
+        for x in f.variables():
+            coeff = f.coefficient({x:2})
+            if coeff == 1:
+                f_sys[i] += x
+    return f_sys
+
 def lex_idx(i, j, n):
     return sum((n - k) for k in range(i + 1)) - (n - j)
 
@@ -91,7 +122,7 @@ def subspace_gen(n, n1, w):
 
 def convert(v, n):
     v = bin(v)[2:]
-    return tuple(map(lambda i : (int(v[-i]) if i <= len(v) else 0), range(1, n + 1)))
+    return list(map(lambda i : (int(v[-i]) if i <= len(v) else 0), range(1, n + 1)))
 
 def test_solutions(f_sys, sol, R):
     for s in range(2^len(R.gens())):
@@ -119,17 +150,6 @@ def test_solutions(f_sys, sol, R):
             return False
     return True
 
-def bruteforce(system, R, n, d):
-    return [convert(s, len(R.gens())) for s in run_fes(system, R.gens())]
-
-def preprocess(f_sys, vars):
-    for i, f in enumerate(f_sys):
-        for x in f.variables():
-            coeff = f.coefficient({x:2})
-            if coeff == 1:
-                f_sys[i] += x
-    return f_sys
-
 def main():
     res = True
     for i in range(100):
@@ -142,7 +162,7 @@ def main():
             f_sys.append(f)
         f_sys_prep = preprocess(f_sys.copy(), R.gens())
         m = len(f_sys)
-        f_sys_sl = slice_int(f_sys_prep, R.gens(), m)
+        f_sys_sl = bitslice(f_sys_prep, R.gens(), m)
         sol = run_fes(f_sys_sl, R.gens())
         res = test_solutions(f_sys, sol, R)
         if not res:
@@ -157,3 +177,10 @@ def main():
 
 if __name__ == "__main__":
     #main()
+    n = 5
+    m = 5
+    n1 = 3
+    R.<x0, x1, x2, x3, x4> = GF(2)[]
+    system = [x0*x2 + x0, x0*x1 + x0*x3 + x2*x4, x0*x1 + x2*x4 + x0, x1*x3 + x0*x4 + x3*x4 + x0, x1^2, x0*x2 + x2*x3 + x4^2 + x3, x1*x2 + x3*x4 + x4^2 + x0 + x4]
+    s = bruteforce(system, R, n1, 2)
+    print(s)
