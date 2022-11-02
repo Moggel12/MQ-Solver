@@ -1,0 +1,7 @@
+# Todo for next time
+ - Make partial evals of polynomials and convert the system
+ - Get it together and do some integer stuff!
+ - Finish U-value computation
+ - Finish algorithm for computing potential solutions
+ - Revert changes for monotonic gray codes to normal gray codes
+ - Tests, tests, tests... more tests?
