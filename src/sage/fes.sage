@@ -4,15 +4,16 @@ import numpy as np
 from itertools import combinations_with_replacement as cwr
 from itertools import product as prod
 
-def run_fes(f_sys, vars):
+def run_fes(f_sys, vars, b):
     solutions = []
     n = len(vars)
+    f_sys = preprocess(f_sys, n)
     s = init(f_sys, vars)
     if s["y"] == 0:
         solutions.append(0)
     while s["i"] < 2^n - 1:
         s = next(s)
-        if (s["y"] == 0).all():
+        if s["y"] == 0:
             solutions.append(gray_code(s["i"]))
     return solutions 
 
@@ -57,34 +58,31 @@ def bitslice(f_sys, vars, m):
             i += 1
     return f_sys_sliced
 
-def partial_eval(f_sys, values, n):
+def partial_eval(f_sys, values, n, b):
     N = len(values)
     f_sys_eval = [f_sys[0], *f_sys[(N + 1):(n + 1)]] # Append constants
     for i, v0 in enumerate(values):
         f_sys_eval[0] = f_sys_eval[0] ^^ (v0 * f_sys[i + 1])
         for j in range(i, N):
-            v1 = values[i]
+            v1 = values[j]
             f_sys_eval[0] = f_sys_eval[0] ^^ (v0 * v1 * f_sys[lex_idx(i, j, n) + n + 1]) # Add evaluated linear terms
         for j in range(N, n):
-            f_sys_eval[j - N + 1] = f_sys_eval[j - N + 1] ^^ f_sys[lex_idx(i, j, n) + n + 1]
+            f_sys_eval[j - N + 1] = f_sys_eval[j - N + 1] ^^ (v0 * f_sys[lex_idx(i, j, n) + n + 1])
     f_sys_eval = np.append(f_sys_eval, f_sys[lex_idx(N, N, n) + n + 1:]) # Append square terms
     return f_sys_eval
 
 def bruteforce(system, R, n1, d):
-    system = preprocess(system, R.gens())
     solutions = []
     m = len(system)
     n = len(R.gens())
     sliced = bitslice(system, R.gens(), m)
     for i in range(2^(n - n1)):
-        print(convert(i, n - n1), end="")
         if hamming_weight(i) > d:
             continue
-        print(" x")
-        pe_sliced = partial_eval(sliced, convert(i, n - n1), n - n1)
-        sub_sol = run_fes(pe_sliced, R.gens()[(n - n1):])
+        pe_sliced = partial_eval(sliced, convert(i, n - n1), n, i == 1)
+        sub_sol = run_fes(pe_sliced, R.gens()[(n - n1):], i == 1)
         if sub_sol:
-            solutions += [convert(i, n1) + convert(s, n - n1) for s in sub_sol]
+            solutions += [convert(i, n - n1) + convert(s, n1) for s in sub_sol]
     return solutions
 
 def hamming_weight(x):
@@ -93,13 +91,17 @@ def hamming_weight(x):
     x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f
     return ((x * 0x0101010101010101) & 0xffffffffffffffff ) >> 56
 
-def preprocess(f_sys, vars):
-    for i, f in enumerate(f_sys):
-        for x in f.variables():
-            coeff = f.coefficient({x:2})
-            if coeff == 1:
-                f_sys[i] += x
+def preprocess(f_sys, n): 
+    for i in range(n):
+        f_sys[i + 1] = f_sys[i + 1] ^^ f_sys[lex_idx(i, i, n) + n + 1]
     return f_sys
+# def preprocess(f_sys, vars)
+    # for i, f in enumerate(f_sys):
+    #     for x in f.variables():
+    #         coeff = f.coefficient({x:2})
+    #         if coeff == 1:
+    #             f_sys[i] += x
+    # return f_sys
 
 def lex_idx(i, j, n):
     return sum((n - k) for k in range(i + 1)) - (n - j)
@@ -132,27 +134,31 @@ def test_solutions(f_sys, sol, R):
             res = f(*args) 
             faulted_sol = faulted_sol or res
             if res and (s in sol):
-                print("=== Case 1 ===")
-                print(R.gens())
-                print(f)
-                print(args)
-                print(res)
-                print(s)
-                print("===")
+                print(
+                    "=== Case 1 ===\n"
+                    f"Variables: {R.gens()}\n"
+                    f"Polynomial: {f}\n"
+                    f"Input: {args}\n"
+                    f"Actual sol: {res}\n"
+                    f"Decimal input: {s}\n"
+                    "==="
+                )
                 return False
         if (not faulted_sol) and (s not in sol):
-            print("=== Case 2 ===")
-            print(R.gens())
-            print(convert(s, len(R.gens())))
-            print(s)
-            print([f(*convert(s, len(R.gens()))) for f in f_sys])
-            print("===")
+            print(
+                "=== Case 2 ===\n"
+                f"Variables: {R.gens()}\n"
+                f"Input: {convert(s, len(R.gens()))}\n"
+                f"Decimal input: {s}\n"
+                f"Actual solution: {[f(*convert(s, len(R.gens()))) for f in f_sys]}\n"
+                "==="
+            )
             return False
     return True
 
-def main():
+def test_fes(trials):
     res = True
-    for i in range(100):
+    for i in range(trials):
         f_sys = []
         m = randint(5, 10)
         n = randint(2, 10)
@@ -160,27 +166,25 @@ def main():
         for _ in range(m):
             f = R(GF(2)[R.gens()].random_element(degree=2))
             f_sys.append(f)
-        f_sys_prep = preprocess(f_sys.copy(), R.gens())
+        # f_sys_prep = preprocess(f_sys.copy(), R.gens())
         m = len(f_sys)
-        f_sys_sl = bitslice(f_sys_prep, R.gens(), m)
-        sol = run_fes(f_sys_sl, R.gens())
+        f_sys_sl = bitslice(f_sys, R.gens(), m)
+        sol = run_fes(f_sys_sl, R.gens(), False)
         res = test_solutions(f_sys, sol, R)
         if not res:
-            print(f_sys_prep)
-            print(f_sys)
-            print(f_sys_sl)
-            print(sol)
-            print(res)
+            print(
+                f"{f_sys_prep}\n"
+                f"{f_sys}\n"
+                f"{f_sys_sl}\n"
+                f"{sol}\n"
+                f"{res}"
+            )
             break
     if res:
-        print("No errors found for 100 trials")
+        print(f"No errors found for {trials} trials")
+
+def main():
+    test_fes(100)
 
 if __name__ == "__main__":
-    #main()
-    n = 5
-    m = 5
-    n1 = 3
-    R.<x0, x1, x2, x3, x4> = GF(2)[]
-    system = [x0*x2 + x0, x0*x1 + x0*x3 + x2*x4, x0*x1 + x2*x4 + x0, x1*x3 + x0*x4 + x3*x4 + x0, x1^2, x0*x2 + x2*x3 + x4^2 + x3, x1*x2 + x3*x4 + x4^2 + x0 + x4]
-    s = bruteforce(system, R, n1, 2)
-    print(s)
+    main()
