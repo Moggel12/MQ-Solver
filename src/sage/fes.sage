@@ -1,10 +1,11 @@
 import math
-# from random import randint
+from random import randint
+from utils import convert
 import numpy as np
 from itertools import combinations_with_replacement as cwr
-from itertools import product as prod
+from monotonic_gray import monotonic_bounded
 
-def run_fes(f_sys, vars, b):
+def run_fes(f_sys, vars):
     solutions = []
     n = len(vars)
     f_sys = preprocess(f_sys, n)
@@ -42,7 +43,7 @@ def init(f, vars):
         s["d1"][k] = s["d2"][k-1,k] ^^ f[k + 1]
     return s
 
-def bitslice(f_sys, vars, m):
+def bitslice(f_sys, vars):
     f_sys_sliced = np.zeros(math.comb(len(vars) + 2 - 1, 2) + len(vars) + 1, dtype=int)
     for j, poly in enumerate(f_sys):
         f_sys_sliced[0] += int(poly.constant_coefficient()) << j
@@ -58,7 +59,7 @@ def bitslice(f_sys, vars, m):
             i += 1
     return f_sys_sliced
 
-def partial_eval(f_sys, values, n, b):
+def partial_eval(f_sys, values, n):
     N = len(values)
     f_sys_eval = [f_sys[0], *f_sys[(N + 1):(n + 1)]] # Append constants
     for i, v0 in enumerate(values):
@@ -73,14 +74,14 @@ def partial_eval(f_sys, values, n, b):
 
 def bruteforce(system, R, n1, d):
     solutions = []
-    m = len(system)
+    # m = len(system)
     n = len(R.gens())
-    sliced = bitslice(system, R.gens(), m)
+    sliced = bitslice(system, R.gens())
     for i in range(2^(n - n1)):
         if hamming_weight(i) > d:
             continue
-        pe_sliced = partial_eval(sliced, convert(i, n - n1), n, i == 1)
-        sub_sol = run_fes(pe_sliced, R.gens()[(n - n1):], i == 1)
+        pe_sliced = partial_eval(sliced, convert(i, n - n1), n)
+        sub_sol = run_fes(pe_sliced, R.gens()[(n - n1):])
         if sub_sol:
             solutions += [convert(i, n - n1) + convert(s, n1) for s in sub_sol]
     return solutions
@@ -95,13 +96,6 @@ def preprocess(f_sys, n):
     for i in range(n):
         f_sys[i + 1] = f_sys[i + 1] ^^ f_sys[lex_idx(i, i, n) + n + 1]
     return f_sys
-# def preprocess(f_sys, vars)
-    # for i, f in enumerate(f_sys):
-    #     for x in f.variables():
-    #         coeff = f.coefficient({x:2})
-    #         if coeff == 1:
-    #             f_sys[i] += x
-    # return f_sys
 
 def lex_idx(i, j, n):
     return sum((n - k) for k in range(i + 1)) - (n - j)
@@ -121,10 +115,6 @@ def subspace_gen(n, n1, w):
     for g in monotonic_bounded(n - n1, w + 1): 
         for i in range(2^n1):
             yield g + convert(i, n1)
-
-def convert(v, n):
-    v = bin(v)[2:]
-    return list(map(lambda i : (int(v[-i]) if i <= len(v) else 0), range(1, n + 1)))
 
 def test_solutions(f_sys, sol, R):
     for s in range(2^len(R.gens())):
@@ -158,7 +148,7 @@ def test_solutions(f_sys, sol, R):
 
 def test_fes(trials):
     res = True
-    for i in range(trials):
+    for _ in range(trials):
         f_sys = []
         m = randint(5, 10)
         n = randint(2, 10)
@@ -166,14 +156,13 @@ def test_fes(trials):
         for _ in range(m):
             f = R(GF(2)[R.gens()].random_element(degree=2))
             f_sys.append(f)
-        # f_sys_prep = preprocess(f_sys.copy(), R.gens())
         m = len(f_sys)
-        f_sys_sl = bitslice(f_sys, R.gens(), m)
-        sol = run_fes(f_sys_sl, R.gens(), False)
+        f_sys_sl = bitslice(f_sys, R.gens())
+        sol = run_fes(f_sys_sl, R.gens())
         res = test_solutions(f_sys, sol, R)
         if not res:
             print(
-                f"{f_sys_prep}\n"
+                # f"{f_sys_prep}\n"
                 f"{f_sys}\n"
                 f"{f_sys_sl}\n"
                 f"{sol}\n"
