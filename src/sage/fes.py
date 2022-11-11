@@ -10,7 +10,6 @@ from utils import convert
 import numpy as np
 from itertools import combinations_with_replacement as cwr
 from monotonic_gray import monotonic_bounded
-# from itertools import product as prod
 
 def run_fes(f_sys, vars):
     solutions = []
@@ -103,13 +102,6 @@ def preprocess(f_sys, n):
     for i in range(n):
         f_sys[i + _sage_const_1 ] = f_sys[i + _sage_const_1 ] ^ f_sys[lex_idx(i, i, n) + n + _sage_const_1 ]
     return f_sys
-# def preprocess(f_sys, vars)
-    # for i, f in enumerate(f_sys):
-    #     for x in f.variables():
-    #         coeff = f.coefficient({x:2})
-    #         if coeff == 1:
-    #             f_sys[i] += x
-    # return f_sys
 
 def lex_idx(i, j, n):
     return sum((n - k) for k in range(i + _sage_const_1 )) - (n - j)
@@ -129,10 +121,6 @@ def subspace_gen(n, n1, w):
     for g in monotonic_bounded(n - n1, w + _sage_const_1 ): 
         for i in range(_sage_const_2 **n1):
             yield g + convert(i, n1)
-
-# def convert(v, n):
-#     v = bin(v)[2:]
-#     return list(map(lambda i : (int(v[-i]) if i <= len(v) else 0), range(1, n + 1)))
 
 def test_solutions(f_sys, sol, R):
     for s in range(_sage_const_2 **len(R.gens())):
@@ -174,7 +162,6 @@ def test_fes(trials):
         for _ in range(m):
             f = R(GF(_sage_const_2 )[R.gens()].random_element(degree=_sage_const_2 ))
             f_sys.append(f)
-        # f_sys_prep = preprocess(f_sys.copy(), R.gens())
         m = len(f_sys)
         f_sys_sl = bitslice(f_sys, R.gens())
         sol = run_fes(f_sys_sl, R.gens())

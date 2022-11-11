@@ -1,17 +1,20 @@
-from mob import mob_transform, mob_inv
-from fes import bruteforce, convert
+from mob import mob_transform
+from fes import bruteforce
 import numpy as np
 from random import randint
-from utils import index_of
-# from monotonic_gray import monotonic_bounded
+from utils import index_of, convert
+from math import ceil
 
-# def index_of(y_list):
-#     return sum(b * 2^i for i, b in enumerate(y_list))
+# For testing purposes
+_m_low = 5
+_m_high = 10
+_n_low = 2
+_n_high = 10
 
-def random_system(m_low, m_high, n_low, n_high):
+def random_system():
     system = []
-    m = randint(m_low, m_high)
-    n = randint(n_low, n_high)
+    m = randint(_m_low, _m_high)
+    n = randint(_n_low, _n_high)
     R = GF(2)[", ".join(["x" + str(i) for i in range(n)])]
     rem = 0
     for _ in range(m):
@@ -24,9 +27,15 @@ def random_system(m_low, m_high, n_low, n_high):
     n1 = randint(1, n - 1)
     return system, n, m, n1, R
 
+def random_system_with_sol():
+    system, n, _, _, R = random_system()
+    sol = 2^n - 2 
+    system = [f if f(*convert(sol, n)) == 0 else (f + 1) for f in system]
+    return system, sol, R, n
+
 def test_u_values(trials, verbose=False):
     for _ in range(trials):
-        system, n, m, n1, ring = random_system(5, 10, 2, 10) 
+        system, n, m, n1, ring = random_system() 
         F_tilde = product((GF(2)(1) + f) for f in system)
         w = F_tilde.degree() - n1
         if verbose:
@@ -48,7 +57,7 @@ def test_u_values(trials, verbose=False):
 
 def test_output_sol(trials, verbose=False):
     for _ in range(trials):
-        system, n, m, n1, R = random_system(5, 10, 2, 10)
+        system, n, m, n1, R = random_system()
         F_tilde = product((GF(2)(1) + f) for f in system)
         w = F_tilde.degree() - n1
         if verbose:
@@ -71,6 +80,17 @@ def test_output_sol(trials, verbose=False):
         if verbose:
             print("No errors found for system")
     print(f"No errors found in {trials} trial(s)")
+
+def dry_run_solve(trials):
+    for _ in range(trials):
+        print("\n===")
+        system, known_sol, R, n = random_system_with_sol()
+        print("Verify known solution:", [f(*convert(known_sol, n)) for f in system]) # Yes, I trust myself this "much"
+        print("Known solution:", known_sol)
+        print("System:", system, R)
+        sol = solve(system, R)
+        print("Solution found:", sol)
+        print("Verify found solution:", [f(*sol) for f in system])
 
 def compute_u_values(system, R, n1, w):
     n = len(R.gens())
@@ -109,12 +129,37 @@ def output_potentials(system, R, n1, w):
                 out[y_hat][i] = evals[i][y_hat] + 1
     return out
 
-def solve():
-    pass
+def test_solution(system, sol):
+    return not any(f(*sol) for f in system)
+
+def solve(system, R):
+    n = len(R.gens())
+    n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
+    l = n1 + 1
+    m = len(system)
+    potentials_solutions = []
+    k = 0
+    while True:
+        print("Commencing round", k)
+        A = np.rint(np.random.rand(l, m))
+        E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
+        w = product((1 + f) for f in system).degree() - n1 # Do this differently
+        curr_potential_sol = output_potentials(system, R, n1, w)
+        potentials_solutions.append(curr_potential_sol)
+        for y_hat in range(2^(n - n1)):
+            if curr_potential_sol[y_hat][0] == 1:
+                for k1 in range(k):
+                    if all(curr_potential_sol[y_hat] == potentials_solutions[k1][y_hat]):
+                        sol = convert(y_hat, n - n1) + list(curr_potential_sol[y_hat][1:])
+                        if test_solution(system, sol):
+                            return sol
+                        break
+        k += 1
 
 def main():
-    pass
+    # test_u_values(1, False)
+    # test_output_sol(20, False)
+    dry_run_solve(10)
 
 if __name__ == "__main__":
-    # test_u_values(1, False)
-    test_output_sol(20, False)
+    main()
