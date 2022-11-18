@@ -1,9 +1,12 @@
 import math
 from random import randint
 from utils import convert
+from itertools import permutations
 import numpy as np
 from itertools import combinations_with_replacement as cwr
 from monotonic_gray import monotonic_bounded
+
+import time
 
 def run_fes(f_sys, vars):
     solutions = []
@@ -59,7 +62,13 @@ def bitslice(f_sys, vars):
             i += 1
     return f_sys_sliced
 
+pe_time = 0
+
 def partial_eval(f_sys, values, n):
+    global pe_time
+
+    pe_time -= time.time()
+
     N = len(values)
     f_sys_eval = [f_sys[0], *f_sys[(N + 1):(n + 1)]] # Append constants
     for i, v0 in enumerate(values):
@@ -70,6 +79,9 @@ def partial_eval(f_sys, values, n):
         for j in range(N, n):
             f_sys_eval[j - N + 1] = f_sys_eval[j - N + 1] ^^ (v0 * f_sys[lex_idx(i, j, n) + n + 1])
     f_sys_eval = np.append(f_sys_eval, f_sys[lex_idx(N, N, n) + n + 1:]) # Append square terms
+
+    pe_time += time.time()
+
     return f_sys_eval
 
 def bruteforce(system, R, n1, d):

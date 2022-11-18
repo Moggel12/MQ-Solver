@@ -11,8 +11,9 @@ def _f_expand(lvl, vars, sol):
         idx = index_of(vars)
         return sol[idx]
     else:
-        f1 = (_f_expand(lvl + 1, alt(0), sol) + _f_expand(lvl + 1, alt(1), sol))
-        f2 = _f_expand(lvl + 1, alt(0), sol)
+        tmp = _f_expand(lvl + 1, alt(0), sol)
+        f1 = tmp + _f_expand(lvl + 1, alt(1), sol)
+        f2 = tmp
         return vars[lvl] * f1 + f2
 
 def mob_inv(poly):
