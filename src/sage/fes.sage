@@ -8,7 +8,7 @@ from monotonic_gray import monotonic_bounded
 def run_fes(f_sys, vars):
     solutions = []
     n = len(vars)
-    f_sys = preprocess(f_sys, n)
+    # f_sys = preprocess(f_sys, n)
     s = init(f_sys, vars)
     if s["y"] == 0:
         solutions.append(0)
@@ -44,7 +44,7 @@ def init(f, vars):
     return s
 
 def bitslice(f_sys, vars):
-    f_sys_sliced = np.zeros(math.comb(len(vars) + 2 - 1, 2) + len(vars) + 1, dtype=int)
+    f_sys_sliced = np.zeros(math.comb(len(vars) + 1, 2) + len(vars) + 1, dtype=int)
     for j, poly in enumerate(f_sys):
         f_sys_sliced[0] += int(poly.constant_coefficient()) << j
         i = 1
