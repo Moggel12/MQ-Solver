@@ -7,6 +7,7 @@ from utils import index_of, convert
 from math import ceil
 
 from collections import defaultdict
+from itertools import combinations
 
 import time
 
@@ -28,33 +29,25 @@ def random_system():
     print("n: ", n)
 
     R = GF(2)[", ".join(["x" + str(i) for i in range(n)])]
-    rem = 0
-    for _ in range(m):
-        f = R(GF(2)[R.gens()].random_element(degree=2, terms=Infinity))
-        if (f != GF(2)(0)) and (f != GF(2)(1)):
-            system.append(f)
-        else:
-            rem += 1
-    m -= rem
-    n1 = randint(1, n - 1)
-    return system, n, m, n1, R
 
-def random_system_with_sol():
-    tmp, n, _, _, R = random_system()
-    sol = randint(1,2^n - 1)
-    tmp = [f if f(*convert(sol, n)) == 0 else (f + 1) for f in tmp]
-    system = []
-    for f in tmp:
-      for v in R.gens():
-        if v^2 in f.monomials():
-          f = f + v^2 + v
+    X = R.gens()
+
+    for _ in range(m):
+      f = GF(2).random_element()
+      for i in range(n):
+        for j in range(i):
+          f += X[i]*X[j]*GF(2).random_element()
+        f += X[i]*GF(2).random_element()
+
       system.append(f)
 
-#    print(bin(sol))
-#
-#    sols = bruteforce(system, R, n, n)
-#
-#    print(sols)
+    return system, n, R
+
+def random_system_with_sol():
+    tmp, n, R = random_system()
+    sol = randint(1,2^n - 1)
+
+    system = [f if f(*convert(sol, n)) == 0 else (f + 1) for f in tmp]
 
     return system, sol, R, n
 
@@ -133,11 +126,31 @@ def compute_u_values(system, R, n1, w):
 
     print("start full eval", n, n1, w, len(system))
 
+##     sols = bruteforce(system, R, n, n)
+## 
+##     print("number of solutions from bruteforce:", len(sols))
+## 
+##     evall = [GF(2)(0)] * 2^n
+## 
+##     for sol in sols:
+##       evall[index_of(sol)] = GF(2)(1)
+## 
+## 
+##     V = [GF(2)(0)] * 2^(n-n1)
+##     ZV = [[GF(2)(0)] * 2^(n-n1) for i in range(n1)]
+## 
+## 
+##     for i in range(2^(n - n1)):
+##       V[i] = sum([evall[i | (j << (n - n1))] for j in range(2^n1)])
+## 
+##       for k in range(n1):
+##         ZV[k][i] = sum([evall[i | (j << (n - n1))] for j in range(2^n1) if j & (1 << k) == 0])
+      
     sols = bruteforce(system, R, n1, w + 1)
 
-    #print(sols)
+    print("number of solutions from bruteforce:", len(sols))
 
-    l = [math.comb(n - n1, i) for i in range(w + 2)]
+    #l = [math.comb(n - n1, i) for i in range(w + 2)]
     V =  defaultdict(lambda: GF(2)(0)) #{i: GF(2)(0) for i in range(sum(l[:-1]))}
     ZV = [defaultdict(lambda: GF(2)(0)) for i in range(n1)] #{i: {j: GF(2)(0) for j in range(sum(l))} for i in range(n1)}
     for s in sols:
@@ -145,7 +158,8 @@ def compute_u_values(system, R, n1, w):
         if sum(y) <= w:
             idx = index_of(y)
             V[idx] += 1
-        for i in range(n1):
+        if sum(y) <= w+1:
+          for i in range(n1):
             if z[i] == 0:
                 idx = index_of(y)
                 ZV[i][idx] += 1
@@ -153,6 +167,7 @@ def compute_u_values(system, R, n1, w):
     U_val_time += time.time()
 
     return V, ZV
+
 
 mob_time = 0.0
 eval_time = 0.0
@@ -163,16 +178,36 @@ def output_potentials(system, R, n1, w):
 
     n = len(R.gens())
     R_sub = GF(2)[", ".join([str(var) for var in R.gens()[:n - n1]])]
-    V, ZV = compute_u_values(system, R, n1, w + 1)
+
+    V, ZV = compute_u_values(system, R, n1, w)
+    #V, ZV = compute_u_values(system, R, n1, n)
+
     U = np.full(n1 + 1, GF(2)(0))
 
+    nsol = 0
+    for y_hat in range(2^(n - n1)):
+      if V[y_hat] == 1:
+        nsol += 1
+
+    print("nsol before interpolation and complete evaluation:", nsol, "of", len(V))
+
+
+#    test = defaultdict(lambda: [GF(2)(0) for i in range(n1 + 1)]) #np.full(n1 + 1, GF(2)(0)))
+#
+#    for y_hat in range(2^(n - n1)):
+#        if V[y_hat] == 1:
+#            test[y_hat][0] = GF(2)(1)
+#            for i in range(n1):
+#                test[y_hat][i+1] = ZV[i][y_hat] + GF(2)(1)
+#
+#    return test
 
     print("start interpolation")
 
     mob_time -= time.time()
-    U[0] = mob_transform(V, R_sub.gens())
+    U[0] = mob_transform(V, R_sub.gens(), w)
     for i in range(1, n1 + 1):
-        U[i] = mob_transform(ZV[i - 1], R_sub.gens())
+        U[i] = mob_transform(ZV[i - 1], R_sub.gens(), w+1)
     mob_time += time.time()
 
     print("start evaluation")
@@ -181,22 +216,28 @@ def output_potentials(system, R, n1, w):
 
     evals = [None] * (n1 + 1)
     for i in range(n1 + 1):
-        tmp = defaultdict(lambda:GF(2)(0))
+        tmp = [0] * 2^(n-n1)
         for m in U[i].monomials():
-          v = str(m)
-          v = v.replace('x', '')
-          v = [int(i) for i in v.split("*")]
-          v = sum([2^i for i in v])
+          if m == 1:
+            v = 0
+          else:
+            v = str(m)
+            v = v.replace('x', '')
+            v = [int(i) for i in v.split("*")]
+            v = sum([2^i for i in v])
           tmp[v] = GF(2)(1)
 
         tmp = mob_transform(tmp, R_sub.gens())
 
-        evals[i] = defaultdict(lambda: GF(2)(0))
+        evals[i] = [0] * 2^(n-n1)
         for m in tmp.monomials():
-          v = str(m)
-          v = v.replace('x', '')
-          v = [int(i) for i in v.split("*")]
-          v = sum([2^i for i in v])
+          if m == 1:
+            v = 0
+          else:
+            v = str(m)
+            v = v.replace('x', '')
+            v = [int(i) for i in v.split("*")]
+            v = sum([2^i for i in v])
           evals[i][v] = GF(2)(1)
 
     #evals = np.full((n1 + 1, 2^(n - n1)), GF(2)(0))
@@ -206,17 +247,16 @@ def output_potentials(system, R, n1, w):
 
     eval_time += time.time()
 
-
-#    out = np.full((2^(n - n1), n1 + 1), GF(2)(0))
-
-    out = defaultdict(lambda: np.full(n1 + 1, GF(2)(0)))
+    out = defaultdict(lambda: [GF(2)(0) for i in range(n1 + 1)])
 
     for y_hat in range(2^(n - n1)):
         if evals[0][y_hat] == 1:
-#            out[y_hat] = np.full(n1 + 1, GF(2)(0))
             out[y_hat][0] = GF(2)(1)
             for i in range(1, n1 + 1):
                 out[y_hat][i] = evals[i][y_hat] + 1
+
+#    print(out == test)
+
     return out
 
 def test_solution(system, sol):
@@ -233,13 +273,31 @@ def solve(system, R):
     potentials_solutions = []
     k = 0
 
+    tested_sol = 0
+
+    fes_time = -time.time()
+    sols = bruteforce(system, R, n, n)
+    fes_time += time.time()
+
+    print("All solutions:", sols)
+    print("time: ", fes_time)
+
+    for A,B in list(combinations(sols, 2)):
+      if A[:n-n1] == B[:n-n1]:
+        print("non-singular solutions:", A, B)
+
+
     while True:
-        print("Commencing round", k)
+        print("\nCommencing round", k)
 
-        A = np.rint(np.random.rand(l, m))
-        E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
+        A = random_matrix(GF(2), l, m)
 
-        w = sum([sys.degree() for sys in E_k]) - n1 #product((1 + f) for f in system).degree() - n1 # Do this differently
+        while A.rank() != l:
+          A = random_matrix(GF(2), l, m)
+
+        E_k = [sum(A[i][j] * system[j] for j in range(m)) for i in range(l)]
+
+        w = sum([sys.degree() for sys in E_k]) - n1
 
         print(f"n: {n}  n1: {n1}  w: {w}   d_F: {sum([sys.degree() for sys in E_k])}")
 
@@ -248,16 +306,20 @@ def solve(system, R):
         print("num pot sol: ", len(curr_potential_sol))
 
         potentials_solutions.append(curr_potential_sol)
-#        for y_hat in range(2^(n - n1)):
-#            if curr_potential_sol[y_hat][0] == 1:
+
         for y_hat in curr_potential_sol:
-                for k1 in range(k):
-                    if all(curr_potential_sol[y_hat] == potentials_solutions[k1][y_hat]):
-                        sol = convert(y_hat, n - n1) + list(curr_potential_sol[y_hat][1:])
-                        if test_solution(system, sol):
-                            return sol
-                        break
+           for k1 in range(k):
+             if y_hat in potentials_solutions[k1]:
+                if (curr_potential_sol[y_hat] == potentials_solutions[k1][y_hat]):
+                   sol = convert(y_hat, n - n1) + curr_potential_sol[y_hat][1:]
+                   tested_sol += 1
+                   if test_solution(system, sol):
+                     print("sols tested:", tested_sol)
+                     return sol
+                   break
         k += 1
+
+        print("sols tested:", tested_sol)
 
 def main():
     # test_u_values(1, False)
