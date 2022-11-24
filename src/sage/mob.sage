@@ -6,11 +6,10 @@ def mob_transform(sol, vars, degree=Infinity):
   f = _f_expand(0, vars, sol, 0, degree)
 
   # How can we avoid the high terms appearing during _f_expand?
-  for m in f.monomials():
-    if m.degree() > degree:
-      f += m
+  # Truncate them for now...
+  trunc = {dd : c for dd, c in f.dict().items() if sum(dd) <= degree}
 
-  return f
+  return f.parent()(trunc)
 
 def _f_expand(lvl, vars, sol, weight, degree):
     alt = lambda val : [val if lvl == idx else e for idx, e in enumerate(vars)]
