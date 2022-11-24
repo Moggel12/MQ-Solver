@@ -3,7 +3,7 @@ from itertools import product
 from utils import index_of
 
 def mob_transform(sol, vars, degree=Infinity):
-  f = _f_expand(0, vars, sol, degree)
+  f = _f_expand(0, vars, sol, 0, degree)
 
   # How can we avoid the high terms appearing during _f_expand?
   for m in f.monomials():
@@ -12,19 +12,18 @@ def mob_transform(sol, vars, degree=Infinity):
 
   return f
 
-def _f_expand(lvl, vars, sol, degree):
+def _f_expand(lvl, vars, sol, weight, degree):
     alt = lambda val : [val if lvl == idx else e for idx, e in enumerate(vars)]
 
-    if lvl != len(vars):
-      if str(vars[:lvl]).count('1') > degree:
-        return 0
+    if weight > degree:
+      return 0
 
     if lvl == len(vars):
         idx = index_of(vars)
         return sol[idx]
     else:
-        tmp0 = _f_expand(lvl + 1, alt(0), sol, degree)
-        tmp1 = _f_expand(lvl + 1, alt(1), sol, degree)
+        tmp0 = _f_expand(lvl + 1, alt(0), sol, weight, degree)
+        tmp1 = _f_expand(lvl + 1, alt(1), sol, weight+1, degree)
 
         f1 = tmp0 + tmp1
         f2 = tmp0
