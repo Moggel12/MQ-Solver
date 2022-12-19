@@ -2,7 +2,7 @@ import math
 from random import randint
 from utils import convert
 import numpy as np
-from itertools import combinations_with_replacement as cwr
+from itertools import combinations, combinations_with_replacement as cwr
 from monotonic_gray import monotonic_bounded
 
 def run_fes(f_sys, vars):
@@ -43,21 +43,6 @@ def init(f, vars):
         s["d1"][k] = s["d2"][k-1,k] ^^ f[k + 1]
     return s
 
-def bitslice(f_sys, vars):
-    f_sys_sliced = np.zeros(math.comb(len(vars) + 1, 2) + len(vars) + 1, dtype=int)
-    for j, poly in enumerate(f_sys):
-        f_sys_sliced[0] += int(poly.constant_coefficient()) << j
-        i = 1
-        for v in vars:
-            f_sys_sliced[i] += int(poly.coefficient({v_: 1 if v == v_ else 0 for v_ in vars})) << j
-            i += 1
-        for v1, v2 in cwr(range(len(vars)), 2):
-            if v1 == v2:
-                f_sys_sliced[i] += int(poly.coefficient({vars[v1]: 2, **{v: 0 for v in vars if v != vars[v1]}})) << j
-            else:
-                f_sys_sliced[i] += int(poly.coefficient({vars[v1]: 1, vars[v2]: 1, **{v: 0 for v in vars if v != vars[v1] and v != vars[v2]}})) << j
-            i += 1
-    return f_sys_sliced
 
 def partial_eval(f_sys, values, n):
     N = len(values)

@@ -6,6 +6,7 @@ REPORT = report/main.tex
 CC = gcc
 SRCDIR = src
 BUILD_DIR = build
+BIN_DIR = bin
 TEST_DIR = test
 TEST_TARGET = bin/test.elf
 TARGET = bin/mq.elf
@@ -22,22 +23,24 @@ SAN :=\
 			 -fsanitize=address \
 			 -fsanitize=leak \
 			 -fsanitize=undefined
-DEBUG := $(SAN) -Wall -Wextra -O0
-OPT := -O3 -Os
-CFLAGS := -g 
+DEBUG := $(SAN) -Wall -Wextra -O0 -g
+OPT := -O0 -g #-Os
 LIB := 
 INC := -Iinc
+CFLAGS := $(INC)
 
 VPATH = src/c:test
 
 # Targets
 all: $(TARGET)
 
-$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR)
-	$(CC) -o $@ -c $(CFLAGS) $<
+$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR) $(BIN_DIR)
+	$(CC) -o $@ $(CFLAGS) -c $<
 
+$(TARGET): CFLAGS += $(OPT)
 $(TARGET): $(OBJ)
 	@echo "Not written yet"
+	$(CC) -o $@ $^ 
 
 tests: CFLAGS += $(DEBUG)
 tests: $(TEST_TARGET) 
@@ -54,6 +57,9 @@ pdfclean:
 
 clean:
 	$(RM) -rf $(BUILD_DIR) $(TARGET) $(TEST_TARGET) bin
+
+$(BIN_DIR):
+	mkdir -p $@
 
 $(BUILD_DIR):
 	mkdir -p $@
