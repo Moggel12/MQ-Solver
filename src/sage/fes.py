@@ -78,7 +78,7 @@ def partial_eval(f_sys, values, n):
     f_sys_eval = np.append(f_sys_eval, f_sys[lex_idx(N, N, n) + n + _sage_const_1 :]) # Append square terms
     return f_sys_eval
 
-def bruteforce(system, R, n1, d):
+def bruteforce(system, R, n1, d, fes_rec=False):
     solutions = []
     # m = len(system)
     n = len(R.gens())
@@ -86,6 +86,8 @@ def bruteforce(system, R, n1, d):
     for i in range(_sage_const_2 **(n - n1)):
         if hamming_weight(i) > d:
             continue
+        if fes_rec:
+          i = i ^ (i >> _sage_const_1 )
         pe_sliced = partial_eval(sliced, convert(i, n - n1), n)
         sub_sol = run_fes(pe_sliced, R.gens()[(n - n1):])
         if sub_sol:

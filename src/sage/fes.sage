@@ -2,13 +2,13 @@ import math
 from random import randint
 from utils import convert
 import numpy as np
-from itertools import combinations, combinations_with_replacement as cwr
+from itertools import combinations_with_replacement as cwr
 from monotonic_gray import monotonic_bounded
 
 def run_fes(f_sys, vars):
     solutions = []
     n = len(vars)
-    # f_sys = preprocess(f_sys, n)
+    f_sys = preprocess(f_sys, n)
     s = init(f_sys, vars)
     if s["y"] == 0:
         solutions.append(0)
@@ -43,6 +43,21 @@ def init(f, vars):
         s["d1"][k] = s["d2"][k-1,k] ^^ f[k + 1]
     return s
 
+def bitslice(f_sys, vars):
+    f_sys_sliced = np.zeros(math.comb(len(vars) + 2 - 1, 2) + len(vars) + 1, dtype=int)
+    for j, poly in enumerate(f_sys):
+        f_sys_sliced[0] += int(poly.constant_coefficient()) << j
+        i = 1
+        for v in vars:
+            f_sys_sliced[i] += int(poly.coefficient({v_: 1 if v == v_ else 0 for v_ in vars})) << j
+            i += 1
+        for v1, v2 in cwr(range(len(vars)), 2):
+            if v1 == v2:
+                f_sys_sliced[i] += int(poly.coefficient({vars[v1]: 2, **{v: 0 for v in vars if v != vars[v1]}})) << j
+            else:
+                f_sys_sliced[i] += int(poly.coefficient({vars[v1]: 1, vars[v2]: 1, **{v: 0 for v in vars if v != vars[v1] and v != vars[v2]}})) << j
+            i += 1
+    return f_sys_sliced
 
 def partial_eval(f_sys, values, n):
     N = len(values)
@@ -57,7 +72,7 @@ def partial_eval(f_sys, values, n):
     f_sys_eval = np.append(f_sys_eval, f_sys[lex_idx(N, N, n) + n + 1:]) # Append square terms
     return f_sys_eval
 
-def bruteforce(system, R, n1, d):
+def bruteforce(system, R, n1, d, fes_rec=False):
     solutions = []
     # m = len(system)
     n = len(R.gens())
@@ -65,6 +80,8 @@ def bruteforce(system, R, n1, d):
     for i in range(2^(n - n1)):
         if hamming_weight(i) > d:
             continue
+        if fes_rec:
+          i = i ^^ (i >> 1)
         pe_sliced = partial_eval(sliced, convert(i, n - n1), n)
         sub_sol = run_fes(pe_sliced, R.gens()[(n - n1):])
         if sub_sol:

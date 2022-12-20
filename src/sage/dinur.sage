@@ -1,6 +1,7 @@
 # from mob import mob_transform
 from mob_new import mob_transform
 from fes import bruteforce
+from fes import hamming_weight
 import numpy as np
 from random import randint
 from utils import index_of, convert
@@ -16,10 +17,10 @@ from collections import defaultdict
 # _n_low = 2
 # _n_high = 10
 
-_m_low = 20 
-_m_high = 20 
-_n_low = 20 
-_n_high = 20 
+_m_low = 15
+_m_high = 15 
+_n_low = 15
+_n_high = 15 
 
 _time_bruteforce = 0
 _time_u_values = 0
@@ -51,6 +52,7 @@ def random_system_with_sol():
     system, n, _, _, R = random_system()
     sol = randint(0, 2^n - 1) 
     system = [f if f(*convert(sol, n)) == 0 else (f + 1) for f in system]
+    print("Forced solution: [" + ", ".join((f"{sol:0{n}b}")[::-1]) + "]")
     return system, sol, R, n
 
 def test_u_values(trials, verbose=False):
@@ -157,7 +159,7 @@ def compute_u_values(system, R, n1, w, slice):
     n = len(R.gens())
 
     _time_bruteforce -= time.time() 
-    sols = bruteforce(system, R, n1, w + 1)
+    sols = bruteforce(system, R, n1, w + 1, slice)
     _time_bruteforce += time.time()
 
     V, ZV = None, None
@@ -172,6 +174,7 @@ def compute_u_values(system, R, n1, w, slice):
 
     for s in sols:
         y, z = s[:n - n1], s[n - n1:]
+
         if sum(y) <= w:
             # print(y)
             idx = index_of(y)
@@ -191,6 +194,7 @@ def compute_u_values(system, R, n1, w, slice):
     _time_u_values += time.time()
     
     if slice:
+        #print("ZV: ", ZV.keys())
         return ZV
     else:
         return V, ZV
@@ -212,7 +216,7 @@ def output_potentials(system, R, n1, w, fes_recovery):
         
         _time_fes_recovery -= time.time()
         
-        evals = fes_recover(VZV, n - n1, w)
+        evals = fes_recover(VZV, n - n1, w+1)
 
         _time_fes_recovery += time.time()
 
@@ -237,7 +241,7 @@ def output_potentials(system, R, n1, w, fes_recovery):
 
         U.append(mob_transform(V, R_sub.gens(), w))
         for i in range(1, n1 + 1):
-            U.append(mob_transform(ZV[i - 1], R_sub.gens(), w))
+            U.append(mob_transform(ZV[i - 1], R_sub.gens(), w+1))
 
         _time_mobius += time.time()
 
@@ -245,9 +249,36 @@ def output_potentials(system, R, n1, w, fes_recovery):
 
         _time_full_eval -= time.time()
 
+
+        evals = [None] * (n1 + 1)
         for i in range(n1 + 1):
-            for y in range(2^(n - n1)):
-                evals[i][y] = U[i](*convert(y, n - n1))
+            tmp = [0] * 2^(n-n1)
+            for m in U[i].monomials():
+              if m == 1:
+                v = 0
+              else:
+                v = str(m)
+                v = v.replace('x', '')
+                v = [int(i) for i in v.split("*")]
+                v = sum([2^i for i in v])
+              tmp[v] = GF(2)(1)
+    
+            tmp = mob_transform(tmp, R_sub.gens())
+    
+            evals[i] = [0] * 2^(n-n1)
+            for m in tmp.monomials():
+              if m == 1:
+                v = 0
+              else:
+                v = str(m)
+                v = v.replace('x', '')
+                v = [int(i) for i in v.split("*")]
+                v = sum([2^i for i in v])
+              evals[i][v] = GF(2)(1)
+
+#        for i in range(n1 + 1):
+#            for y in range(2^(n - n1)):
+#                evals[i][y] = U[i](*convert(y, n - n1))
 
         _time_full_eval += time.time()
 
@@ -266,6 +297,7 @@ def output_potentials(system, R, n1, w, fes_recovery):
 
         _time_fetch_sol += time.time()
 
+    print("num pot sol: ", len(out))
     return out
 
 def test_solution(system, sol):
@@ -295,19 +327,32 @@ def solve(system, R):
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
     l = n1 + 1
     m = len(system)
+
+    sols = bruteforce(system, R, n, n)
+    print("All solutions:", sols)
+
     potentials_solutions = []
     k = 0
 
-    while k < 4:
+    while k < 16:
         print("Commencing round", k)
         A = np.rint(np.random.rand(l, m))
 
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
-        w = sum(f.degree() for f in system) - n1 # Do this differently 
+        w = sum(f.degree() for f in E_k) - n1 # Do this differently 
+
+        print("w: ", w, len(system))
 
         _time_output_potentials -= time.time()
 
-        curr_potential_sol = output_potentials(system, R, n1, w, True)
+        curr_potential_sol = output_potentials(E_k, R, n1, w, True)
+        #curr_potential_sol_mob = output_potentials(E_k, R, n1, w, False)
+
+        #if curr_potential_sol != curr_potential_sol_mob:
+        #  print("FES and Mob don't agree...")
+
+        #print(len([f"{v:0{n}b}"[::-1] for v in curr_potential_sol.keys() if v not in curr_potential_sol_mob.keys()]))
+        #print(len([f"{v:0{n}b}"[::-1] for v in curr_potential_sol_mob.keys() if v not in curr_potential_sol.keys()]))
 
         _time_output_potentials += time.time()
 
@@ -327,7 +372,7 @@ def solve(system, R):
     return None
 
 def main():
-    rounds = 10
+    rounds = 1
     # test_u_values(1, False)
     # test_output_sol(1, True)
     # test_sliced_recovery(10)
