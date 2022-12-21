@@ -152,6 +152,13 @@ def dry_run_solve(trials):
         print("Solution found:", sol)
         print("Verify found solution:", [f(*sol) for f in system])
 
+def GrayToBinary(num):
+    mask = num
+    while mask:
+        mask >>= 1
+        num ^^= mask
+    return num
+
 def compute_u_values(system, R, n1, w, slice):
     global _time_bruteforce
     global _time_u_values
@@ -165,7 +172,13 @@ def compute_u_values(system, R, n1, w, slice):
     V, ZV = None, None
 
     if slice:
-        ZV = defaultdict(lambda: 0)
+        ZV = defaultdict(lambda: None)
+
+        for i in range(2^(n - n1)):
+          if hamming_weight(i) > w+1:
+            #print(bin(i))
+            continue
+          ZV[i ^^ (i >> 1)] = 0
     else:
         V = defaultdict(lambda: GF(2)(0))
         ZV = [defaultdict(lambda: GF(2)(0)) for _ in range(n1)]
@@ -175,21 +188,34 @@ def compute_u_values(system, R, n1, w, slice):
     for s in sols:
         y, z = s[:n - n1], s[n - n1:]
 
-        if sum(y) <= w:
+        idx = index_of(y)
+
+        if slice:
+          gidx = GrayToBinary(idx)
+          yw = w + 1  # since we also interpolate U[0] for w+1 during fes_recover (bitsliced),
+                      # we also need the (w+1)-weight interpolation point.
+        else:
+          gidx = idx
+          yw = w
+
+        if hamming_weight(gidx) <= yw:
             # print(y)
             idx = index_of(y)
+
             if slice:
                 ZV[idx] ^^= 1
             else:
-                V[idx] += 1
+                V[idx] += GF(2)(1)
 
-        for i in range(1, n1 + 1):
+        if hamming_weight(gidx) <= w + 1:
+          for i in range(1, n1 + 1):
             if z[i - 1] == 0:
                 idx = index_of(y)
+
                 if slice:
                     ZV[idx] ^^= (1 << i)
                 else:
-                    ZV[i - 1][idx] += 1
+                    ZV[i - 1][idx] += GF(2)(1)
 
     _time_u_values += time.time()
     
@@ -207,8 +233,24 @@ def output_potentials(system, R, n1, w, fes_recovery):
 
     n = len(R.gens())
     R_sub = GF(2)[", ".join([str(var) for var in R.gens()[:n - n1]])]
-     
-    VZV = compute_u_values(system, R, n1, w + 1, fes_recovery)
+
+    #if fes_recovery:
+    #  #VZV = compute_u_values(system, R, n1, w, fes_recovery)
+    #  VZV = compute_u_values(system, R, n1, w+2, fes_recovery)
+    #  #VZV = compute_u_values(system, R, n1, n-n1-1, fes_recovery)
+    #  ## allVZV = compute_u_values(system, R, n1, n-n1, fes_recovery)
+
+    #  ## for i in VZV.keys():
+    #  ##   if VZV[i] != allVZV[i]:
+    #  ##     print("err", i, bin(VZV[i]), bin(allVZV[i]))
+    #  ##     VZV[i] ^^= 1
+    #  ## #    VZV[i] = allVZV[i]
+
+
+    #else:
+    #  VZV = compute_u_values(system, R, n1, w, fes_recovery)
+
+    VZV = compute_u_values(system, R, n1, w, fes_recovery)
      
     out = defaultdict(lambda: GF(2)(0))
 
@@ -216,7 +258,7 @@ def output_potentials(system, R, n1, w, fes_recovery):
         
         _time_fes_recovery -= time.time()
         
-        evals = fes_recover(VZV, n - n1, w+1)
+        evals = fes_recover(VZV, n - n1, w + 1)
 
         _time_fes_recovery += time.time()
 
@@ -251,6 +293,7 @@ def output_potentials(system, R, n1, w, fes_recovery):
 
 
         evals = [None] * (n1 + 1)
+
         for i in range(n1 + 1):
             tmp = [0] * 2^(n-n1)
             for m in U[i].monomials():
@@ -275,6 +318,16 @@ def output_potentials(system, R, n1, w, fes_recovery):
                 v = [int(i) for i in v.split("*")]
                 v = sum([2^i for i in v])
               evals[i][v] = GF(2)(1)
+
+        ##print(evals[1], ZV[0])
+        #for i in range(2^(n-n1)):
+        #  if evals[0][i] != V[i]:
+        #    print("err,", i, evals[1][i], ZV[0][i])
+
+        #  for j in range(n1):
+        #    if evals[j+1][i] != ZV[j][i]:
+        #      print("err,", i, evals[j+1][i], ZV[j][i])
+
 
 #        for i in range(n1 + 1):
 #            for y in range(2^(n - n1)):
@@ -341,18 +394,21 @@ def solve(system, R):
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
         w = sum(f.degree() for f in E_k) - n1 # Do this differently 
 
-        print("w: ", w, len(system))
+        print("m: ", m, len(system))
+        print("n: ", n)
+        print("l: ", l, len(E_k))
+        print("w: ", w)
+        print("n1: ", n1)
 
         _time_output_potentials -= time.time()
 
         curr_potential_sol = output_potentials(E_k, R, n1, w, True)
-        #curr_potential_sol_mob = output_potentials(E_k, R, n1, w, False)
+        curr_potential_sol_mob = output_potentials(E_k, R, n1, w, False)
+        #curr_potential_sol = output_potentials(E_k, R, n1, w, False)
 
-        #if curr_potential_sol != curr_potential_sol_mob:
-        #  print("FES and Mob don't agree...")
-
-        #print(len([f"{v:0{n}b}"[::-1] for v in curr_potential_sol.keys() if v not in curr_potential_sol_mob.keys()]))
-        #print(len([f"{v:0{n}b}"[::-1] for v in curr_potential_sol_mob.keys() if v not in curr_potential_sol.keys()]))
+        if len([f"{v:0{n}b}"[::-1] for v in curr_potential_sol.keys() if v not in curr_potential_sol_mob.keys()]) == 0 and \
+           len([f"{v:0{n}b}"[::-1] for v in curr_potential_sol_mob.keys() if v not in curr_potential_sol.keys()]) == 0:
+          print("OK - FES and Möbius agree!")
 
         _time_output_potentials += time.time()
 

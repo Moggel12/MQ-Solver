@@ -84,6 +84,11 @@ def fes_recover(evall, n, degree, f = None):  # parameter f for debugging polyno
 
       for j in reversed(range(0, len(k))):
         d[sum([2^i for i in k[:j]])] = d[sum([2^i for i in k[:j]])] ^^ d[sum([2^i for i in k[:j+1]])]
+
+      ## # Check evaluation if we have enumerated for testing:
+      ## if evall[si ^^ (si >> 1)] != None:
+      ##   if evall[si ^^ (si >> 1)] != d[0]:
+      ##     print("error", evall[si ^^ (si >> 1)], d[0], si ^^ (si >> 1), bin(si ^^ (si >> 1)))
     
       res[si ^^ (si >> 1)] = d[0]
 
@@ -92,11 +97,9 @@ def fes_recover(evall, n, degree, f = None):  # parameter f for debugging polyno
 
       k = bits(si)[:degree]
   
-      i = si ^^ (si >> 1)
-    
       prev = d[0]
-      d[0] = evall[i]
-    
+      d[0] = evall[si ^^ (si >> 1)]
+
       for j in range(1, len(k)+1):
         if j < len(k):
           tmp = d[sum([2^i for i in k[:j]])]
