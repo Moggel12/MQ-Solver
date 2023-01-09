@@ -7,7 +7,6 @@ from math import ceil
 from fes_rec import fes_recover
 import time
 
-from itertools import combinations
 from collections import defaultdict
 
 # For testing purposes
@@ -16,10 +15,10 @@ from collections import defaultdict
 # _n_low = 2
 # _n_high = 10
 
-_m_low = 7 
-_m_high = 7 
-_n_low = 7 
-_n_high = 7 
+_m_low = 5 
+_n_low = 5
+_m_high = 5 
+_n_high = 5 
 
 _time_bruteforce = 0
 _time_u_values = 0
@@ -319,7 +318,7 @@ def solve(system, ring, fes_recovery=False):
     return None
 
 def main():
-    rounds = 10
+    rounds = 50
     # test_u_values(rounds, True)
     # test_dinur_output_sol(rounds, True)
     dry_run_solve(rounds)

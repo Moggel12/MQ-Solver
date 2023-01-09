@@ -79,49 +79,49 @@ def fes_recover(system, n, n1, degree, ring):    # parameter f for debugging pol
     return res
 
 def test():
-        n = 8
-        degree = 3
+    n = 8
+    degree = 3
 
-        ring = GF(2)[", ".join(["x" + str(i) for i in range(n)])]
+    ring = GF(2)[", ".join(["x" + str(i) for i in range(n)])]
 
-        print(ring)
-        print()
-
-
-        X = ring.gens()
-
-        f = GF(2).random_element()
-
-        for d in range(1, degree+1):
-            for mon in combinations(range(n), d):
-                f += prod([X[i] for i in mon]) * GF(2).random_element()
-            
-
-        print("Input polynomial:", f)
-        print()
-
-        print("Performing full evaluation...")
-        eval_full = fes_eval(f)
-
-        print(eval_full)
-
-        check = [f(*reversed([int(i) for i in f"{x:0{n}b}"])) for x in range(2^n)]
-
-        print(check)
-
-        print(eval_full == check)
+    print(ring)
+    print()
 
 
-        print("\nPerforming partial evaluation and recovery...")
-        eval_part = fes_eval(f, f.degree())
+    X = R.gens()
 
-        print("[" + ", ".join(['-' if v == None else str(v) for v in eval_part]) + "]")
+    f = GF(2).random_element()
 
-        recovered = fes_recover(eval_part, len(f.parent().gens()), f.degree(), f, ring)
-    
-        print(recovered)
+    for d in range(1, degree+1):
+      for mon in combinations(range(n), d):
+        f += prod([X[i] for i in mon]) * GF(2).random_element()
+      
 
-        print(recovered == eval_full)
+    print("Input polynomial:", f)
+    print()
+
+    print("Performing full evaluation...")
+    eval_full = fes_eval(f)
+
+    print(eval_full)
+
+    check = [f(*reversed([int(i) for i in f"{x:0{n}b}"])) for x in range(2^n)]
+
+    print(check)
+
+    print(eval_full == check)
+
+
+    print("\nPerforming partial evaluation and recovery...")
+    eval_part = fes_eval(f, f.degree())
+
+    print("[" + ", ".join(['-' if v == None else str(v) for v in eval_part]) + "]")
+
+    recovered = fes_recover(eval_part, len(f.parent().gens()), f.degree(), f, ring)
+
+    print(recovered)
+
+    print(recovered == eval_full)
 
 if __name__ == "__main__":
-        test()
+    test()
