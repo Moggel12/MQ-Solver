@@ -1,75 +1,15 @@
-import math
-from random import randint
-from utils import convert
-import numpy as np
-from itertools import combinations, combinations_with_replacement as cwr
-from monotonic_gray import monotonic_bounded
+from dataclasses import dataclass
 
-def run_fes(f_sys, vars):
-    solutions = []
-    n = len(vars)
-    # f_sys = preprocess(f_sys, n)
-    s = init(f_sys, vars)
-    if s["y"] == 0:
-        solutions.append(0)
-    while s["i"] < 2^n - 1:
-        s = next(s)
-        if s["y"] == 0:
-            solutions.append(gray_code(s["i"]))
-    return solutions 
+from utils import convert, bitslice
+from itertools import combinations
 
-def next(s):
-    s["i"] += 1
-    k1 = bit1(s["i"])
-    k2 = bit2(s["i"])
-    if k2 > -1:
-        s["d1"][k1] = (s["d1"][k1] ^^ s["d2"][k1,k2])
-    s["y"] = (s["y"] ^^ s["d1"][k1])
-    return s
-
-def init(f, vars):
-    n = len(vars)
-    s = dict()
-    s["i"] = 0 
-    s["y"] = f[0] # Updated
-    s["d2"] = np.zeros((n, n), dtype=int) # Updated
-    id = [(k, j) for (k,j) in cwr(range(n), 2)]
-    for i, (k, j) in enumerate(id):
-        if k == j: continue
-        s["d2"][k,j] = f[i + len(vars) + 1] # Updated: High probability of error
-    s["d1"] = np.zeros(n, dtype=int) # Updated
-    s["d1"][0] = f[1] # Updated
-    for k in range(1, n):
-        s["d1"][k] = s["d2"][k-1,k] ^^ f[k + 1]
-    return s
-
-
-def partial_eval(f_sys, values, n):
-    N = len(values)
-    f_sys_eval = [f_sys[0], *f_sys[(N + 1):(n + 1)]] # Append constants
-    for i, v0 in enumerate(values):
-        f_sys_eval[0] = f_sys_eval[0] ^^ (v0 * f_sys[i + 1])
-        for j in range(i, N):
-            v1 = values[j]
-            f_sys_eval[0] = f_sys_eval[0] ^^ (v0 * v1 * f_sys[lex_idx(i, j, n) + n + 1]) # Add evaluated linear terms
-        for j in range(N, n):
-            f_sys_eval[j - N + 1] = f_sys_eval[j - N + 1] ^^ (v0 * f_sys[lex_idx(i, j, n) + n + 1])
-    f_sys_eval = np.append(f_sys_eval, f_sys[lex_idx(N, N, n) + n + 1:]) # Append square terms
-    return f_sys_eval
-
-def bruteforce(system, R, n1, d):
-    solutions = []
-    # m = len(system)
-    n = len(R.gens())
-    sliced = bitslice(system, R.gens())
-    for i in range(2^(n - n1)):
-        if hamming_weight(i) > d:
-            continue
-        pe_sliced = partial_eval(sliced, convert(i, n - n1), n)
-        sub_sol = run_fes(pe_sliced, R.gens()[(n - n1):])
-        if sub_sol:
-            solutions += [convert(i, n - n1) + convert(s, n1) for s in sub_sol]
-    return solutions
+@dataclass
+class State:
+    i: int
+    y: int
+    d1: list
+    d2: list
+    prefix: list
 
 def hamming_weight(x):
     x -= (x >> 1) & 0x5555555555555555
@@ -77,88 +17,162 @@ def hamming_weight(x):
     x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f
     return ((x * 0x0101010101010101) & 0xffffffffffffffff ) >> 56
 
-def preprocess(f_sys, n): 
-    for i in range(n):
-        f_sys[i + 1] = f_sys[i + 1] ^^ f_sys[lex_idx(i, i, n) + n + 1]
-    return f_sys
+def preprocess(f):
+    for v in f.parent.gens():
+        if v^2 in f.monomials():
+            f = f + v^2 + v
+    return f
 
 def lex_idx(i, j, n):
-    return sum((n - k) for k in range(i + 1)) - (n - j)
+    return n + sum((n - k) for k in range(1, i + 2)) - (n - j - 1)
 
-def bit1(i):
-    return int(math.log2(i & (-i)))
+# Get index position of first bit set (if any).
+def bit1(x):
+    x = x&-x
 
-def bit2(i):
-    if math.log2(i).is_integer(): return -1
-    i &= (i - 1)
-    i &= (-1)
-    return int(bit1(i))
+    x = int(x).bit_length()
 
-def gray_code(i): return i ^^ (i >> 1)
+    return None if x == 0 else x-1
 
-def subspace_gen(n, n1, w):
-    for g in monotonic_bounded(n - n1, w + 1): 
-        for i in range(2^n1):
-            yield g + convert(i, n1)
+# Get index position of second bit set (if any).
+def bit2(x):
+    # Remove first set bit and get position of the remaining 'first' bit.
+    return bit1(x ^^ (x&-x))
 
-def test_solutions(f_sys, sol, R):
-    for s in range(2^len(R.gens())):
-        faulted_sol = False
-        for f in f_sys:
-            args = convert(s, len(R.gens()))
-            res = f(*args) 
-            faulted_sol = faulted_sol or res
-            if res and (s in sol):
-                print(
-                    "=== Case 1 ===\n"
-                    f"Variables: {R.gens()}\n"
-                    f"Polynomial: {f}\n"
-                    f"Input: {args}\n"
-                    f"Actual sol: {res}\n"
-                    f"Decimal input: {s}\n"
-                    "==="
-                )
-                return False
-        if (not faulted_sol) and (s not in sol):
-            print(
-                "=== Case 2 ===\n"
-                f"Variables: {R.gens()}\n"
-                f"Input: {convert(s, len(R.gens()))}\n"
-                f"Decimal input: {s}\n"
-                f"Actual solution: {[f(*convert(s, len(R.gens()))) for f in f_sys]}\n"
-                "==="
-            )
-            return False
-    return True
+def init(f, n, n1, prefix):
+    s = State(i = 0, y = f[0], d1=[0]*n1, d2=[[0]*n1 for _ in range(n1)], prefix=prefix)
 
-def test_fes(trials):
-    res = True
-    for _ in range(trials):
-        f_sys = []
-        m = randint(5, 10)
-        n = randint(2, 10)
-        R = GF(2)[", ".join(["x" + str(i) for i in range(n)])]
-        for _ in range(m):
-            f = R(GF(2)[R.gens()].random_element(degree=2))
-            f_sys.append(f)
-        m = len(f_sys)
-        f_sys_sl = bitslice(f_sys, R.gens())
-        sol = run_fes(f_sys_sl, R.gens())
-        res = test_solutions(f_sys, sol, R)
-        if not res:
-            print(
-                # f"{f_sys_prep}\n"
-                f"{f_sys}\n"
-                f"{f_sys_sl}\n"
-                f"{sol}\n"
-                f"{res}"
-            )
-            break
-    if res:
-        print(f"No errors found for {trials} trials")
+    for k in range(n1):
+        for j in range(k):
+            s.d2[k][j] = f[lex_idx(j + (n - n1), k + (n - n1), n)] # Alter this function in old FES
 
-def main():
-    test_fes(100)
+    s.d1[0] = f[1 + n - n1]
+    # s.d1[0] = f.monomial_coefficient(X[0+(n-n1)])
+    for k in range(1, n1):
+        s.d1[k] = s.d2[k][k-1] ^^ f[1 + k + (n - n1)]
+        # s.d1[k] = s.d2[k][k-1] + f.monomial_coefficient(X[k+(n-n1)]) # <---- Remove when ready
 
-if __name__ == "__main__":
-    main()
+    # add pre-evaluation for prefix variables
+    for idx in prefix:
+        for k in range(n1):
+            s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)] # Alter this function in old FES
+            # s.d1[k] += f.monomial_coefficient(X[idx]*X[k+(n-n1)]) # <---- Remove when ready
+            
+        s.y ^^= f[idx]
+        # s.y += f.monomial_coefficient(X[idx]) # <---- Remove when ready
+
+    for i, j in combinations(prefix, 2):
+        idx = lex_idx(i, j, n) # Alter this function in old FES
+        s.y ^^= f[idx] # Index into this here
+        # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
+
+    return s
+
+def update(s, f, n, n1, prefix):
+    if s == None:
+        return init(f, n, n1, prefix)
+
+    off = [v for v in s.prefix if v not in prefix]
+    on = [v for v in prefix if v not in s.prefix]
+
+    # turn old variables off
+    for idx in off:
+        for k in range(n1):
+            s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)] 
+
+        s.y ^^= f[idx + 1]
+
+    for i in off:
+        for j in [v for v in s.prefix if v not in off]:
+            s.y ^^= f[lex_idx(i, j, n)]
+
+    for i, j in combinations(off, 2):
+        s.y ^^= f[lex_idx(i, j, n)]
+
+    # turn new variables on
+    for idx in on:
+        for k in range(n1):
+            s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)]
+
+        s.y ^^= f[idx + 1]
+
+    for i in on:
+        for j in [v for v in prefix if v not in on]:
+            s.y ^^= f[lex_idx(i, j, n)]
+            # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
+
+    for i, j in combinations(on, 2):
+        s.y ^^= f[lex_idx(i, j, n)]
+        # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
+
+    s.prefix = prefix
+
+    return s
+
+def step(s):
+    s.i = s.i + 1
+    k1 = bit1(s.i)
+    k2 = bit2(s.i)
+
+    if k2:
+        s.d1[k1] ^^= s.d2[k2][k1]
+
+    s.y ^^= s.d1[k1]
+
+def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
+
+    if n1 == None:
+        n1 = n
+
+    if compute_parity:
+        parities = 0
+    else:
+        res = []
+
+    if s == None:
+        s = init(f, n, n1, prefix)
+    
+    pre_x = sum([1<<i for i in prefix])
+
+    if s.y == 0:
+        if compute_parity:
+            parities ^^= 2^(n1 + 1) - 1
+        else:
+            res.append(((s.i ^^ (s.i >> 1)) << (n-n1)) | pre_x)
+
+    while s.i < 2^n1 - 1:
+        step(s)
+
+        if s.y == 0:
+            if compute_parity:
+                parities ^^= 1
+                z = (s.i ^^ (s.i >> 1))
+                for pos in range(n1):
+                    if z & (1 << pos) == 0:
+                        parities ^^= (1 << (pos + 1))
+            else:
+                res.append(((s.i ^^ (s.i >> 1)) << (n-n1)) | pre_x)
+
+    # reset s.i to initial state
+    s.i = 0
+    for i in range(n1-1):
+        s.d1[i] ^^= s.d2[n1-1][i]
+    s.y ^^= s.d1[n1-1] ^^ s.d2[n1-1][n1-2]
+
+    if compute_parity:
+        return parities 
+    return res
+
+def bruteforce(system, vars, n1, d):
+    solutions = []
+    n = len(vars)
+    sliced = bitslice(system, vars)
+    s = None
+    for i in range(2^(n - n1)):
+        if hamming_weight(i) > d:
+            continue
+        prefix = [pos for pos, b in enumerate(reversed(bin(i)[2:])) if b == "1"]
+        s = update(s, sliced, n, n1, prefix)
+        sub_sol = fes_eval(sliced, n, n1, prefix, s)
+        solutions += [convert(sol, n) for sol in sub_sol]
+    return solutions
