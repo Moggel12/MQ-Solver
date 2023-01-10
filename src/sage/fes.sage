@@ -58,7 +58,7 @@ def init(f, n, n1, prefix):
             s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)] # Alter this function in old FES
             # s.d1[k] += f.monomial_coefficient(X[idx]*X[k+(n-n1)]) # <---- Remove when ready
             
-        s.y ^^= f[idx]
+        s.y ^^= f[idx + 1]
         # s.y += f.monomial_coefficient(X[idx]) # <---- Remove when ready
 
     for i, j in combinations(prefix, 2):
