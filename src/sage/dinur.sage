@@ -207,7 +207,7 @@ def output_potentials(system, ring, n1, w, fes_recovery):
 
         U.append(mob_transform(V, ring_sub.gens(), w))
         for i in range(1, n1 + 1):
-            U.append(mob_transform(ZV[i - 1], ring_sub.gens(), w))
+            U.append(mob_transform(ZV[i - 1], ring_sub.gens(), w+1))
 
         _time_mobius += time.time()
 
