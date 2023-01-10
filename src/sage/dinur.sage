@@ -15,10 +15,10 @@ from collections import defaultdict
 # _n_low = 2
 # _n_high = 10
 
-_m_low = 5 
-_n_low = 5
-_m_high = 5 
-_n_high = 5 
+_m_low = 20
+_n_low = 20
+_m_high = 20
+_n_high = 20
 
 _time_bruteforce = 0
 _time_u_values = 0
@@ -277,7 +277,7 @@ def gen_matrix_rank_l(l, m):
         A = random_matrix(GF(2), l, m)
     return A
 
-def solve(system, ring, fes_recovery=False):
+def solve(system, ring, fes_recovery=True):
     global _time_solve_trials
     global _time_output_potentials
     system = preprocess(system, ring)
@@ -288,6 +288,8 @@ def solve(system, ring, fes_recovery=False):
     m = len(system)
     potentials_solutions = []
     k = 0
+
+    print(f"n: {n}   n1: {n1}   l: {l}")
 
     while k < 16:
         print("Commencing round", k)
@@ -318,7 +320,7 @@ def solve(system, ring, fes_recovery=False):
     return None
 
 def main():
-    rounds = 50
+    rounds = 1
     # test_u_values(rounds, True)
     # test_dinur_output_sol(rounds, True)
     dry_run_solve(rounds)

@@ -2,6 +2,7 @@ from itertools import combinations
 from fes import update, fes_eval
 import numpy as np
 from utils import convert, bitslice
+import time
 
 # Get index position of first bit set (if any).
 def bit1(x):
@@ -41,9 +42,13 @@ def fes_recover(system, n, n1, degree, ring):    # parameter f for debugging pol
     res[0] = new_parities 
     d[0] = new_parities 
 
+    fes_time_eval = 0
+    fes_time_inter = 0
+
     for si in range(1, 2^(n - n1)):
         if len(bits(si)) > degree:
             # We have the required derivatives; compute the missing evluation value.
+            fes_time_eval -= time.time()
 
             k = bits(si)[:degree]
 
@@ -52,8 +57,12 @@ def fes_recover(system, n, n1, degree, ring):    # parameter f for debugging pol
         
             res[si] = d[0]
 
+            fes_time_eval += time.time()
+
         else:
             # We need to interpolate derivatives.
+            fes_time_inter -= time.time()
+
             k = bits(si)[:degree]
     
             i = si ^^ (si >> 1)
@@ -75,6 +84,10 @@ def fes_recover(system, n, n1, degree, ring):    # parameter f for debugging pol
                     prev = tmp
 
             res[si] = d[0]
+
+            fes_time_inter += time.time()
+
+    print(fes_time_eval, fes_time_inter)
 
     return res
 
