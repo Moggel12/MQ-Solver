@@ -24,6 +24,7 @@ def preprocess(f):
     return f
 
 def lex_idx(i, j, n):
+    i, j = (i, j) if i < j else (j, i)
     return n + sum((n - k) for k in range(1, i + 2)) - (n - j - 1)
 
 # Get index position of first bit set (if any).
@@ -58,7 +59,7 @@ def init(f, n, n1, prefix):
             s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)] # Alter this function in old FES
             # s.d1[k] += f.monomial_coefficient(X[idx]*X[k+(n-n1)]) # <---- Remove when ready
             
-        s.y ^^= f[idx]
+        s.y ^^= f[idx + 1]
         # s.y += f.monomial_coefficient(X[idx]) # <---- Remove when ready
 
     for i, j in combinations(prefix, 2):
