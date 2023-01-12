@@ -24,6 +24,7 @@ def preprocess(f):
     return f
 
 def lex_idx(i, j, n):
+    i, j = (i, j) if i < j else (j, i)
     return n + sum((n - k) for k in range(1, i + 2)) - (n - j - 1)
 
 # Get index position of first bit set (if any).
