@@ -15,10 +15,10 @@ from collections import defaultdict
 # _n_low = 2
 # _n_high = 10
 
-_m_low = 20
-_n_low = 20
-_m_high = 20
-_n_high = 20
+_m_low = 5 
+_n_low = 5 
+_m_high = 5 
+_n_high = 5 
 
 _time_bruteforce = 0
 _time_u_values = 0
@@ -88,7 +88,7 @@ def test_dinur_output_sol(trials, verbose=False):
         w = F_tilde.degree() - n1
         if verbose:
             print(f"Checking system\n{system}\n(n, m, n1, w){(n, m, n1, w)}")
-        potentials = output_potentials(system, ring, n1, w, True)
+        potentials = output_potentials(system, ring, n1, w, True) 
         for y in range(2^(n - n1)):
             if verbose: print("Computing s0 sum...")
             s0 = sum(F_tilde(*convert(y, n - n1), *convert(z_hat, n1)) for z_hat in range(2^n1))
@@ -322,17 +322,17 @@ def solve(system, ring, fes_recovery=True):
 def main():
     rounds = 1
     # test_u_values(rounds, True)
-    # test_dinur_output_sol(rounds, True)
-    dry_run_solve(rounds)
-    print("Bruteforce time:", _time_bruteforce/rounds)
-    print("U value computation time:", _time_u_values/rounds)
-    print("Time for FES interpolation:", _time_fes_recovery/rounds)
-    print("Möbius transform time", _time_mobius/rounds)
-    print("Full evaluation time", _time_full_eval/rounds)
-    print("Fetch solutions time", _time_fetch_sol/rounds)
-    print("Output potentials time", _time_output_potentials/rounds)
-    print("Solve trials time:", _time_solve_trials/rounds)
-    print("Solve time", _time_solve/rounds)
+    test_dinur_output_sol(rounds, True)
+    # dry_run_solve(rounds)
+    # print("Bruteforce time:", _time_bruteforce/rounds)
+    # print("U value computation time:", _time_u_values/rounds)
+    # print("Time for FES interpolation:", _time_fes_recovery/rounds)
+    # print("Möbius transform time", _time_mobius/rounds)
+    # print("Full evaluation time", _time_full_eval/rounds)
+    # print("Fetch solutions time", _time_fetch_sol/rounds)
+    # print("Output potentials time", _time_output_potentials/rounds)
+    # print("Solve trials time:", _time_solve_trials/rounds)
+    # print("Solve time", _time_solve/rounds)
 
 if __name__ == "__main__":
     main()

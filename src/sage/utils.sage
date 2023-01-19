@@ -2,6 +2,7 @@ import numpy as np
 from itertools import combinations
 import math
 import re
+import ctypes
 
 _REGEX_FIELD = r"Galois Field : GF\(2\)"
 _REGEX_NUM_VARS = r"Number of variables \(n\) : (\d+)"
@@ -26,6 +27,7 @@ def bitslice(f_sys, vars):
             for v1, v2 in combinations(range(len(vars)), 2):
                 f_sys_sliced[i] ^^= int(poly.coefficient({vars[v1]: 1, vars[v2]: 1, **{v: 0 for v in vars if v not in [vars[v1], vars[v2]]}})) << j
                 i += 1
+    print(f_sys_sliced)
     return f_sys_sliced
 
 def convert(v, n):
@@ -34,6 +36,12 @@ def convert(v, n):
 
 def index_of(y_list):
     return sum(b << i for i, b in enumerate(y_list))
+
+def fetch_c_func(func_name):
+    libc = ctypes.CDLL("../../bin/mq.so")
+    c_func = eval(f"libc.{func_name}")
+    return c_func
+
 
 # Reads monomials such that all monomials of the same are read right->left (low to high using the graded reverse lex order).
 # Could also yield the values needed for easy bitslicing early on, however, this will do for now.

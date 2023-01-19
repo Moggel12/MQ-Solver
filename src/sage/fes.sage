@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from utils import convert, bitslice
+from utils import convert, bitslice, fetch_c_func
 from itertools import combinations
 
 @dataclass
@@ -48,24 +48,19 @@ def init(f, n, n1, prefix):
             s.d2[k][j] = f[lex_idx(j + (n - n1), k + (n - n1), n)] # Alter this function in old FES
 
     s.d1[0] = f[1 + n - n1]
-    # s.d1[0] = f.monomial_coefficient(X[0+(n-n1)])
     for k in range(1, n1):
         s.d1[k] = s.d2[k][k-1] ^^ f[1 + k + (n - n1)]
-        # s.d1[k] = s.d2[k][k-1] + f.monomial_coefficient(X[k+(n-n1)]) # <---- Remove when ready
 
     # add pre-evaluation for prefix variables
     for idx in prefix:
         for k in range(n1):
             s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)] # Alter this function in old FES
-            # s.d1[k] += f.monomial_coefficient(X[idx]*X[k+(n-n1)]) # <---- Remove when ready
             
         s.y ^^= f[idx + 1]
-        # s.y += f.monomial_coefficient(X[idx]) # <---- Remove when ready
 
     for i, j in combinations(prefix, 2):
         idx = lex_idx(i, j, n) # Alter this function in old FES
         s.y ^^= f[idx] # Index into this here
-        # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
 
     return s
 
@@ -177,3 +172,22 @@ def bruteforce(system, vars, n1, d):
         sub_sol = fes_eval(sliced, n, n1, prefix, s)
         solutions += [convert(sol, n) for sol in sub_sol]
     return solutions
+
+
+
+def c_fes_eval_parities():
+    c_func = fetch_c_func("test")
+    c_func()
+    print("####")
+    system = [ 5, 5, 25, 1, 7, 12, 17, 1, 28, 29, 2, 16, 21, 15, 21, 30]
+    print(system)
+    prefix = [0]
+    n = 5
+    n1 = 3
+    s = None
+    s = update(s, system, n, n1, prefix)
+    for s in fes_eval(system, n, n1, prefix, s, False):
+        print("Solution", s)
+    
+if __name__ == "__main__":
+    c_fes_eval_parities()

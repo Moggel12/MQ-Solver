@@ -8,8 +8,8 @@ SRCDIR = src
 BUILD_DIR = build
 BIN_DIR = bin
 TEST_DIR = test
-TEST_TARGET = bin/test.elf
-TARGET = bin/mq.elf
+TEST_TARGET = bin/test.so
+TARGET = bin/mq.so
 
 # Files
 SRCEXT := c
@@ -35,12 +35,12 @@ VPATH = src/c:test
 all: $(TARGET)
 
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR) $(BIN_DIR)
-	$(CC) -o $@ $(CFLAGS) -c $<
+	$(CC) -o $@ $(CFLAGS) -c -fPIC $<
 
 $(TARGET): CFLAGS += $(OPT)
 $(TARGET): $(OBJ)
-	@echo "Not written yet"
-	$(CC) -o $@ $^ 
+#	@echo "Not written yet"
+	$(CC) -shared -o $@ $^
 
 tests: CFLAGS += $(DEBUG)
 tests: $(TEST_TARGET) 
