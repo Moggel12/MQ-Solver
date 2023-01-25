@@ -24,7 +24,7 @@ typedef struct state {
  * @param m
  * @return
  */
-unsigned int bruteforce(poly_t *system, vars_t n, unsigned int n1, unsigned int d, unsigned int m, vars_t *solutions);
+unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1, unsigned int d, vars_t *solutions);
 
 /*!
  *

@@ -27,7 +27,6 @@ def bitslice(f_sys, vars):
             for v1, v2 in combinations(range(len(vars)), 2):
                 f_sys_sliced[i] ^^= int(poly.coefficient({vars[v1]: 1, vars[v2]: 1, **{v: 0 for v in vars if v not in [vars[v1], vars[v2]]}})) << j
                 i += 1
-    print(f_sys_sliced)
     return f_sys_sliced
 
 def convert(v, n):
@@ -37,9 +36,11 @@ def convert(v, n):
 def index_of(y_list):
     return sum(b << i for i, b in enumerate(y_list))
 
-def fetch_c_func(func_name):
+def fetch_c_func(func_name, args=None, res=None):
     libc = ctypes.CDLL("../../bin/mq.so")
     c_func = eval(f"libc.{func_name}")
+    if args: c_func.argtypes = args
+    if res: c_func.restype = res
     return c_func
 
 
@@ -107,3 +108,28 @@ def parse_fukuoka(file_path, print_system=False):
         for poly in system[2]:
             print(poly)
     return system
+
+def random_system(_m_low, _m_high, _n_low, _n_high):
+    system = []
+    m = randint(_m_low, _m_high)
+    n = randint(_n_low, _n_high)
+    ring = GF(2)[", ".join(["x" + str(i) for i in range(n)])]
+    rem = 0
+    for _ in range(m):
+        f = ring(GF(2)[ring.gens()].random_element(degree=2, terms=Infinity))
+        for v in ring.gens():
+            if v^2 in f.monomials():
+                f = f + v^2 + v
+        if (f != GF(2)(0)) and (f != GF(2)(1)):
+            system.append(f)
+        else:
+            rem += 1
+    m -= rem
+    n1 = randint(1, n - 1)
+    return system, n, m, n1, ring
+
+def random_system_with_sol(_m_low, _m_high, _n_low, _n_high):
+    system, n, _, _, ring = random_system(_m_low, _m_high, _n_low, _n_high)
+    sol = randint(0, 2^n - 1) 
+    system = [f if f(*convert(sol, n)) == 0 else (f + 1) for f in system]
+    return system, sol, ring, n

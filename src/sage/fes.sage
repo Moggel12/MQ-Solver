@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
-from utils import convert, bitslice, fetch_c_func
+from utils import *
 from itertools import combinations
+import ctypes as ct
 
 @dataclass
 class State:
@@ -10,6 +11,13 @@ class State:
     d1: list
     d2: list
     prefix: list
+
+class C_State(ct.Structure):
+    _fields_ = [("i", ct.c_uint8),
+                ("y", ct.c_uint8),
+                ("d1", ct.POINTER(ct.c_uint8)),
+                ("d2", ct.POINTER(ct.c_uint8)),
+                ("prefix", ct.POINTER(ct.c_uint8))]
 
 def hamming_weight(x):
     x -= (x >> 1) & 0x5555555555555555
@@ -68,8 +76,11 @@ def update(s, f, n, n1, prefix):
     if s == None:
         return init(f, n, n1, prefix)
 
+    # print(prefix)
     off = [v for v in s.prefix if v not in prefix]
     on = [v for v in prefix if v not in s.prefix]
+    # print("Off =", off)
+    # print("On =", on)
 
     # turn old variables off
     for idx in off:
@@ -77,29 +88,39 @@ def update(s, f, n, n1, prefix):
             s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)] 
 
         s.y ^^= f[idx + 1]
+    # print("Updated s.y to", s.y)
 
     for i in off:
         for j in [v for v in s.prefix if v not in off]:
             s.y ^^= f[lex_idx(i, j, n)]
+    # print("Updated s.y to", s.y)
 
     for i, j in combinations(off, 2):
         s.y ^^= f[lex_idx(i, j, n)]
+    # print("Updated s.y to", s.y)
 
     # turn new variables on
     for idx in on:
         for k in range(n1):
+            # print(idx, k + (n - n1))
             s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)]
+            # print("Index used:", lex_idx(idx, k + (n - n1), n))
 
         s.y ^^= f[idx + 1]
+    # print("Updated s.y to", s.y)
 
     for i in on:
+        # print([v for v in prefix if v not in on])
         for j in [v for v in prefix if v not in on]:
+            # print("Indices:", i, j)
             s.y ^^= f[lex_idx(i, j, n)]
             # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
+    # print("Updated s.y to", s.y)
 
     for i, j in combinations(on, 2):
         s.y ^^= f[lex_idx(i, j, n)]
         # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
+    # print("Updated s.y to", s.y)
 
     s.prefix = prefix
 
@@ -161,33 +182,78 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
 
 def bruteforce(system, vars, n1, d):
     solutions = []
-    n = len(vars)
-    sliced = bitslice(system, vars)
+    # n = len(vars)
+    n = vars
+    # sliced = bitslice(system, vars)
     s = None
     for i in range(2^(n - n1)):
         if hamming_weight(i) > d:
             continue
         prefix = [pos for pos, b in enumerate(reversed(bin(i)[2:])) if b == "1"]
-        s = update(s, sliced, n, n1, prefix)
-        sub_sol = fes_eval(sliced, n, n1, prefix, s)
+        # print("Prefix is", prefix)
+        # print("\n\n")
+        # if s != None:
+        #     print("### State before")
+        #     print(s.d1)
+        #     print(s.d2)
+        #     print(s.prefix)
+        #     print("s.y =", s.y)
+        #     print("###")
+        # else:
+        #     print("### State before")
+        #     print(None)
+        #     print("###")
+        s = update(s, system, n, n1, prefix)
+        # print("### State after")
+        # print(s.d1)
+        # print(s.d2)
+        # print(s.prefix)
+        # print("s.y =", s.y)
+        # print("###")
+        sub_sol = fes_eval(system, n, n1, prefix, s)
         solutions += [convert(sol, n) for sol in sub_sol]
     return solutions
 
 
+def c_bruteforce(system, n, n1, d):
+    solutions = []
+    c_system = (ct.c_uint8 * len(system))(*system)
+    c_solutions = (ct.c_uint8 * int((1 << n)))(0)
+    args = [ct.POINTER(ct.c_uint8), ct.c_uint, ct.c_uint, ct.c_uint, ct.POINTER(ct.c_uint8)]
+    res = ct.c_uint
+    brute = fetch_c_func("bruteforce", args, res)
+    sol_amount = brute(c_system, n, n1, d, c_solutions)
+    py_list = []
+    for i in range(sol_amount):
+        py_list.append(int(c_solutions[i]))
+    return sol_amount, py_list 
 
-def c_fes_eval_parities():
-    c_func = fetch_c_func("test")
-    c_func()
-    print("####")
-    system = [ 5, 5, 25, 1, 7, 12, 17, 1, 28, 29, 2, 16, 21, 15, 21, 30]
-    print(system)
-    prefix = [0]
-    n = 5
-    n1 = 3
-    s = None
-    s = update(s, system, n, n1, prefix)
-    for s in fes_eval(system, n, n1, prefix, s, False):
-        print("Solution", s)
+def c_fes_eval_test(trials, m=5, n=5):
+
+    for _ in range(trials):
+        system, _, ring, n = random_system_with_sol(m, m, n, n)
+        n1 = randint(1, n - 1)
+        d = randint(1, n - n1)
+        print(system)
+        print(n, n1, d)
+        system = bitslice(system, ring.gens())
+        # print("\n=== Running C code ===\n")
+        amount, c_solutions = c_bruteforce(system, n, n1, d)  
+        # print("\n=== Running Python code ===\n")
+        py_solutions = [index_of(sol) for sol in bruteforce(system, n, n1, d)]
+        c_solutions.sort()
+        py_solutions.sort()
+        if amount != len(py_solutions):
+            print("Amount of solutions differ")
+            print(c_solutions)
+            print(py_solutions)
+            return
+        for s_c, s_p in zip(c_solutions, py_solutions):
+            if s_c != s_p:
+                print("Solutions differ!", s_c, "!=", s_p)
+                print(c_solutions, py_solutions)
+                return
+    print(f"Ran {trials} trials without errors!")
     
 if __name__ == "__main__":
-    c_fes_eval_parities()
+    c_fes_eval_test(10)

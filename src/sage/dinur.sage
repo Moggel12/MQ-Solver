@@ -2,7 +2,7 @@ from mob_new import mob_transform
 from fes import bruteforce
 import numpy as np
 from random import randint
-from utils import index_of, convert
+from utils import index_of, convert, random_system, random_system_with_sol
 from math import ceil
 from fes_rec import fes_recover
 import time
@@ -30,34 +30,10 @@ _time_solve_trials = 0
 _time_solve = 0
 _time_fes_recovery = 0
 
-def random_system():
-    system = []
-    m = randint(_m_low, _m_high)
-    n = randint(_n_low, _n_high)
-    ring = GF(2)[", ".join(["x" + str(i) for i in range(n)])]
-    rem = 0
-    for _ in range(m):
-        f = ring(GF(2)[ring.gens()].random_element(degree=2, terms=Infinity))
-        for v in ring.gens():
-            if v^2 in f.monomials():
-                f = f + v^2 + v
-        if (f != GF(2)(0)) and (f != GF(2)(1)):
-            system.append(f)
-        else:
-            rem += 1
-    m -= rem
-    n1 = randint(1, n - 1)
-    return system, n, m, n1, ring
-
-def random_system_with_sol():
-    system, n, _, _, ring = random_system()
-    sol = randint(0, 2^n - 1) 
-    system = [f if f(*convert(sol, n)) == 0 else (f + 1) for f in system]
-    return system, sol, ring, n
 
 def test_u_values(trials, verbose=False):
     for _ in range(trials):
-        system, n, m, n1, ring = random_system() 
+        system, n, m, n1, ring = random_system(_m_low, _m_high, _n_low, _n_high) 
         F_tilde = product((GF(2)(1) + f) for f in system)
         w = F_tilde.degree() - n1
         if verbose:
@@ -83,7 +59,7 @@ def test_u_values(trials, verbose=False):
 
 def test_dinur_output_sol(trials, verbose=False):
     for _ in range(trials):
-        system, n, m, n1, ring = random_system()
+        system, n, m, n1, ring = random_system(_m_low, _m_high, _n_low, _n_high)
         F_tilde = product((GF(2)(1) + f) for f in system)
         w = F_tilde.degree() - n1
         if verbose:
@@ -115,7 +91,7 @@ def dry_run_solve(trials):
     global _time_solve
     for i in range(trials):
         print(f"\n== {i} ==")
-        system, known_sol, ring, n = random_system_with_sol()
+        system, known_sol, ring, n = random_system_with_sol(_m_low, _m_high, _n_low, _n_high)
         print("Verify known solution:", [f(*convert(known_sol, n)) for f in system]) 
         print("Known solution:", known_sol)
         print("System:", system, ring)

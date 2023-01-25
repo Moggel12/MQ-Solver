@@ -367,6 +367,7 @@ TSWLatexianTemp*
 # Python
 **/__pycache__/*
 *.sage.py
+**/cysignals_crash_logs/*
 
 # clangd
 compile_commands.json

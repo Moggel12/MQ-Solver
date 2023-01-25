@@ -1,7 +1,7 @@
 #include <limits.h>
 #include "utils.h"
 
-int lex_idx(int i, int j, int n) {
+int lex_idx(unsigned int i, unsigned int j, unsigned int n) {
   int sum = 0;
   for (int k = 1; k < i + 2; k++) {
     sum += (n - k);

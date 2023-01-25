@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include "mq_config.h"
 
-int lex_idx(int i, int j, int n);
+int lex_idx(unsigned int i, unsigned int j, unsigned int n);
 
 int hamming_weight(int x);
 
