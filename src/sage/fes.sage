@@ -151,7 +151,10 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
     
     pre_x = sum([1<<i for i in prefix])
 
+    print("Got pre_x", pre_x)
+
     if s.y == 0:
+        print("Constant  terms are all zero")
         if compute_parity:
             parities ^^= 2^(n1 + 1) - 1
         else:
@@ -161,11 +164,13 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
         step(s)
 
         if s.y == 0:
+            print(f"{s.i}: Set U_0")
             if compute_parity:
                 parities ^^= 1
                 z = (s.i ^^ (s.i >> 1))
                 for pos in range(n1):
                     if z & (1 << pos) == 0:
+                        print(f"{s.i}: Set U_{pos + 1}")
                         parities ^^= (1 << (pos + 1))
             else:
                 res.append(((s.i ^^ (s.i >> 1)) << (n-n1)) | pre_x)
@@ -219,13 +224,16 @@ def c_bruteforce(system, n, n1, d):
     solutions = []
     c_system = (ct.c_uint8 * len(system))(*system)
     c_solutions = (ct.c_uint8 * int((1 << n)))(0)
+
     args = [ct.POINTER(ct.c_uint8), ct.c_uint, ct.c_uint, ct.c_uint, ct.POINTER(ct.c_uint8)]
     res = ct.c_uint
     brute = fetch_c_func("bruteforce", args, res)
     sol_amount = brute(c_system, n, n1, d, c_solutions)
+
     py_list = []
     for i in range(sol_amount):
         py_list.append(int(c_solutions[i]))
+
     return sol_amount, py_list 
 
 def c_fes_eval_test(trials, m=5, n=5):

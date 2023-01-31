@@ -13,6 +13,6 @@ uint64_t *eval(uint64_t *system, int n, int m, uint64_t *values);
 
 int n_choose_k(int n, int k);
 
-unsigned int trailing_zeros(vars_t v);
+unsigned int trailing_zeros(unsigned int v);
 
 #endif // !UTILS_H

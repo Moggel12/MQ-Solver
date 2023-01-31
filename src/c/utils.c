@@ -20,7 +20,7 @@ int hamming_weight(int x) {
 int gray_code(int i) { return i ^ (i >> 1); }
 
 // Bit twiddling hacks
-unsigned int trailing_zeros(vars_t v) {
+unsigned int trailing_zeros(unsigned int v) {
   unsigned int c;
   if (v) {
     v = (v ^ (v - 1)) >> 1;  // Set v's trailing 0s to 1s and zero rest

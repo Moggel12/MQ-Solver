@@ -3,9 +3,11 @@
 
 #include "utils.h"
 #include "mq_config.h"
+#include "utils.h"
 #include <stdint.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include <limits.h>
 
 typedef struct state {
   vars_t i;
@@ -38,15 +40,14 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1, unsigne
  */
 void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix, state *s, vars_t *solutions, unsigned int *sol_amount);
 
-/*!
+/**
  *
  * @param system
  * @param n
  * @param n1
- * @param prefix
- * @param s
- * @return
+ * @param deg
+ * @param results
  */
-vars_t fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix, state *s);
+uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned int deg, vars_t *results);
 
 #endif // FES_H

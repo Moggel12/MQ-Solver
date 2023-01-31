@@ -1,7 +1,6 @@
 #include "fes.h"
-#include "utils.h"
-#include <string.h>
-#include <limits.h>
+
+#include <stdio.h>
 
 state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix) {
   state *s = malloc(sizeof(state));
@@ -47,15 +46,38 @@ state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix) {
 }
 
 void destroy_state(state *s) {
+  if (!s) return;
   free(s->d1);
   free(s->d2);
   free(s->prefix);
   free(s);
 }
 
-unsigned int bit1(vars_t i) { return trailing_zeros(i); }
+unsigned int bit1(unsigned int i) { return trailing_zeros(i); }
 
-unsigned int bit2(vars_t i) { return bit1(GF2_ADD(i, (i & -i))); }
+unsigned int bit2(unsigned int i) { return bit1(GF2_ADD(i, (i & -i))); }
+
+// Assumes an arr has been allocated with arr_len bits. TODO
+unsigned int bits(unsigned int i, unsigned int *arr, unsigned int arr_len) {
+  if (i == 0) {
+    if (arr_len > 0) arr[0] = CHAR_BIT * sizeof(i);
+    return 0;
+  }
+
+  unsigned int sum = 0;
+
+  for (unsigned int j = 0; j < arr_len; j++) {
+    arr[j] = bit1(i);
+
+    if (arr[j] == (CHAR_BIT * sizeof(unsigned int))) break;
+
+    sum++;
+
+    i = i ^ (i & -i);
+  }
+
+  return sum;
+}
 
 state *init(state *s, poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix) {
 
@@ -107,7 +129,6 @@ state *init(state *s, poly_t *system, unsigned int n, unsigned int n1, uint8_t *
 
 // FREES prefix FROM STATE.
 state *update(state *s, poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix) {
-  uint8_t alloc_state = 0;
 
   if (!s) {
     s = init(s, system, n, n1, prefix);
@@ -255,13 +276,13 @@ static void step(state *s, unsigned int n1) {
   s->y = GF2_ADD(s->y, s->d1[k1]);
 }
 
-vars_t fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix, state *s) {
+unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix, state *s, vars_t *parities) {
 
   if (!s) {
     s = init(s, system, n, n1, prefix);
 
     if (!s) {
-      return -1; // 0xFF..FF
+      return 1; // 0xFF..FF
     }
   }
 
@@ -272,20 +293,25 @@ vars_t fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1, uint8_t 
     pre_x += (1 << i);
   }
 
-  vars_t parities = 0;
+  printf("Got pre_x %u\n", pre_x);
 
   if (s->y == 0) {
-    parities = GF2_ADD(s->y, ((1 << n1) - 1));
+    printf("Constant terms are all zero: %u\n", *parities);
+    *parities = GF2_ADD(s->y, ((1 << n1) - 1));
   }
 
   while (s->i < ((1 << n1) - 1)) {
     step(s, n1);
 
+    unsigned int z = s->i ^ (s->i >> 1);
+
     if (s->y == 0) {
-      parities = GF2_ADD(parities, 1);
+      *parities = GF2_ADD(*parities, 1);
+      printf("%u: Set U_0: %u\n", s->i, *parities);
 
       for (unsigned int pos = 0; pos < n1; pos++) {
-        parities = GF2_ADD(parities, (1 << (pos + 1)));
+        if (z & (1 << (pos + 1))) printf("%u: Set U_%u: %u\n", s->i, pos + 1, *parities);
+        *parities = GF2_ADD(*parities, GF2_MUL(z, (1 << (pos + 1))));
       }
     }
   }
@@ -296,7 +322,11 @@ vars_t fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1, uint8_t 
   }
 
   s->y = GF2_ADD(s->y, GF2_ADD(s->d1[n1 - 1], s->d2[(n1 - 1) * n1 + ((n1 - 2) > (n1 - 1) ? 0 : (n1 - 2))]));
+
+  return 0;
 }
+
+// TODO: Fix memory handling if state allocation happens inside fes_eval functions
 
 void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix, state *s, vars_t *solutions, unsigned int *sol_amount) {
   if (!s) {
@@ -334,11 +364,134 @@ void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1, uint8_t
   s->y = GF2_ADD(s->y, GF2_ADD(s->d1[n1 - 1], s->d2[(n1 - 1) * n1 + ((n1 - 2) > (n1 - 1) ? 0 : (n1 - 2))]));
 }
 
+state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n, unsigned int n1, vars_t *parities, state *s) {
+  s = update(s, system, n, n1, prefix);
+//  printf("Calling fes_eval");
+  unsigned int errors = fes_eval_parity(system, n, n1, prefix, s, parities);
+
+  if (errors) {
+    destroy_state(s);
+    return NULL;
+  }
+
+  return s;
+}
+
+uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned int deg, vars_t *results) {
+  state *s = NULL;
+
+  for (unsigned int i = 0; i < (1 << (n - n1)); i++) {
+    printf("results: %u\n", results[i]);
+  }
+
+  uint8_t *prefix = calloc((n - n1), sizeof(uint8_t));
+  if (!prefix) return 1; // 0xFF..FF
+
+  // TODO: Find suitable datastructure for d and initialize
+  vars_t *d = calloc((1 << deg), sizeof(vars_t));
+  if (!d) return 1;
+
+  unsigned int *k = calloc(deg, sizeof(unsigned int));
+  if (!k) return 1;
+
+  vars_t parities = 0;
+
+  s = part_eval(system, prefix, n, n1, &parities, s);
+  printf("Got parities %u\n", parities);
+
+  if (!s) {
+    free(k);
+    free(d);
+    free(prefix);
+    return 1;
+  }
+//  printf("Initial parities: %u\n", parities);
+
+  results[0] = parities;
+  d[0] = parities;
+
+  parities = 0;
+
+  for (unsigned int si = 1; si < (1 << (n - n1)); si++) {
+//    printf("%u: loop\n", si);
+    if (hamming_weight(si) > deg) {
+
+      unsigned int len_k = bits(si, k, deg);
+
+      for (unsigned int j = len_k; j-- > 0;) {
+        unsigned int sum_idx = 0;
+
+        for (unsigned int i = 0; i < j; i++) {
+          sum_idx += (1 << k[i]);
+        }
+
+        d[sum_idx] = GF2_ADD(d[sum_idx], d[sum_idx + (1 << k[j])]);
+      }
+
+
+    } else {
+
+      unsigned int len_k = bits(si, k, deg);
+      unsigned int gray_si = si ^ (si >> 1);
+      for (unsigned int pos = 0; pos < (n - n1); pos++) {
+        prefix[pos] = (1 & (gray_si >> pos));
+      }
+
+      s = part_eval(system, prefix, n, n1, &parities, s);
+      printf("Got parities %u\n", parities);
+      if (!s) {
+        free(k);
+        free(d);
+        free(prefix);
+        return 1;
+      }
+
+      unsigned int prev = d[0];
+      d[0] = parities;
+
+      parities = 0;
+
+      for (unsigned int j = 1; j <= len_k; j++) {
+//        printf("Computed so far: %u\n", d[0]);
+        unsigned int tmp;
+        unsigned int sum_idx = 0;
+
+        for (int i = 0; i < j - 1; i++) {
+          sum_idx += (1 << k[i]);
+        }
+
+        if (j < len_k) {
+          tmp = d[sum_idx + (1 << k[j - 1])];
+        }
+
+        d[sum_idx + (1 << k[j - 1])] = GF2_ADD(d[sum_idx], prev);
+
+        if (j < len_k) {
+          prev = tmp;
+        }
+      }
+    }
+
+//    printf("Computed: %u\n", d[0]);
+
+    results[si ^ (si >> 1)] = d[0];
+  }
+//  printf("Freeing memory\n");
+  destroy_state(s);
+  free(prefix);
+  free(k);
+  free(d);
+
+  return 0;
+}
+
+
 // Expects system pre-sliced
 unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1, unsigned int d, vars_t *solutions) {
   unsigned int sol_amount = 0;
 
   uint8_t *prefix = malloc(n - n1);
+
   if (!prefix) {
     free(solutions);
     return -1; // 0xFF..FF
@@ -358,6 +511,8 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1, unsigne
     }
   }
 
+  free(prefix);
   destroy_state(s);
+
   return sol_amount;
 }
