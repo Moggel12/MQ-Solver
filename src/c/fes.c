@@ -131,22 +131,16 @@ state *init(state *s, poly_t *system, unsigned int n, unsigned int n1, uint8_t *
 state *update(state *s, poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix) {
 
   if (!s) {
-    s = init(s, system, n, n1, prefix);
-
-    if (!s) {
-      return NULL;
-    }
-
-    return s;
+    return init(s, system, n, n1, prefix);
   }
 
-  uint8_t *on = malloc(n1);
+  uint8_t *on = malloc(n - n1);
 
   if (!on) {
     return NULL;
   }
 
-  uint8_t *off = malloc(n1);
+  uint8_t *off = malloc(n - n1);
 
   if (!off) {
     free(on);
@@ -282,7 +276,7 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1, ui
     s = init(s, system, n, n1, prefix);
 
     if (!s) {
-      return 1; // 0xFF..FF
+      return 1;
     }
   }
 
@@ -293,11 +287,8 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1, ui
     pre_x += (1 << i);
   }
 
-  printf("Got pre_x %u\n", pre_x);
-
   if (s->y == 0) {
-    printf("Constant terms are all zero: %u\n", *parities);
-    *parities = GF2_ADD(s->y, ((1 << n1) - 1));
+    *parities = GF2_ADD(s->y, ((1 << (n1 + 1)) - 1));
   }
 
   while (s->i < ((1 << n1) - 1)) {
@@ -307,11 +298,11 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1, ui
 
     if (s->y == 0) {
       *parities = GF2_ADD(*parities, 1);
-      printf("%u: Set U_0: %u\n", s->i, *parities);
 
       for (unsigned int pos = 0; pos < n1; pos++) {
-        if (z & (1 << (pos + 1))) printf("%u: Set U_%u: %u\n", s->i, pos + 1, *parities);
-        *parities = GF2_ADD(*parities, GF2_MUL(z, (1 << (pos + 1))));
+        if ((z & (1 << pos)) == 0) {
+          *parities = GF2_ADD(*parities, (1 << (pos + 1)));
+        }
       }
     }
   }
@@ -366,7 +357,7 @@ void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1, uint8_t
 
 state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n, unsigned int n1, vars_t *parities, state *s) {
   s = update(s, system, n, n1, prefix);
-//  printf("Calling fes_eval");
+
   unsigned int errors = fes_eval_parity(system, n, n1, prefix, s, parities);
 
   if (errors) {
@@ -380,15 +371,12 @@ state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n, unsigned int n
 uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned int deg, vars_t *results) {
   state *s = NULL;
 
-  for (unsigned int i = 0; i < (1 << (n - n1)); i++) {
-    printf("results: %u\n", results[i]);
-  }
-
   uint8_t *prefix = calloc((n - n1), sizeof(uint8_t));
-  if (!prefix) return 1; // 0xFF..FF
+  if (!prefix) return 1;
 
-  // TODO: Find suitable datastructure for d and initialize
-  vars_t *d = calloc((1 << deg), sizeof(vars_t));
+  unsigned int d_size = 0;
+  for (unsigned int i = 1; i <= deg; i++) d_size += (1 << (n - n1 - 1));
+  vars_t *d = calloc(d_size + 1, sizeof(vars_t)); // TODO: Find suitable datastructure for d and initialize.
   if (!d) return 1;
 
   unsigned int *k = calloc(deg, sizeof(unsigned int));
@@ -397,7 +385,6 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned in
   vars_t parities = 0;
 
   s = part_eval(system, prefix, n, n1, &parities, s);
-  printf("Got parities %u\n", parities);
 
   if (!s) {
     free(k);
@@ -405,7 +392,6 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned in
     free(prefix);
     return 1;
   }
-//  printf("Initial parities: %u\n", parities);
 
   results[0] = parities;
   d[0] = parities;
@@ -413,7 +399,6 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned in
   parities = 0;
 
   for (unsigned int si = 1; si < (1 << (n - n1)); si++) {
-//    printf("%u: loop\n", si);
     if (hamming_weight(si) > deg) {
 
       unsigned int len_k = bits(si, k, deg);
@@ -428,7 +413,6 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned in
         d[sum_idx] = GF2_ADD(d[sum_idx], d[sum_idx + (1 << k[j])]);
       }
 
-
     } else {
 
       unsigned int len_k = bits(si, k, deg);
@@ -438,7 +422,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned in
       }
 
       s = part_eval(system, prefix, n, n1, &parities, s);
-      printf("Got parities %u\n", parities);
+
       if (!s) {
         free(k);
         free(d);
@@ -452,7 +436,6 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned in
       parities = 0;
 
       for (unsigned int j = 1; j <= len_k; j++) {
-//        printf("Computed so far: %u\n", d[0]);
         unsigned int tmp;
         unsigned int sum_idx = 0;
 
@@ -472,11 +455,9 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned in
       }
     }
 
-//    printf("Computed: %u\n", d[0]);
 
     results[si ^ (si >> 1)] = d[0];
   }
-//  printf("Freeing memory\n");
   destroy_state(s);
   free(prefix);
   free(k);
@@ -494,21 +475,20 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1, unsigne
 
   if (!prefix) {
     free(solutions);
-    return -1; // 0xFF..FF
+    return -1;
   }
 
   state *s = NULL;
 
   for (unsigned int i = 0; i < (1 << (n - n1)); i++) {
-    if (hamming_weight(i) <= d) {
-
+//    if (hamming_weight(i) <= d) {
       for (unsigned int pos = 0; pos < (n - n1); pos++) {
         prefix[pos] = (1 & (i >> pos));
       }
 
       s = update(s, system, n, n1, prefix);
       fes_eval_solutions(system, n, n1, prefix, s, solutions, &sol_amount);
-    }
+//    }
   }
 
   free(prefix);

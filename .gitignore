@@ -4,6 +4,9 @@
 # Git files
 *.orig
 
+# GDB
+.gdb_history
+
 # Prerequisites
 *.d
 

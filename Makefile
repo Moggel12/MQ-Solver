@@ -8,7 +8,7 @@ SRCDIR = src
 BUILD_DIR = build
 BIN_DIR = bin
 TEST_DIR = test
-TEST_TARGET = bin/test.so
+TEST_TARGET = bin/test
 TARGET = bin/mq.so
 
 # Files
@@ -25,9 +25,9 @@ SAN :=\
 			 -fsanitize=undefined
 DEBUG := $(SAN) -Wall -Wextra -O0 -g
 OPT := -O0 -g #-Os
-LIB := 
+LIB :=
 INC := -Iinc
-CFLAGS := $(INC)
+CFLAGS := $(INC) $(LIB)
 
 VPATH = src/c:test
 
@@ -35,18 +35,23 @@ VPATH = src/c:test
 all: $(TARGET)
 
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR) $(BIN_DIR)
-	$(CC) -o $@ $(CFLAGS) -c -fPIC $<
+	$(CC) -o $@ $(CFLAGS) -c $<
+#	$(CC) -o $@ $(CFLAGS) -c $<
 
-$(TARGET): CFLAGS += $(OPT)
+
+$(TARGET): CFLAGS += $(OPT) -fPIC
 $(TARGET): $(OBJ)
 #	@echo "Not written yet"
 	$(CC) -shared -o $@ $^
+#	$(CC) -o $@ $^
 
 tests: CFLAGS += $(DEBUG)
-tests: $(TEST_TARGET) 
+tests: LDFLAGS += -fsanitize=address -fsanitize=undefined -fsanitize=leak
+tests: $(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJ)
-	@echo "Not written yet"
+	$(CC) $(LDFLAGS) -o $@ $^
+#	@echo "Not written yet"
 
 pdf:
 	latexmk -pdf -silent -cd $(REPORT)

@@ -76,11 +76,8 @@ def update(s, f, n, n1, prefix):
     if s == None:
         return init(f, n, n1, prefix)
 
-    # print(prefix)
     off = [v for v in s.prefix if v not in prefix]
     on = [v for v in prefix if v not in s.prefix]
-    # print("Off =", off)
-    # print("On =", on)
 
     # turn old variables off
     for idx in off:
@@ -88,39 +85,29 @@ def update(s, f, n, n1, prefix):
             s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)] 
 
         s.y ^^= f[idx + 1]
-    # print("Updated s.y to", s.y)
 
     for i in off:
         for j in [v for v in s.prefix if v not in off]:
             s.y ^^= f[lex_idx(i, j, n)]
-    # print("Updated s.y to", s.y)
 
     for i, j in combinations(off, 2):
         s.y ^^= f[lex_idx(i, j, n)]
-    # print("Updated s.y to", s.y)
 
     # turn new variables on
     for idx in on:
         for k in range(n1):
-            # print(idx, k + (n - n1))
             s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)]
-            # print("Index used:", lex_idx(idx, k + (n - n1), n))
 
         s.y ^^= f[idx + 1]
-    # print("Updated s.y to", s.y)
 
     for i in on:
-        # print([v for v in prefix if v not in on])
         for j in [v for v in prefix if v not in on]:
-            # print("Indices:", i, j)
             s.y ^^= f[lex_idx(i, j, n)]
             # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
-    # print("Updated s.y to", s.y)
 
     for i, j in combinations(on, 2):
         s.y ^^= f[lex_idx(i, j, n)]
         # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
-    # print("Updated s.y to", s.y)
 
     s.prefix = prefix
 
@@ -151,10 +138,7 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
     
     pre_x = sum([1<<i for i in prefix])
 
-    print("Got pre_x", pre_x)
-
     if s.y == 0:
-        print("Constant  terms are all zero")
         if compute_parity:
             parities ^^= 2^(n1 + 1) - 1
         else:
@@ -164,13 +148,11 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
         step(s)
 
         if s.y == 0:
-            print(f"{s.i}: Set U_0")
             if compute_parity:
                 parities ^^= 1
                 z = (s.i ^^ (s.i >> 1))
                 for pos in range(n1):
                     if z & (1 << pos) == 0:
-                        print(f"{s.i}: Set U_{pos + 1}")
                         parities ^^= (1 << (pos + 1))
             else:
                 res.append(((s.i ^^ (s.i >> 1)) << (n-n1)) | pre_x)
@@ -195,32 +177,14 @@ def bruteforce(system, vars, n1, d):
         if hamming_weight(i) > d:
             continue
         prefix = [pos for pos, b in enumerate(reversed(bin(i)[2:])) if b == "1"]
-        # print("Prefix is", prefix)
-        # print("\n\n")
-        # if s != None:
-        #     print("### State before")
-        #     print(s.d1)
-        #     print(s.d2)
-        #     print(s.prefix)
-        #     print("s.y =", s.y)
-        #     print("###")
-        # else:
-        #     print("### State before")
-        #     print(None)
-        #     print("###")
         s = update(s, system, n, n1, prefix)
-        # print("### State after")
-        # print(s.d1)
-        # print(s.d2)
-        # print(s.prefix)
-        # print("s.y =", s.y)
-        # print("###")
         sub_sol = fes_eval(system, n, n1, prefix, s)
         solutions += [convert(sol, n) for sol in sub_sol]
     return solutions
 
 
 def c_bruteforce(system, n, n1, d):
+    print("Test")
     solutions = []
     c_system = (ct.c_uint8 * len(system))(*system)
     c_solutions = (ct.c_uint8 * int((1 << n)))(0)
@@ -239,9 +203,14 @@ def c_bruteforce(system, n, n1, d):
 def c_fes_eval_test(trials, m=5, n=5):
 
     for _ in range(trials):
-        system, _, ring, n = random_system_with_sol(m, m, n, n)
-        n1 = randint(1, n - 1)
-        d = randint(1, n - n1)
+        # system, _, ring, n = random_system_with_sol(m, m, n, n)
+        # n1 = randint(1, n - 1)
+        # d = randint(1, n - n1)
+        ring.<x0,x1,x2,x3,x4> = GF(2)[]
+        system = [x0*x2 + x2*x3 + x0*x4 + x2*x4 + x0 + x2 + x3, x0*x2 + x1*x2 + x0*x3 + x1*x3 + x2*x3 + x0*x4 + x1*x4 + x2*x4 + x1, x0*x1 + x0*x2 + x1*x2 + x0*x3 + x1*x3 + x2*x3 + x0*x4 + x1*x4 + x3*x4 + x0 + x1 + x2 + x3 + x4 + 1, x0*x1 + x0*x2 + x1*x3 + x2*x3 + x1*x4 + x3*x4 + x0 + x1 + x2, x0*x2 + x0*x4 + x1*x4 + x3*x4 + x2 + x3]
+        n = 5
+        n1 = 1
+        d = 3
         print(system)
         print(n, n1, d)
         system = bitslice(system, ring.gens())
