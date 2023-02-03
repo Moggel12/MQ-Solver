@@ -4,7 +4,7 @@
   - [ ] fes.c
   - [ ] utils.c
   - [ ] mq_config.h
-- Finish solver code
+- Finish solver code (in C)
   - [ ] output_potentials and solve
 - Optimize C-code
   - [ ] Multicore
