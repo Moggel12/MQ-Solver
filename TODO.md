@@ -1,12 +1,20 @@
 # Todo list
 
-## Todo for friday, november 4th.
-- Make partial evals of polynomials and convert the system
-- Get it together and do some integer stuff!
-- Finish U-value computation
-- Finish algorithm for computing potential solutions
-- Revert changes for monotonic gray codes to normal gray codes
-- Tests, tests, tests... more tests?
-  - Add tests for dinur.output_potentials
-  - Add tests for dinur.compute_u_values
-  - Possibly further tests for fes.bruteforce
+- Cleanup C code
+  - [] fes.c
+  - [] utils.c
+  - [] mq_config.h
+- Finish solver code
+  - [] output_potentials and solve
+- Optimize C-code
+  - [] Multicore
+  - [] Bitslicing
+  - [] Memory (fes_recover)
+  - [] Smaller algorithmic changes
+  - [] Smaller C-stuff (unrolling, register vars, etc.)
+- Get some pages written
+  - [] Come on...
+  - [] Make a README for this repo
+- Compare speedups
+  - [] Sage to C
+  - [] C optimizations
