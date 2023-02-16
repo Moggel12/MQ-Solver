@@ -1,5 +1,8 @@
 # Todo list
 
+- Alter Sage code
+  - Make sure it handles different integer sizes according to C code.
+  - Cleanup 
 - Cleanup C code
   - [ ] fes.c
   - [ ] utils.c

@@ -15,35 +15,31 @@ TARGET = bin/mq.so
 SRCEXT := c
 SRCS :=	$(shell find $(SRCDIR)/c -type f -name *.$(SRCEXT))
 OBJ := $(patsubst $(SRCDIR)/c/%,$(BUILD_DIR)/%,$(SRCS:.$(SRCEXT)=.o))
-TEST_SRCS := $(shell find $(TEST_DIR) -type f -name *.$(SRCEXT)) $(filter-out src/c/mq.c,$(SRCS))
-TEST_OBJ := $(patsubst $(TEST_DIR)/%,$(BUILD_DIR)/%,$(TEST_SRCS:.$(SRCEXT)=.o))
+TEST_SRCS := $(shell find $(TEST_DIR) -type f -name *.$(SRCEXT))
+TEST_OBJ := $(patsubst $(TEST_DIR)/%,$(BUILD_DIR)/%,$(TEST_SRCS:.$(SRCEXT)=.o)) $(OBJ)
 
 # GCC flags
 SAN :=\
 			 -fsanitize=address \
 			 -fsanitize=leak \
 			 -fsanitize=undefined
-DEBUG := $(SAN) -Wall -Wextra -O0 -g
+DEBUG := $(SAN) -Wall -Wextra -O0 -g -D_DEBUG
 OPT := -O0 -g #-Os
-LIB :=
+LDFLAGS := -lm
 INC := -Iinc
 CFLAGS := $(INC) $(LIB)
 
 VPATH = src/c:test
 
-# Targets
 all: $(TARGET)
 
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR) $(BIN_DIR)
 	$(CC) -o $@ $(CFLAGS) -c $<
-#	$(CC) -o $@ $(CFLAGS) -c $<
 
 
 $(TARGET): CFLAGS += $(OPT) -fPIC
 $(TARGET): $(OBJ)
-#	@echo "Not written yet"
 	$(CC) -shared -o $@ $^
-#	$(CC) -o $@ $^
 
 tests: CFLAGS += $(DEBUG)
 tests: LDFLAGS += -fsanitize=address -fsanitize=undefined -fsanitize=leak
@@ -51,7 +47,6 @@ tests: $(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
-#	@echo "Not written yet"
 
 pdf:
 	latexmk -pdf -silent -cd $(REPORT)
@@ -61,7 +56,7 @@ pdfclean:
 	rm *.bbl *.xml
 
 clean:
-	$(RM) -rf $(BUILD_DIR) $(TARGET) $(TEST_TARGET) bin
+	$(RM) -rf $(BUILD_DIR) $(BIN_DIR)
 
 $(BIN_DIR):
 	mkdir -p $@

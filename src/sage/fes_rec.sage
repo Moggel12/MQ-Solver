@@ -1,11 +1,13 @@
-import ctypes as ct
 from itertools import combinations
 from fes import update, fes_eval, c_bruteforce
 import numpy as np
 from utils import convert, bitslice, fetch_c_func
 import time
 
-from utils import random_system_with_sol
+import ctypes as ct
+from c_config import *
+
+from utils import random_systems_with_sol
 
 # Get index position of first bit set (if any).
 def bit1(x):
@@ -97,15 +99,15 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
     return res
 
 def c_fes_recover(system, n, n1, deg):
-    c_results = (ct.c_uint8 * int(2^(n - n1)))()
-    c_system = (ct.c_uint8 * len(system))(*system)
+    c_results = (C_VARS_T * int(2^(n - n1)))()
+    c_system = (C_POLY_T * len(system))(*system)
 
-    args = [ct.POINTER(ct.c_uint8), ct.c_uint, ct.c_uint, ct.c_uint, ct.POINTER(ct.c_uint8)]
-    res = ct.c_uint8
+    args = [Type.P(C_POLY_T), Type.U, Type.U, Type.U, Type.P(C_VARS_T)]
+    res = Type.U8
     recover = fetch_c_func("fes_recover", args, res)
-    recovered = recover(c_system, n, n1, deg, c_results)
+    error = recover(c_system, n, n1, deg, c_results)
 
-    if recovered == 1:
+    if error == 1:
         return None
 
     py_list = []
@@ -114,32 +116,30 @@ def c_fes_recover(system, n, n1, deg):
 
     return py_list
 
-def test_c_fes_recover(trials, m = 5, n = 5):
-    for _ in range(trials):
-        system, _, ring, n = random_system_with_sol(m, m, n, n)
-        n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
-        d = randint(1, n - n1)
-        print(system)
-        print(n, n1, d)
-        system = bitslice(system, ring.gens())
-        c_results = c_fes_recover(system, n, n1, d + 1)
-        if c_results == None:
-            print("Error with memory allocation in C code.")
-            return 
-        py_results = fes_recover(system, n, n1, d + 1)
-        if len(c_results) != len(py_results):
-            print("Solutions are not of equal length")
-            print(c_results)
-            print(py_results)
-            return
-        for c_r, p_r in zip(c_results, py_results):
-            if (c_r != p_r):
-                print("Solutions differ!", c_r, "!=", p_r)
-                print(c_results, py_results)
-                return
-    print(f"Found no errors in {trials} trials")
-
+def test_c_fes_recover(sys_tuple):
+    system, n, _, ring, _ = sys_tuple
+    n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
+    d = randint(1, n - n1)
+    print(system)
+    print(n, n1, d)
+    system = bitslice(system, ring.gens())
+    c_results = c_fes_recover(system, n, n1, d + 1)
+    if c_results == None:
+        print("Error with memory allocation in C code.")
+        return False
+    py_results = fes_recover(system, n, n1, d + 1)
+    if len(c_results) != len(py_results):
+        print("Solutions are not of equal length")
+        print(c_results)
+        print(py_results)
+        return False
+    for c_r, p_r in zip(c_results, py_results):
+        if (c_r != p_r):
+            print("Solutions differ!", c_r, "!=", p_r)
+            print(c_results, py_results)
+            return False
+    return True
 if __name__ == "__main__":
     # test()
     # fes_recover(sl_sys, n, n1, d)
-    test_c_fes_recover(50, 7, 7)
+    test_c_fes_recover(1, 7, 7)

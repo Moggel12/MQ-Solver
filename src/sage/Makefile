@@ -16,8 +16,13 @@ utils.py: utils.sage
 	sage --preparse utils.sage
 	mv utils.sage.py utils.py
 
-run: fes_rec.py fes.py mob_new.py utils.py
-	sage dinur.sage
+dinur.py: dinur.sage
+	sage --preparse dinur.sage 
+	mv dinur.sage.py dinur.py
+
+run: fes_rec.py fes.py mob_new.py utils.py dinur.py
+	./run_test.py
+	
 	
 .PHONY: clean
 

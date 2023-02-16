@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from utils import *
 from itertools import combinations
 import ctypes as ct
+from c_config import *
 
 @dataclass
 class State:
@@ -11,13 +12,6 @@ class State:
     d1: list
     d2: list
     prefix: list
-
-class C_State(ct.Structure):
-    _fields_ = [("i", ct.c_uint8),
-                ("y", ct.c_uint8),
-                ("d1", ct.POINTER(ct.c_uint8)),
-                ("d2", ct.POINTER(ct.c_uint8)),
-                ("prefix", ct.POINTER(ct.c_uint8))]
 
 def hamming_weight(x):
     x -= (x >> 1) & 0x5555555555555555
@@ -167,11 +161,14 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
         return parities 
     return res
 
+# Assumes vars is either a ring object or an int.
 def bruteforce(system, vars, n1, d):
     solutions = []
-    # n = len(vars)
-    n = vars
-    # sliced = bitslice(system, vars)
+    if type(vars) != int:
+        n = len(vars)
+        system = bitslice(system, vars)
+    else:
+        n = vars
     s = None
     for i in range(2^(n - n1)):
         if hamming_weight(i) > d:
@@ -182,15 +179,14 @@ def bruteforce(system, vars, n1, d):
         solutions += [convert(sol, n) for sol in sub_sol]
     return solutions
 
-
 def c_bruteforce(system, n, n1, d):
     print("Test")
     solutions = []
-    c_system = (ct.c_uint8 * len(system))(*system)
-    c_solutions = (ct.c_uint8 * int((1 << n)))(0)
+    c_system = (C_POLY_T * len(system))(*system)
+    c_solutions = (C_VARS_T * int((1 << n)))(0)
 
-    args = [ct.POINTER(ct.c_uint8), ct.c_uint, ct.c_uint, ct.c_uint, ct.POINTER(ct.c_uint8)]
-    res = ct.c_uint
+    args = [Type.P(C_POLY_T), Type.U, Type.U, Type.U, Type.P(C_VARS_T)]
+    res = Type.U
     brute = fetch_c_func("bruteforce", args, res)
     sol_amount = brute(c_system, n, n1, d, c_solutions)
 
@@ -200,37 +196,28 @@ def c_bruteforce(system, n, n1, d):
 
     return sol_amount, py_list 
 
-def c_fes_eval_test(trials, m=5, n=5):
+def test_c_fes_eval(sys_tuple):
+    system, n, _, ring, _ = sys_tuple
+    n1 = int(ceil(n/(5.4)))
+    d = randint(1, n - n1)
+    print(system)
+    print(n, n1, d)
+    system = bitslice(system, ring.gens())
+    amount, c_solutions = c_bruteforce(system, n, n1, d)  
+    py_solutions = [index_of(sol) for sol in bruteforce(system, n, n1, d)]
+    c_solutions.sort()
+    py_solutions.sort()
+    if amount != len(py_solutions):
+        print("Amount of solutions differ")
+        print(c_solutions)
+        print(py_solutions)
+        return False
+    for s_c, s_p in zip(c_solutions, py_solutions):
+        if s_c != s_p:
+            print("Solutions differ!", s_c, "!=", s_p)
+            print(c_solutions, py_solutions)
+            return False
+    return True 
 
-    for _ in range(trials):
-        # system, _, ring, n = random_system_with_sol(m, m, n, n)
-        # n1 = randint(1, n - 1)
-        # d = randint(1, n - n1)
-        ring.<x0,x1,x2,x3,x4> = GF(2)[]
-        system = [x0*x2 + x2*x3 + x0*x4 + x2*x4 + x0 + x2 + x3, x0*x2 + x1*x2 + x0*x3 + x1*x3 + x2*x3 + x0*x4 + x1*x4 + x2*x4 + x1, x0*x1 + x0*x2 + x1*x2 + x0*x3 + x1*x3 + x2*x3 + x0*x4 + x1*x4 + x3*x4 + x0 + x1 + x2 + x3 + x4 + 1, x0*x1 + x0*x2 + x1*x3 + x2*x3 + x1*x4 + x3*x4 + x0 + x1 + x2, x0*x2 + x0*x4 + x1*x4 + x3*x4 + x2 + x3]
-        n = 5
-        n1 = 1
-        d = 3
-        print(system)
-        print(n, n1, d)
-        system = bitslice(system, ring.gens())
-        # print("\n=== Running C code ===\n")
-        amount, c_solutions = c_bruteforce(system, n, n1, d)  
-        # print("\n=== Running Python code ===\n")
-        py_solutions = [index_of(sol) for sol in bruteforce(system, n, n1, d)]
-        c_solutions.sort()
-        py_solutions.sort()
-        if amount != len(py_solutions):
-            print("Amount of solutions differ")
-            print(c_solutions)
-            print(py_solutions)
-            return
-        for s_c, s_p in zip(c_solutions, py_solutions):
-            if s_c != s_p:
-                print("Solutions differ!", s_c, "!=", s_p)
-                print(c_solutions, py_solutions)
-                return
-    print(f"Ran {trials} trials without errors!")
-    
 if __name__ == "__main__":
-    c_fes_eval_test(10)
+    test_c_fes_eval(10)

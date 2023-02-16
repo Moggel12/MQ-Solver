@@ -367,6 +367,8 @@ TSWLatexianTemp*
 # Uncomment the next line to have this generated file ignored.
 #*Notes.bib
 
+*.txt
+
 # Python
 **/__pycache__/*
 *.sage.py
@@ -374,3 +376,4 @@ TSWLatexianTemp*
 
 # clangd
 compile_commands.json
+.clang-format
