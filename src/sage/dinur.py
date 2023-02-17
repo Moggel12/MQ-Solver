@@ -308,13 +308,14 @@ def preprocess(system, ring):
     return new_sys
 
 def gen_matrix_rank_l(l, m):
-    srand(int(RSEED))
-    mat = matrix([convert(C_POLY_T(rand()).value & ((_sage_const_1  << m) - _sage_const_1 ), m) for _ in range(l)])
+    print("Seed:", RSEED)
+    mat = matrix([convert(rand() & ((_sage_const_1  << m) - _sage_const_1 ), m) for _ in range(l)])
     while mat.rank() != l:
-        mat = matrix([convert(C_POLY_T(rand()).value >> ((_sage_const_1  << m) - _sage_const_1 ), m) for _ in range(l)])
+        mat = matrix([convert(rand() >> ((_sage_const_1  << m) - _sage_const_1 ), m) for _ in range(l)])
     return mat    
 
 def solve(system, ring, fes_recovery=True):
+    srand(int(RSEED))
     global _time_solve_trials
     global _time_output_potentials
     system = preprocess(system, ring)
@@ -330,11 +331,12 @@ def solve(system, ring, fes_recovery=True):
 
     while k < _sage_const_16 :
         print("Commencing round", k)
-        A = np.rint(np.random.rand(l, m))
+        A = gen_matrix_rank_l(l, m)
+        print(A)
 
         E_k = [sum(GF(_sage_const_2 )(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
         w = sum(f.degree() for f in E_k) - n1 
-
+        print(bitslice(E_k, ring.gens()))
         _time_output_potentials -= time.time()
 
         curr_potential_sol = output_potentials(E_k, ring, n1, w, fes_recovery) 
@@ -350,6 +352,7 @@ def solve(system, ring, fes_recovery=True):
                     sol = convert(y_hat, n - n1) + list(potential_sol[_sage_const_1 :])
                     if eval_system(system, sol):
                         _time_solve_trials += time.time()
+                        print("Rounds:", k)
                         return sol
                     break
         _time_solve_trials += time.time()
@@ -419,11 +422,12 @@ def test_c_gen_matrix(sys_tuple):
 
 def main():
     rounds = _sage_const_1 
+    print(gen_matrix_rank_l(_sage_const_2 , _sage_const_5 ))
     # test_gen_matrix()
     # test_eval()
     # test_compute_e_k()
     # test_u_values(rounds, True)
-    test_c_solve(rounds)
+    # test_c_solve(rounds)
     # test_c_output_solutions(rounds)
     # dry_run_solve(rounds)
     # print("Bruteforce time:", _time_bruteforce/rounds)

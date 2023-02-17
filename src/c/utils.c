@@ -70,9 +70,6 @@ unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
   poly_t *mat_copy = malloc(n_rows * sizeof(poly_t));
   if (!mat_copy) return 1;
 
-  // TODO: Change to srand
-  srand(RSEED);
-
   unsigned int rank;
 
   do

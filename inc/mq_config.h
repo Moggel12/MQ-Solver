@@ -10,7 +10,8 @@
 #if defined(_DEBUG)
 #define RSEED 0
 #else
-#define RSEED time(NULL)
+// #define RSEED time(NULL)
+#define RSEED 0
 #endif
 
 // Remove this definition if polynomials cannot be represented with ordinary

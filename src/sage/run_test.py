@@ -53,7 +53,7 @@ def main():
         if args.test in _test_functions:
             test = (args.test, _test_functions[args.test])
         else:
-            print(f"Test function is invalid. Using default test ({_default_test})")
+            print(f"{WARNING}Could not recognize test function. Using default test ({_default_test}){CLEAR}")
     call_test(all_tuples, test, write_file)
 
 
