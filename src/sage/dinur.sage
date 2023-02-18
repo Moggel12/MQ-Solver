@@ -62,19 +62,24 @@ def test_c_solve(sys_tuple):
     print("System:", system, ring)
     sl_system = bitslice(system, ring.gens())
     print(sl_system)
-    sol = c_solve(sl_system, n, m)
-    print("Solution found:", sol)
-    if sol == None:
+    c_sol = c_solve(sl_system, n, m)
+    py_sol = solve(system, ring)
+    print("Solution found:", c_sol)
+    if c_sol == None:
         print(f"{FAIL}Found No solution{CLEAR}")
         return False
+    elif (py_sol == c_sol):
+        print(f"{SUCCESS}Found identical solution to sage code.{CLEAR}")
+        return True
     else:
-        out = [f(*sol) for f in system]
+        out = [f(*c_sol) for f in system]
         print("Verify found solution:", out)
         if not all(val == 0 for val in out):
             print(f"{FAIL}Solution not valid{CLEAR}")
             return False
-        print(f"{SUCCESS}Solution verified{CLEAR}")
-        return True
+        print(f"{WARNING}Solution verified, but not identical to sage solution{CLEAR}")
+        print(f"{py_sol} != {c_sol}")
+        return False
 
 def test_u_values(sys_tuple):
     system, n, m, ring, _ = sys_tuple
@@ -309,8 +314,7 @@ def gen_matrix_rank_l(l, m):
 
 def solve(system, ring, fes_recovery=True):
     srand(int(RSEED)) # Seeding randomness in accordance with C code.
-    print("Seed:", RSEED)
-    
+
     global _time_solve_trials   
     global _time_output_potentials
     system = preprocess(system, ring)
@@ -322,20 +326,15 @@ def solve(system, ring, fes_recovery=True):
     potentials_solutions = []
     k = 0
 
-    print(f"n: {n}   n1: {n1}   l: {l}")
-
     while k < 16:
         print("Commencing round", k)
         A = gen_matrix_rank_l(l, m)
-        print(A)
 
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
         w = sum(f.degree() for f in E_k) - n1 
-        print(bitslice(E_k, ring.gens()))
         _time_output_potentials -= time.time()
 
         curr_potential_sol = output_potentials(E_k, ring, n1, w, fes_recovery) 
-
         _time_output_potentials += time.time()
 
         potentials_solutions.append(curr_potential_sol)
@@ -368,22 +367,25 @@ def c_solve(system, n, m, test=False):
     
     return convert(sol.value, n)
 
+import sys
+
 def test_c_compute_e_k(sys_tuple):
+    srand(RSEED)
     system, n, m, ring, _ = sys_tuple
     l = int(ceil(n/(5.4))) + 1
     sl_system = bitslice(system, ring.gens())
     mat = gen_matrix_rank_l(l, m)
-    mat_bin = [convert(i, m) for i in mat]
+    mat_dec = [index_of(e) for e in mat]
     # TODO: Use subprocesses to run and communicate with C code.
     print(l)
     print(n)
-    print(sum(f.degree() for f in system))
     print(len(sl_system))
-    for e in mat:
+    for e in mat_dec:
         print(e, end=" ")
     for e in sl_system:
         print(e, end=" ")
-    new_sys = bitslice([sum(mat_bin[i][j] * system[j] for j in range(m)) for i in range(l)], ring.gens())
+    new_sys = bitslice([sum(mat[i][j] * system[j] for j in range(m)) for i in range(l)], ring.gens())
+    print(sum(f.degree() for f in [sum(mat[i][j] * system[j] for j in range(m)) for i in range(l)]))
     for e in new_sys:
         print(e, end=" ")
     return True
@@ -417,14 +419,16 @@ def test_c_gen_matrix(sys_tuple):
 
 def main():
     rounds = 1
-    print(gen_matrix_rank_l(2, 5))
+    ring.<x0,x1,x2,x3,x4> = GF(2)[]
+    sys_tuple = ([x0*x1 + x1*x2 + x1*x3 + x0*x4 + x1*x4 + x0 + x4 + 1, x0*x2 + x1*x3 + x2*x3 + x1*x4 + x2*x4 + x3*x4 + x0 + x4, x0*x1 + x0*x2 + x1*x2 + x2*x3 + x0*x4 + x2*x4 + x3*x4 + x0 + x3 + 1, x0*x2 + x1*x2 + x0 + x1 + x2 + x3 + x4 + 1, x0*x1 + x0*x2 + x1*x2 + x0*x3 + x2*x3 + x2*x4 + x3*x4 + x1 + x2 + 1], 5, 5, ring, 6)
+    test_c_compute_e_k(sys_tuple)
+    # print(gen_matrix_rank_l(2, 5))
     # test_gen_matrix()
     # test_eval()
     # test_compute_e_k()
     # test_u_values(rounds, True)
     # test_c_solve(rounds)
     # test_c_output_solutions(rounds)
-    # dry_run_solve(rounds)
     # print("Bruteforce time:", _time_bruteforce/rounds)
     # print("U value computation time:", _time_u_values/rounds)
     # print("Time for FES interpolation:", _time_fes_recovery/rounds)

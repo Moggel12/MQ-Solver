@@ -1,4 +1,4 @@
-all: run
+all: fes_rec.py fes.py mob_new.py utils.py dinur.py
 
 fes_rec.py: fes_rec.sage
 	sage --preparse fes_rec.sage
@@ -23,8 +23,7 @@ dinur.py: dinur.sage
 run: fes_rec.py fes.py mob_new.py utils.py dinur.py
 	./run_test.py
 	
-	
 .PHONY: clean
 
 clean:
-	rm -f fes.py fes_rec.py mob_new.py utils.py dinur.sage.py
+	rm -f fes.py fes_rec.py mob_new.py utils.py dinur.py

@@ -30,6 +30,7 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
   for (int s = 0; s < l; s++)
   {
     int s_poly_deg = 0;
+
     new_sys[0] =
         GF2_ADD(new_sys[0], __builtin_parity(GF2_MUL(old_sys[0], mat[s])) << s);
 
@@ -41,7 +42,10 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
 
       new_sys[i] = GF2_ADD(new_sys[i], parity << s);
 
-      s_poly_deg = parity;
+      if (s_poly_deg == 0)
+      {
+        s_poly_deg = parity;
+      }
     }
     unsigned int idx = lex_idx(0, 1, n);
     for (int i = 0; i < n; i++)
@@ -53,10 +57,10 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
         new_sys[idx] = GF2_ADD(new_sys[idx], parity << s);
 
         idx++;
-
-        s_poly_deg = parity << 1;
+        if ((s_poly_deg < 2) && ((parity << 1) == 2)) s_poly_deg = parity << 1;
       }
     }
+
     deg += s_poly_deg;
   }
   return deg;
@@ -76,19 +80,20 @@ uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
   for (int y_hat = 0; y_hat < (1 << (n - n1)); y_hat++)
   {
     // printf("%zu\n", *out_size);
-    for (unsigned int i = 0; i < n1 + 1; i++)
-      //   printf("%u ", (evals[y_hat] >> i) & 1);
-      // printf("\n");
-      if ((evals[y_hat] & 1) == 1)
-      {
-        out[*out_size] = y_hat;
-        vars_t z_bits = ~(evals[y_hat] >> 1);
+    //   printf("%u ", (evals[y_hat] >> i) & 1);
+    // printf("\n");
+    printf("%u\n", y_hat);
+    if ((evals[y_hat] & 1) == 1)
+    {
+      out[*out_size] = y_hat;
+      vars_t z_bits = ~(evals[y_hat] >> 1);
 
-        out[(*out_size)] = GF2_ADD(out[(*out_size)], (z_bits << (n - n1)));
-        (*out_size)++;
-      }
+      out[(*out_size)] = GF2_ADD(out[(*out_size)], (z_bits << (n - n1)));
+      (*out_size)++;
+    }
   }
 
+  free(evals);
   return 0;
 }
 
@@ -103,11 +108,9 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
   unsigned int l = n1 + 1;
   unsigned int k = 0;
 
-  printf("%u, %u, %u, %u\n", n, m, n1, l);
-
   SolutionsStruct *potential_solutions[MAX_HISTORY] = {0};
 
-  // printf("Initialized list!\n");
+  printf("Initialized list!\n");
 
   // TODO: poly_t is not guaranteed large enough for l bits.
   poly_t *rand_sys = malloc(amnt_sys_vars * sizeof(poly_t));
@@ -118,19 +121,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
   {
     memset(rand_sys, 0, amnt_sys_vars * sizeof(poly_t));
 
-    printf("Round (%u)\n", k);
-
     unsigned int error = gen_matrix(rand_mat, l, m);
-    // printf("Generated matrix\n");
-
-    for (unsigned int i = 0; i < l; i++)
-    {
-      for (unsigned int j = 0; j < m; j++)
-      {
-        printf("%u ", (rand_mat[i] >> j) & 1);
-      }
-      printf("\n");
-    }
+    printf("Generated matrix\n");
 
     vars_t *curr_potentials = calloc(
         1 << (n - n1), sizeof(vars_t));  // TODO: Change this to a suitable size
@@ -139,7 +131,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
       k--;
       continue;
     }
-    // printf("Allocated curr_potentials!\n");
+    printf("Allocated curr_potentials!\n");
 
     // printf("Memory before compute\n");
     // for (unsigned int i = 0; i < n_choose_k(n, 2) + n + 1; i++)
@@ -148,14 +140,9 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
     // }
     // printf("\n");
     unsigned int w = compute_e_k(rand_mat, rand_sys, system, l, n);
-    // printf("compute_e_k\n");
+    printf("compute_e_k\n");
 
     // printf("Memory after compute\n");
-    for (unsigned int i = 0; i < n_choose_k(n, 2) + n + 1; i++)
-    {
-      printf("%u ", rand_sys[i]);
-    }
-    printf("\n");
     // printf("Computed new system!\n");
 
     // append_list(potential_solutions, out, 1 << (n - n1));
@@ -168,15 +155,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
       free(rand_mat);
       return 1;
     }
-    // printf("ran output_solutions (Got %zu solutions)\n", len_out);
 
-    // for (unsigned int i = 0; i < len_out; i++)
-    // {
-    //   printf("%u\n", curr_potentials[i]);
-    // }
-
-    // printf("Successfully ran output_potentials (Got %zu solutions)\n",
-    // len_out);
+    printf("Successfully ran output_potentials (Got %zu solutions)\n", len_out);
 
     // potential_solutions[k]->solutions = curr_potentials;
     // potential_solutions[k]->amount = len_out;
@@ -192,13 +172,14 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
       free(rand_mat);
       return 1;
     }
-    // printf("allocated struct\n");
+    printf("allocated struct\n");
 
     s->solutions = curr_potentials, s->amount = len_out;
     potential_solutions[k] = s;
+    printf("\t\t\t%u\n", k);
 
     // printf("Appended list!\n");
-    // printf("Added solutions\n");
+    printf("Added solutions\n");
 
     // TODO: Sequentially go through stored solutions and compare, instead of
     // using lookup
@@ -224,15 +205,21 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
           {
             if (!eval(system, n, curr_potentials[idx]))
             {
-              // printf("Found something\n");
-              for (unsigned int l = 0; l < k; l++)
-              {
-                free(potential_solutions[l]->solutions);
-                free(potential_solutions[l]);
-              }
-              free(rand_sys);
-              free(rand_mat);
               *sol = curr_potentials[idx];
+              printf("Found something\n");
+              for (unsigned int i = 0; i <= k; i++)
+              {
+                printf("Testing %u\n", i);
+                printf("Address %p\n", potential_solutions[i]->solutions);
+                printf("Address %p\n", potential_solutions[i]);
+                free(potential_solutions[i]->solutions);
+                free(potential_solutions[i]);
+              }
+              printf("Freed list\n");
+              free(rand_sys);
+              printf("Freed system\n");
+              free(rand_mat);
+              printf("Freed matrix\n");
               return 0;
             }
           }

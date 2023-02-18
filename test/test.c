@@ -52,7 +52,6 @@ void test_compute_e_k(void)
 {
   size_t l = read_size_t();
   size_t n = read_size_t();
-  unsigned int deg = read_size_t();
   size_t sys_len = read_size_t();
 
   poly_t *mat = read_poly_t_array(l);
@@ -79,6 +78,8 @@ void test_compute_e_k(void)
     return;
   }
 
+  unsigned int deg = read_size_t();
+
   poly_t *correct_new_sys = read_poly_t_array(sys_len);
   if (!correct_new_sys)
   {
@@ -102,13 +103,15 @@ void test_compute_e_k(void)
     }
   }
 
+  if (deg != res)
+  {
+    printf("Degrees do not correspond: %u != %u\n", deg, res);
+    acc = 0;
+  }
+
   if (acc)
   {
     printf("No errors found\n");
-  }
-  else if (deg != res)
-  {
-    printf("Degrees do not correspond: %u != %u\n", deg, res);
   }
 
   free(mat);
@@ -199,6 +202,12 @@ void test_memory();
 int main(void)
 {
   // test_gen_matrix();
-  test_compute_e_k();
+  poly_t sys[16] = {25, 22, 30, 14, 15, 20, 9, 26, 12, 6, 17, 5, 23, 24, 17, 4};
+  unsigned int n = 5;
+  unsigned int m = 5;
+  vars_t sol;
+  uint8_t err = solve(sys, n, m, &sol);
+  printf("Error code %u\n", err);
+
   return 0;
 }
