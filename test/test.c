@@ -102,7 +102,7 @@ void test_compute_e_k(void)
       break;
     }
   }
-
+  printf("deg: %u, res: %u\n", deg, res);
   if (deg != res)
   {
     printf("Degrees do not correspond: %u != %u\n", deg, res);
@@ -201,13 +201,10 @@ void test_memory();
 
 int main(void)
 {
-  // test_gen_matrix();
-  poly_t sys[16] = {14, 14, 21, 19, 26, 8, 29, 26, 29, 8, 31, 16, 9, 24, 12, 1};
-  unsigned int n = 5;
-  unsigned int m = 5;
-  vars_t sol;
-  uint8_t err = solve(sys, n, m, &sol);
-  printf("Error code %u\n", err);
+  test_compute_e_k();
+  // poly_t sys[16] = {14, 14, 21, 19, 26, 8, 29, 26, 29, 8, 31, 16, 9, 24, 12,
+  // 1}; unsigned int n = 5; unsigned int m = 5; vars_t sol; uint8_t err =
+  // solve(sys, n, m, &sol); printf("Error code %u\n", err);
 
   return 0;
 }

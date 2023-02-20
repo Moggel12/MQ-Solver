@@ -70,10 +70,11 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
 uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
                           unsigned int w, vars_t *out, size_t *out_size)
 {
+  // printf("W: %u\n", w);
   vars_t *evals = calloc(1 << (n - n1), sizeof(vars_t));
   if (!evals) return 1;
 
-  uint8_t error = fes_recover(system, n, n1, w + 1, evals);
+  uint8_t error = fes_recover(system, n, n1, w, evals);
   if (error) return error;
 
   *out_size = 0;
@@ -81,19 +82,17 @@ uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
   for (int y_hat = 0; y_hat < (1 << (n - n1)); y_hat++)
   {
     // printf("%zu\n", *out_size);
-    //   printf("%u ", (evals[y_hat] >> i) & 1);
     // printf("\n");
     // printf("%u\n", y_hat);
     if ((evals[y_hat] & 1) == 1)
     {
       out[*out_size] = y_hat;
-      vars_t z_bits = ~(evals[y_hat] >> 1);
+      vars_t z_bits = ((evals[y_hat]) ^ ((1 << (n1 + 1)) - 1)) >> 1;
 
       out[(*out_size)] = GF2_ADD(out[(*out_size)], (z_bits << (n - n1)));
       (*out_size)++;
     }
   }
-
   free(evals);
   return 0;
 }
@@ -109,6 +108,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
   unsigned int l = n1 + 1;
   unsigned int k = 0;
 
+  // printf("%u, %u, %u\n", n1, l, k);
+
   SolutionsStruct *potential_solutions[MAX_HISTORY] = {0};
 
   // printf("Initialized list!\n");
@@ -120,17 +121,11 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
 
   for (; k < MAX_HISTORY; k++)
   {
-    printf("Commencing round %u\n", k);
+    // printf("# Commencing round %u\n", k);
     memset(rand_sys, 0, amnt_sys_vars * sizeof(poly_t));
 
     unsigned int error = gen_matrix(rand_mat, l, m);
     // printf("Generated matrix\n");
-
-    // for (unsigned int i = 0; i < l; i++)
-    // {
-    //   print_bits(m, rand_mat[i]);
-    //   printf("\n");
-    // }
 
     vars_t *curr_potentials = calloc(
         1 << (n - n1), sizeof(vars_t));  // TODO: Change this to a suitable size
@@ -142,14 +137,14 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
     // printf("Allocated curr_potentials!\n");
 
     // printf("Memory before compute\n");
+
+    unsigned int w = compute_e_k(rand_mat, rand_sys, system, l, n) - n1;
+    // printf("compute_e_k\n");
     // for (unsigned int i = 0; i < n_choose_k(n, 2) + n + 1; i++)
     // {
     //   printf("%u ", rand_sys[i]);
     // }
     // printf("\n");
-    unsigned int w = compute_e_k(rand_mat, rand_sys, system, l, n);
-    // printf("compute_e_k\n");
-
     // printf("Memory after compute\n");
     // printf("Computed new system!\n");
 
@@ -169,6 +164,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
     //   print_bits(n, curr_potentials[i]);
     //   printf(" ");
     // }
+    // printf("\n");
     // printf("\n");
 
     // printf("Successfully ran output_potentials (Got %zu solutions)\n",
@@ -223,6 +219,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
           //                 ((1 << (n - n1)) - 1));
           vars_t old_y = potential_solutions[k1]->solutions[old_idx] &
                          ((1 << (n - n1)) - 1);
+          // printf("Solutions equal? (%u == %u)\n", curr_potentials[idx],
+          //        potential_solutions[k1]->solutions[old_idx]);
           // print_bits(n, potential_solutions[k1]->solutions[old_idx]);
           // printf("\n");
           // print_bits(n, (1 << (n - n1)) - 1);
@@ -241,8 +239,13 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
           else if (curr_potentials[idx] ==
                    potential_solutions[k1]->solutions[old_idx])
           {
+            // print_bits(n, curr_potentials[idx]);
+            // printf(" == ");
+            // print_bits(n, potential_solutions[k1]->solutions[old_idx]);
+            // printf("\n");
             if (!eval(system, n, curr_potentials[idx]))
             {
+              // printf("Solution evaluated correctly!\n");
               *sol = curr_potentials[idx];
               // printf("Found something\n");
               for (unsigned int i = 0; i <= k; i++)

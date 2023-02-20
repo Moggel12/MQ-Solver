@@ -27,7 +27,8 @@ def list_tests():
 def call_test(all_tuples, test, write_file):
     # print(all_tuples)
     succeeded = False
-    for sys_tuple in all_tuples:
+    for i, sys_tuple in enumerate(all_tuples):
+        print(f"\n{ITER}== {i + 1} =={CLEAR}")
         print(sys_tuple)
         succeeded = test[1](sys_tuple)
         if not succeeded and write_file:

@@ -27,3 +27,6 @@ run: fes_rec.py fes.py mob_new.py utils.py dinur.py
 
 clean:
 	rm -f fes.py fes_rec.py mob_new.py utils.py dinur.py
+
+fclean:
+	rm -f *.txt

@@ -164,7 +164,7 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
 # Assumes vars is either a ring object or an int.
 def bruteforce(system, vars, n1, d):
     solutions = []
-    if type(vars) != int:
+    if type(vars) is int:
         n = len(vars)
         system = bitslice(system, vars)
     else:
@@ -199,7 +199,8 @@ def c_bruteforce(system, n, n1, d):
 def test_c_fes_eval(sys_tuple):
     system, n, _, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4)))
-    d = randint(1, n - n1)
+    # d = randint(1, n - n1)
+    d = 4
     print(system)
     print(n, n1, d)
     system = bitslice(system, ring.gens())
@@ -207,6 +208,8 @@ def test_c_fes_eval(sys_tuple):
     py_solutions = [index_of(sol) for sol in bruteforce(system, n, n1, d)]
     c_solutions.sort()
     py_solutions.sort()
+    print(py_solutions)
+    print(c_solutions)
     if amount != len(py_solutions):
         print("Amount of solutions differ")
         print(c_solutions)
@@ -220,4 +223,6 @@ def test_c_fes_eval(sys_tuple):
     return True 
 
 if __name__ == "__main__":
-    test_c_fes_eval(10)
+    ring.<x0,x1,x2,x3,x4,x5,x6,x7,x8,x9> = GF(2)[]
+    sys_tuple = ([x0*x2 + x1*x2 + x0*x3 + x2*x3 + x1*x4 + x2*x4 + x0*x5 + x3*x5 + x4*x5 + x0*x6 + x3*x6 + x4*x6 + x0*x7 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x4*x8 + x7*x8 + x1*x9 + x2*x9 + x5*x9 + x6*x9 + x8*x9 + x0 + x7 + x9, x0*x1 + x3*x4 + x3*x5 + x4*x5 + x2*x6 + x3*x6 + x4*x6 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x0*x8 + x5*x8 + x6*x8 + x0*x9 + x1*x9 + x4*x9 + x5*x9 + x6*x9 + x7*x9 + x8*x9 + x2 + x4 + x5 + x6 + x7 + x8 + x9 + 1, x0*x3 + x0*x4 + x1*x4 + x1*x5 + x3*x5 + x4*x6 + x0*x7 + x1*x7 + x2*x7 + x3*x7 + x5*x7 + x6*x7 + x0*x8 + x0*x9 + x2*x9 + x3*x9 + x5*x9 + x0 + x1 + x2 + x3 + x4 + x6 + x7 + x9], 10, int(ceil(10/5.4)) + 1, ring, None)
+    print(test_c_fes_eval(sys_tuple))

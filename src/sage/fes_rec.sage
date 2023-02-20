@@ -42,8 +42,7 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
     d = {}
 
     if ring != None:
-        system = bitslice(system, ring.gens())
-    
+        system = bitslice(system, ring.gens())    
 
     s, new_parities = part_eval(system, prefix, n, n1, s)
     res[0] = new_parities 
@@ -119,7 +118,8 @@ def c_fes_recover(system, n, n1, deg):
 def test_c_fes_recover(sys_tuple):
     system, n, _, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
-    d = randint(1, n - n1)
+    # d = randint(1, n - n1)
+    d = 4
     print(system)
     print(n, n1, d)
     system = bitslice(system, ring.gens())
@@ -128,6 +128,8 @@ def test_c_fes_recover(sys_tuple):
         print("Error with memory allocation in C code.")
         return False
     py_results = fes_recover(system, n, n1, d + 1)
+    print(py_results)
+    print(c_results)
     if len(c_results) != len(py_results):
         print("Solutions are not of equal length")
         print(c_results)
@@ -142,4 +144,6 @@ def test_c_fes_recover(sys_tuple):
 if __name__ == "__main__":
     # test()
     # fes_recover(sl_sys, n, n1, d)
-    test_c_fes_recover(1, 7, 7)
+    ring.<x0,x1,x2,x3,x4,x5,x6,x7,x8,x9> = GF(2)[]
+    sys_tuple = ([x0*x2 + x1*x2 + x0*x3 + x2*x3 + x1*x4 + x2*x4 + x0*x5 + x3*x5 + x4*x5 + x0*x6 + x3*x6 + x4*x6 + x0*x7 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x4*x8 + x7*x8 + x1*x9 + x2*x9 + x5*x9 + x6*x9 + x8*x9 + x0 + x7 + x9, x0*x1 + x3*x4 + x3*x5 + x4*x5 + x2*x6 + x3*x6 + x4*x6 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x0*x8 + x5*x8 + x6*x8 + x0*x9 + x1*x9 + x4*x9 + x5*x9 + x6*x9 + x7*x9 + x8*x9 + x2 + x4 + x5 + x6 + x7 + x8 + x9 + 1, x0*x3 + x0*x4 + x1*x4 + x1*x5 + x3*x5 + x4*x6 + x0*x7 + x1*x7 + x2*x7 + x3*x7 + x5*x7 + x6*x7 + x0*x8 + x0*x9 + x2*x9 + x3*x9 + x5*x9 + x0 + x1 + x2 + x3 + x4 + x6 + x7 + x9], 10, int(ceil(10/5.4)) + 1, ring, None)
+    test_c_fes_recover(sys_tuple)

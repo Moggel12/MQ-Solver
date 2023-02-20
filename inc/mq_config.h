@@ -6,12 +6,13 @@
 
 #include "stdint.h"
 
-#define MAX_HISTORY 50
+#define MAX_HISTORY 500
+
 #if defined(_DEBUG)
-#define RSEED 0
+#define RSEED 42
 #else
 // #define RSEED time(NULL)
-#define RSEED 0
+#define RSEED 42
 #endif
 
 // Remove this definition if polynomials cannot be represented with ordinary

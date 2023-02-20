@@ -7,7 +7,7 @@ from math import ceil
 from fes_rec import fes_recover
 import time
 
-from c_config import Type, srand, rand, call_c_test, RSEED, C_POLY_T, C_VARS_T
+from c_config import Type, srand, rand, call_c_test, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY
 
 import ctypes as ct
 from utils import bitslice, fetch_c_func, write_fukuoka
@@ -31,7 +31,7 @@ _time_fes_recovery = 0
 
 def test_c_output_solutions(sys_tuple):
     # system, _, ring, n = random_systems_with_sol(_m_low, _m_high, _n_low, _n_high)
-    system, n, _, ring, _ = sys_tuple
+    system, n, m, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
     w = sum(f.degree() for f in system) - n1
     print(system)
@@ -49,13 +49,17 @@ def test_c_output_solutions(sys_tuple):
         return False
     for c_s, p_s in zip(c_solutions, py_solutions):
         if (c_s != p_s):
-            print(f"{FAIL}Solutions differ!{CLEAR}", c_s, "!=", p_s)
+            print(f"{FAIL}Keys in solutions differ!{CLEAR}", c_s, "!=", p_s)
             print(c_solutions.keys, py_solutions.keys())
+            return False
+        elif any(convert(c_solutions[c_s], n1 + 1) != py_solutions[p_s]):
+            print(f"{FAIL}Z bits differ!{CLEAR}", py_solutions[p_s], "!=", convert(c_solutions[c_s], n1 + 1), py_solutions[p_s])
+            print(c_solutions.values())
+            print(py_solutions.values())
             return False
     return True
 
 def test_c_solve(sys_tuple):
-    print(f"\n{ITER}== {i} =={CLEAR}")
     system, n, m, ring, known_sol = sys_tuple
     print("Verify known solution:", [f(*convert(known_sol, n)) for f in system]) 
     print("Known solution:", known_sol)
@@ -74,6 +78,7 @@ def test_c_solve(sys_tuple):
     else:
         out = [f(*c_sol) for f in system]
         print("Verify found solution:", out)
+        print(not all([f(*c_sol) == 0 for f in system]))
         if not all(val == 0 for val in out):
             print(f"{FAIL}Solution not valid{CLEAR}")
             return False
@@ -89,16 +94,16 @@ def test_u_values(sys_tuple):
     w = F_tilde.degree() - n1
     V, ZV = compute_u_values(system, ring, n1, w)
     for y in range(2^(n - n1)):
-        print("Computing s0 sum...")
+        # print("Computing s0 sum...")
         s0 = sum(F_tilde(*convert(y, n - n1), *convert(z_hat, n1)) for z_hat in range(2^n1))
-        print("Finished sum")
+        # print("Finished sum")
         if V[y] != s0:
             print(f"Error found in V[{y}]\n\t{V[y]}\n\t{s0}")
             return False
         for i in range(n1):
-            print(f"Computing s{i} sum...")
+            # print(f"Computing s{i} sum...")
             si = sum(F_tilde(*convert(y, n - n1), *convert(z_hat, n1 - 1)[:i], 0, *convert(z_hat, n1 - 1)[i:]) for z_hat in range(2^(n1 - 1)))
-            print("Finished sum")
+            # print("Finished sum")
             if (ZV[i][y]) != si:
                 print(f"Error found in ZV[{i}][{y}]\n\t{(ZV[i][y])}\n\t{si}")
                 return False
@@ -127,7 +132,6 @@ def test_dinur_output_sol(sys_tuple):
     return True
 
 def test_run_solve(sys_tuple):
-    print(f"\n{ITER}== {i} =={CLEAR}")
     system, n, _, ring, known_sol = sys_tuple
     print("Verify known solution:", [f(*convert(known_sol, n)) for f in system]) 
     print("Known solution:", known_sol)
@@ -195,9 +199,9 @@ def output_potentials(system, ring, n1, w, fes_recovery):
     if fes_recovery:
         
         _time_fes_recovery -= time.time()
-        
-        evals = fes_recover(system, n, n1, w + 1, ring)
-        
+
+        evals = fes_recover(system, n, n1, w, ring)
+
         _time_fes_recovery += time.time()
 
         _time_fetch_sol -= time.time()
@@ -208,14 +212,14 @@ def output_potentials(system, ring, n1, w, fes_recovery):
 
                 out[y_hat][0] = GF(2)(1)
                 for i in range(1, n1 + 1):
-                    out[y_hat][i] = GF(2)((evals[y_hat] >> i) & 1) + 1# Bitsliced indexing
+                    out[y_hat][i] = GF(2)((evals[y_hat] >> i) & 1) + 1 # Bitsliced indexing
 
         _time_fetch_sol += time.time()
     else:
         ring_sub = GF(2)[", ".join([str(var) for var in ring.gens()[:n - n1]])]
         U = []
 
-        V, ZV = compute_u_values(system, ring, n1, w + 1)
+        V, ZV = compute_u_values(system, ring, n1, w)
 
         _time_mobius -= time.time() 
 
@@ -286,11 +290,13 @@ def c_output_potentials(system, n, n1, w, test=False):
     
     if error == 1:
         return None
-    
+
     py_dict = defaultdict(lambda: GF(2)(0))
-    for y_hat in range(2^(n - n1)):
-        if (out[y_hat] & 1) == 1:
-            py_dict[y_hat] = out[y_hat]
+
+    for idx in range(out_size.value):
+        y_hat = out[idx] & (2^(n - n1) - 1)
+        z_bits = (out[idx] >> (n - n1 - 1)) | 1
+        py_dict[y_hat] = z_bits
     
     return py_dict
 
@@ -309,9 +315,7 @@ def preprocess(system, ring):
 def gen_matrix_rank_l(l, m):
     mat = matrix([convert(rand() & ((1 << m) - 1), m) for _ in range(l)])
     while mat.rank() != l:
-        print(mat)
         mat = matrix([convert(rand() & ((1 << m) - 1), m) for _ in range(l)])
-    print(mat)
     return mat    
 
 def solve(system, ring, fes_recovery=True):
@@ -325,35 +329,35 @@ def solve(system, ring, fes_recovery=True):
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
     l = n1 + 1
     m = len(system)
-    potentials_solutions = []
+    potential_solutions = []
     k = 0
 
-    while True:
+    while k < MAX_HISTORY:
         print("Commencing round", k)
         A = gen_matrix_rank_l(l, m)
-
+        
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
+        # print(E_k)
+
         w = sum(f.degree() for f in E_k) - n1 
         _time_output_potentials -= time.time()
 
         curr_potential_sol = output_potentials(E_k, ring, n1, w, fes_recovery) 
-        # for k in curr_potential_sol:
-        #     print(list(convert(k, n - n1)) + list(curr_potential_sol[k]), end=" ")
-        # print()
+        
         _time_output_potentials += time.time()
 
-        potentials_solutions.append(curr_potential_sol)
+        potential_solutions.append(curr_potential_sol)
 
         _time_solve_trials -= time.time()
         for y_hat, potential_sol in curr_potential_sol.items(): # Iterate through solutions instead of all possible inputs
-            for k1 in range(k):
-                if all(potential_sol == potentials_solutions[k1][y_hat]):
-                    sol = convert(y_hat, n - n1) + list(potential_sol[1:])
-                    if eval_system(system, sol):
-                        _time_solve_trials += time.time()
-                        # print("Rounds:", k + 1)
-                        return sol
-                    break
+            if potential_sol[0] == 1:
+                for k1 in range(k):
+                    if all(potential_sol == potential_solutions[k1][y_hat]):
+                        sol = convert(y_hat, n - n1) + list(potential_sol[1:])
+                        if eval_system(system, sol):
+                            _time_solve_trials += time.time()
+                            return sol
+                        break
         _time_solve_trials += time.time()
         k += 1
     return None
@@ -424,7 +428,10 @@ def test_c_gen_matrix(sys_tuple):
 
 def main():
     rounds = 1
-    # test_run_solve(sys_tuple)
+    ring.<x0,x1,x2,x3,x4,x5,x6,x7,x8,x9> = GF(2)[]
+    sys_tuple = ([x0*x2 + x1*x2 + x0*x3 + x2*x3 + x1*x4 + x2*x4 + x0*x5 + x3*x5 + x4*x5 + x0*x6 + x3*x6 + x4*x6 + x0*x7 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x4*x8 + x7*x8 + x1*x9 + x2*x9 + x5*x9 + x6*x9 + x8*x9 + x0 + x7 + x9, x0*x1 + x3*x4 + x3*x5 + x4*x5 + x2*x6 + x3*x6 + x4*x6 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x0*x8 + x5*x8 + x6*x8 + x0*x9 + x1*x9 + x4*x9 + x5*x9 + x6*x9 + x7*x9 + x8*x9 + x2 + x4 + x5 + x6 + x7 + x8 + x9 + 1, x0*x3 + x0*x4 + x1*x4 + x1*x5 + x3*x5 + x4*x6 + x0*x7 + x1*x7 + x2*x7 + x3*x7 + x5*x7 + x6*x7 + x0*x8 + x0*x9 + x2*x9 + x3*x9 + x5*x9 + x0 + x1 + x2 + x3 + x4 + x6 + x7 + x9], 10, int(ceil(10/5.4)) + 1, ring, None)
+    # print(test_c_output_solutions(sys_tuple))
+    test_c_compute_e_k(sys_tuple)
     # print("Bruteforce time:", _time_bruteforce/rounds)
     # print("U value computation time:", _time_u_values/rounds)
     # print("Time for FES interpolation:", _time_fes_recovery/rounds)

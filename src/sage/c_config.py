@@ -10,7 +10,8 @@ from utils import parse_fukuoka, write_fukuoka, random_systems, random_systems_w
 
 _libc = ct.CDLL("libc.so.6")
 
-RSEED = 0
+RSEED = 42
+MAX_HISTORY = 500
 
 # Typedefs
 class Type():
