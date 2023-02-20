@@ -10,7 +10,7 @@ import time
 from c_config import Type, srand, rand, call_c_test, RSEED, C_POLY_T, C_VARS_T
 
 import ctypes as ct
-from utils import bitslice, fetch_c_func
+from utils import bitslice, fetch_c_func, write_fukuoka
 
 from collections import defaultdict
 
@@ -61,7 +61,7 @@ def test_c_solve(sys_tuple):
     print("Known solution:", known_sol)
     print("System:", system, ring)
     sl_system = bitslice(system, ring.gens())
-    print(sl_system)
+    # print(sl_system)
     c_sol = c_solve(sl_system, n, m)
     py_sol = solve(system, ring)
     print("Solution found:", c_sol)
@@ -309,7 +309,9 @@ def preprocess(system, ring):
 def gen_matrix_rank_l(l, m):
     mat = matrix([convert(rand() & ((1 << m) - 1), m) for _ in range(l)])
     while mat.rank() != l:
-        mat = matrix([convert(rand() >> ((1 << m) - 1), m) for _ in range(l)])
+        print(mat)
+        mat = matrix([convert(rand() & ((1 << m) - 1), m) for _ in range(l)])
+    print(mat)
     return mat    
 
 def solve(system, ring, fes_recovery=True):
@@ -326,7 +328,7 @@ def solve(system, ring, fes_recovery=True):
     potentials_solutions = []
     k = 0
 
-    while k < 16:
+    while True:
         print("Commencing round", k)
         A = gen_matrix_rank_l(l, m)
 
@@ -335,6 +337,9 @@ def solve(system, ring, fes_recovery=True):
         _time_output_potentials -= time.time()
 
         curr_potential_sol = output_potentials(E_k, ring, n1, w, fes_recovery) 
+        # for k in curr_potential_sol:
+        #     print(list(convert(k, n - n1)) + list(curr_potential_sol[k]), end=" ")
+        # print()
         _time_output_potentials += time.time()
 
         potentials_solutions.append(curr_potential_sol)
@@ -346,7 +351,7 @@ def solve(system, ring, fes_recovery=True):
                     sol = convert(y_hat, n - n1) + list(potential_sol[1:])
                     if eval_system(system, sol):
                         _time_solve_trials += time.time()
-                        print("Rounds:", k)
+                        # print("Rounds:", k + 1)
                         return sol
                     break
         _time_solve_trials += time.time()
@@ -419,16 +424,7 @@ def test_c_gen_matrix(sys_tuple):
 
 def main():
     rounds = 1
-    ring.<x0,x1,x2,x3,x4> = GF(2)[]
-    sys_tuple = ([x0*x1 + x1*x2 + x1*x3 + x0*x4 + x1*x4 + x0 + x4 + 1, x0*x2 + x1*x3 + x2*x3 + x1*x4 + x2*x4 + x3*x4 + x0 + x4, x0*x1 + x0*x2 + x1*x2 + x2*x3 + x0*x4 + x2*x4 + x3*x4 + x0 + x3 + 1, x0*x2 + x1*x2 + x0 + x1 + x2 + x3 + x4 + 1, x0*x1 + x0*x2 + x1*x2 + x0*x3 + x2*x3 + x2*x4 + x3*x4 + x1 + x2 + 1], 5, 5, ring, 6)
-    test_c_compute_e_k(sys_tuple)
-    # print(gen_matrix_rank_l(2, 5))
-    # test_gen_matrix()
-    # test_eval()
-    # test_compute_e_k()
-    # test_u_values(rounds, True)
-    # test_c_solve(rounds)
-    # test_c_output_solutions(rounds)
+    # test_run_solve(sys_tuple)
     # print("Bruteforce time:", _time_bruteforce/rounds)
     # print("U value computation time:", _time_u_values/rounds)
     # print("Time for FES interpolation:", _time_fes_recovery/rounds)

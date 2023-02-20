@@ -25,9 +25,10 @@ def list_tests():
         print(func_name)
 
 def call_test(all_tuples, test, write_file):
-    print(all_tuples)
+    # print(all_tuples)
     succeeded = False
     for sys_tuple in all_tuples:
+        print(sys_tuple)
         succeeded = test[1](sys_tuple)
         if not succeeded and write_file:
             write_fukuoka(f"{int(time.time())}_failed_{test[0]}_system.txt", *sys_tuple)

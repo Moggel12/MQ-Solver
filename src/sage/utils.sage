@@ -68,6 +68,7 @@ def create_poly_str(poly, ring):
     return poly_str
 
 def write_fukuoka(filename, system, n, m, ring, sol=None):
+    print(type(sol))
     if sol and (type(sol) != int):
         print(f"{FAIL}Solution must be an int representing the decimal representation of the c input. Got {type(sol)}{CLEAR}")
         return

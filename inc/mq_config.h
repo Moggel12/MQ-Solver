@@ -6,7 +6,7 @@
 
 #include "stdint.h"
 
-#define MAX_HISTORY 10
+#define MAX_HISTORY 50
 #if defined(_DEBUG)
 #define RSEED 0
 #else

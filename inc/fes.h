@@ -1,13 +1,12 @@
 #ifndef FES_H
 #define FES_H
 
-#include "utils.h"
 #include "mq_config.h"
 #include "utils.h"
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <limits.h>
 
 typedef struct state {
   vars_t i;
@@ -26,7 +25,8 @@ typedef struct state {
  * @param m
  * @return
  */
-unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1, unsigned int d, vars_t *solutions);
+unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
+                        unsigned int d, vars_t *solutions);
 
 /*!
  *
@@ -38,7 +38,9 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1, unsigne
  * @param solutions
  * @param sol_amount
  */
-void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1, uint8_t *prefix, state *s, vars_t *solutions, unsigned int *sol_amount);
+void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
+                        uint8_t *prefix, state *s, vars_t *solutions,
+                        unsigned int *sol_amount);
 
 /**
  *
@@ -48,6 +50,7 @@ void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1, uint8_t
  * @param deg
  * @param results
  */
-uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1, unsigned int deg, vars_t *results);
+uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
+                    unsigned int deg, vars_t *results);
 
 #endif // FES_H

@@ -202,7 +202,7 @@ void test_memory();
 int main(void)
 {
   // test_gen_matrix();
-  poly_t sys[16] = {25, 22, 30, 14, 15, 20, 9, 26, 12, 6, 17, 5, 23, 24, 17, 4};
+  poly_t sys[16] = {14, 14, 21, 19, 26, 8, 29, 26, 29, 8, 31, 16, 9, 24, 12, 1};
   unsigned int n = 5;
   unsigned int m = 5;
   vars_t sol;
