@@ -1,0 +1,6 @@
+g_solve_time timings: 43s, 790ms
+g_recover_time timings: 0s, 479ms
+g_output_time timings: 0s, 484ms
+g_fes_time timings: 0s, 243ms
+g_ek_time timings: 0s, 0ms
+g_matrix_time timings: 0s, 0ms

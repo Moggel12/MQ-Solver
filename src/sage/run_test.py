@@ -3,8 +3,10 @@
 import argparse
 import time
 import sys
+import os
+import hashlib
 
-from utils import fetch_systems_interactive, read_system, SUCCESS, bitslice
+from utils import fetch_systems_interactive, read_system, SUCCESS, bitslice, random_systems_with_sol
 from fes_rec import *
 from dinur import *
 from fes import *
@@ -14,10 +16,12 @@ _test_functions = {key: val for key, val in globals().items() if callable(val) a
 _default_test = list(_test_functions.items())[0]
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Run certain tests via the commandline (C or Sage/Python).")
+    parser = argparse.ArgumentParser(description="Run certain tests via the commandline (C or Sage/Python). Beware, this tool will not sanitize any dirty inputs.")
     parser.add_argument("-f", "--file", help="Load an MQ-challenges style file and use it for testing purposes", type=str)
     parser.add_argument("-t", "--test", help="Run a test based on the names listed via --list (-l)", type=str)
     parser.add_argument("-l", "--list", help="List all available test functions", default=False, action="store_true")
+    parser.add_argument("-g", "--gen", help="Generate MQ-challenge style test files. Expects a comma-separated input: '<amount>,<n_low>,<n_high>,<m_low>,<m_high>'", type=str)
+    parser.add_argument("-b", "--bench", help="Measure how much the C code can bench. Expects a comma-separated input: '<amount>,<n>,<m>'", type=str)
     return parser.parse_args()
 
 def list_tests():
@@ -25,7 +29,7 @@ def list_tests():
         print(func_name)
 
 def call_test(all_tuples, test, write_file):
-    # print(all_tuples)
+    print(all_tuples)
     succeeded = False
     for i, sys_tuple in enumerate(all_tuples):
         print(f"\n{ITER}== {i + 1} =={CLEAR}")
@@ -39,6 +43,15 @@ def call_test(all_tuples, test, write_file):
     else:
         print(f"{FAIL}Error found in <{test[0]}>{CLEAR}", file=sys.stderr)
 
+def gen_files(amount, n_low, n_high, m_low, m_high):
+    gen_dir = os.path.join(os.getcwd(), "test_systems")
+    if not os.path.exists(gen_dir):
+        os.mkdir(gen_dir)
+    for sys_tuple in random_systems_with_sol(m_low, m_high, n_low, n_high, amount):
+        m = hashlib.sha256()
+        m.update(bytes(str(sys_tuple), "utf-8"))
+        write_fukuoka(f"{gen_dir}/system_{sys_tuple[1]}_{sys_tuple[2]}_{m.hexdigest()}.txt", *sys_tuple)
+
 def main():
     all_tuples = None
     test = _default_test
@@ -46,6 +59,14 @@ def main():
     args = parse_arguments()
     if args.list:
         list_tests()
+        return
+    if args.gen:
+        gen_files(*[int(str_num) for str_num in args.gen.split(",")[:5]])
+        return
+    elif args.bench:
+        amnt, n, m = [int(str_num) for str_num in args.bench.split(",")[:3]]
+        system_tuples = random_systems_with_sol(m, m, n, n, amnt)
+        c_benchmark(system_tuples)
         return
     if not args.file:
         all_tuples = fetch_systems_interactive()

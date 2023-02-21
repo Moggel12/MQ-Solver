@@ -2,10 +2,6 @@ import ctypes as ct
 import sys
 import argparse
 
-_SRC_DIR = "../src/sage"
-
-sys.path.insert(0, _SRC_DIR)
-
 from utils import parse_fukuoka, write_fukuoka, random_systems, random_systems_with_sol, fetch_c_func
 
 _libc = ct.CDLL("libc.so.6")
@@ -29,8 +25,8 @@ class Type():
     def P(c_type):
         return ct.POINTER(c_type)
 
-C_POLY_T = Type.U16
-C_VARS_T = Type.U16
+C_POLY_T = Type.U32
+C_VARS_T = Type.U32
 
 def srand(seed):
     _libc.srand(seed)

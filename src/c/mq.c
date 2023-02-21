@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "benchmark.h"
 #include "fes.h"
 #include "mq_config.h"
 #include "utils.h"
@@ -15,14 +16,6 @@ typedef struct SolutionsStruct
   vars_t *solutions;
   size_t amount;
 } SolutionsStruct;
-
-void print_bits(unsigned int len, vars_t bits)
-{
-  for (unsigned int i = 0; i < len; i++)
-  {
-    printf("%u", (bits >> i) & 1);
-  }
-}
 
 unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
                          int n)
@@ -70,20 +63,19 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
 uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
                           unsigned int w, vars_t *out, size_t *out_size)
 {
-  // printf("W: %u\n", w);
   vars_t *evals = calloc(1 << (n - n1), sizeof(vars_t));
   if (!evals) return 1;
+  BEGIN_BENCH(g_recover_time)
 
   uint8_t error = fes_recover(system, n, n1, w, evals);
   if (error) return error;
+
+  END_BENCH(g_recover_time)
 
   *out_size = 0;
 
   for (int y_hat = 0; y_hat < (1 << (n - n1)); y_hat++)
   {
-    // printf("%zu\n", *out_size);
-    // printf("\n");
-    // printf("%u\n", y_hat);
     if ((evals[y_hat] & 1) == 1)
     {
       out[*out_size] = y_hat;
@@ -100,6 +92,8 @@ uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
 // TODO: Reconsider error handling and it's performance impact.
 uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
 {
+  BEGIN_BENCH(g_solve_time)
+
   srand(RSEED);  // Seeding rand
 
   unsigned int amnt_sys_vars = (n_choose_k(n, 2) + n + 1);
@@ -108,11 +102,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
   unsigned int l = n1 + 1;
   unsigned int k = 0;
 
-  // printf("%u, %u, %u\n", n1, l, k);
-
   SolutionsStruct *potential_solutions[MAX_HISTORY] = {0};
-
-  // printf("Initialized list!\n");
 
   // TODO: poly_t is not guaranteed large enough for l bits.
   poly_t *rand_sys = malloc(amnt_sys_vars * sizeof(poly_t));
@@ -121,11 +111,14 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
 
   for (; k < MAX_HISTORY; k++)
   {
-    // printf("# Commencing round %u\n", k);
+    printf("# Commencing round %u\n", k);
     memset(rand_sys, 0, amnt_sys_vars * sizeof(poly_t));
 
+    BEGIN_BENCH(g_matrix_time)
+
     unsigned int error = gen_matrix(rand_mat, l, m);
-    // printf("Generated matrix\n");
+
+    END_BENCH(g_matrix_time)
 
     vars_t *curr_potentials = calloc(
         1 << (n - n1), sizeof(vars_t));  // TODO: Change this to a suitable size
@@ -134,21 +127,14 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
       k--;
       continue;
     }
-    // printf("Allocated curr_potentials!\n");
 
-    // printf("Memory before compute\n");
+    BEGIN_BENCH(g_ek_time)
 
     unsigned int w = compute_e_k(rand_mat, rand_sys, system, l, n) - n1;
-    // printf("compute_e_k\n");
-    // for (unsigned int i = 0; i < n_choose_k(n, 2) + n + 1; i++)
-    // {
-    //   printf("%u ", rand_sys[i]);
-    // }
-    // printf("\n");
-    // printf("Memory after compute\n");
-    // printf("Computed new system!\n");
 
-    // append_list(potential_solutions, out, 1 << (n - n1));
+    END_BENCH(g_ek_time)
+
+    BEGIN_BENCH(g_output_time)
 
     size_t len_out = 0;
     error = output_potentials(rand_sys, n, n1, w, curr_potentials, &len_out);
@@ -158,20 +144,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
       free(rand_mat);
       return 1;
     }
+    END_BENCH(g_output_time)
 
-    // for (unsigned int i = 0; i < len_out; i++)
-    // {
-    //   print_bits(n, curr_potentials[i]);
-    //   printf(" ");
-    // }
-    // printf("\n");
-    // printf("\n");
-
-    // printf("Successfully ran output_potentials (Got %zu solutions)\n",
-    // len_out);
-
-    // potential_solutions[k]->solutions = curr_potentials;
-    // potential_solutions[k]->amount = len_out;
     SolutionsStruct *s = malloc(sizeof(SolutionsStruct));
     if (!s)
     {
@@ -184,54 +158,22 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
       free(rand_mat);
       return 1;
     }
-    // printf("allocated struct\n");
 
     s->solutions = curr_potentials, s->amount = len_out;
     potential_solutions[k] = s;
-    // printf("\t\t\t%u\n", k);
-
-    // printf("Appended list!\n");
-    // printf("Added solutions\n");
-
-    // TODO: Sequentially go through stored solutions and compare, instead of
-    // using lookup
 
     for (size_t idx = 0; idx < len_out; idx++)
     {
-      // size_t bin_y = gray_to_bin(curr_potentials[idx] & ((1 << (n - n1)) -
-      // 1));
       vars_t y = curr_potentials[idx] & ((1 << (n - n1)) - 1);
-      // print_bits(n, curr_potentials[idx]);
-      // printf("\n");
-      // print_bits(n, (1 << (n - n1)) - 1);
-      // printf("\n");
-      // print_bits(n, curr_potentials[idx] & ((1 << (n - n1)) - 1));
-      // printf("\n");
-      // printf("gray: %u, bin: %zu\n",
-      //  curr_potentials[idx] & ((1 << (n - n1)) - 1), bin_y);
+
       for (unsigned int k1 = 0; k1 < k; k1++)
       {
         for (size_t old_idx = 0; old_idx < potential_solutions[k1]->amount;
              old_idx++)
         {
-          // size_t bin_k1 =
-          //     gray_to_bin(potential_solutions[k1]->solutions[old_idx] &
-          //                 ((1 << (n - n1)) - 1));
           vars_t old_y = potential_solutions[k1]->solutions[old_idx] &
                          ((1 << (n - n1)) - 1);
-          // printf("Solutions equal? (%u == %u)\n", curr_potentials[idx],
-          //        potential_solutions[k1]->solutions[old_idx]);
-          // print_bits(n, potential_solutions[k1]->solutions[old_idx]);
-          // printf("\n");
-          // print_bits(n, (1 << (n - n1)) - 1);
-          // printf("\n");
-          // print_bits(n, potential_solutions[k1]->solutions[old_idx] &
-          //                   ((1 << (n - n1)) - 1));
-          // printf("\n");
-          // printf("gray: %u, bin %zu\n",
-          //        potential_solutions[k1]->solutions[old_idx] &
-          //            ((1 << (n - n1)) - 1),
-          //        bin_k1);
+
           if (old_y > y)
           {
             break;
@@ -239,22 +181,21 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
           else if (curr_potentials[idx] ==
                    potential_solutions[k1]->solutions[old_idx])
           {
-            // print_bits(n, curr_potentials[idx]);
-            // printf(" == ");
-            // print_bits(n, potential_solutions[k1]->solutions[old_idx]);
-            // printf("\n");
             if (!eval(system, n, curr_potentials[idx]))
             {
-              // printf("Solution evaluated correctly!\n");
               *sol = curr_potentials[idx];
-              // printf("Found something\n");
+
               for (unsigned int i = 0; i <= k; i++)
               {
                 free(potential_solutions[i]->solutions);
                 free(potential_solutions[i]);
               }
+
               free(rand_sys);
               free(rand_mat);
+
+              END_BENCH(g_solve_time)
+
               return 0;
             }
           }
@@ -262,7 +203,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
       }
     }
   }
-  // printf("Found nothing!\n");
+
   for (unsigned int i = 0; i < MAX_HISTORY; i++)
   {
     free(potential_solutions[i]->solutions);
@@ -270,5 +211,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
   }
   free(rand_sys);
   free(rand_mat);
+
+  END_BENCH(g_solve_time)
+
   return 1;
 }

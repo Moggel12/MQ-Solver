@@ -102,7 +102,7 @@ void test_compute_e_k(void)
       break;
     }
   }
-  printf("deg: %u, res: %u\n", deg, res);
+
   if (deg != res)
   {
     printf("Degrees do not correspond: %u != %u\n", deg, res);

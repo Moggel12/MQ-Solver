@@ -337,7 +337,7 @@ def solve(system, ring, fes_recovery=True):
         A = gen_matrix_rank_l(l, m)
         
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
-        # print(E_k)
+        # print(bitslice(E_k, ring.gens()))
 
         w = sum(f.degree() for f in E_k) - n1 
         _time_output_potentials -= time.time()
@@ -376,7 +376,23 @@ def c_solve(system, n, m, test=False):
     
     return convert(sol.value, n)
 
-import sys
+def c_benchmark(system_tuples):
+    n = system_tuples[0][1]
+    m = system_tuples[0][2]
+    ring = system_tuples[0][3]
+    size = len(system_tuples)
+
+    print(type(int(math.comb(n, 2) + n + 1)))
+
+    c_systems_list = (Type.P(C_POLY_T) * size)()
+    for i in range(size):
+        sl_sys = bitslice(system_tuples[i][0], ring.gens())
+        c_systems_list[i] = (C_POLY_T * int(math.comb(n, 2) + n + 1))(*sl_sys)
+
+    args = [Type.SZ, Type.P(Type.P(C_POLY_T)), Type.SZ, Type.SZ]
+    bench_fun = fetch_c_func("e2e_benchmark", args)
+    bench_fun(size, c_systems_list, Type.SZ(n), Type.SZ(m))
+
 
 def test_c_compute_e_k(sys_tuple):
     srand(RSEED)
@@ -428,10 +444,7 @@ def test_c_gen_matrix(sys_tuple):
 
 def main():
     rounds = 1
-    ring.<x0,x1,x2,x3,x4,x5,x6,x7,x8,x9> = GF(2)[]
-    sys_tuple = ([x0*x2 + x1*x2 + x0*x3 + x2*x3 + x1*x4 + x2*x4 + x0*x5 + x3*x5 + x4*x5 + x0*x6 + x3*x6 + x4*x6 + x0*x7 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x4*x8 + x7*x8 + x1*x9 + x2*x9 + x5*x9 + x6*x9 + x8*x9 + x0 + x7 + x9, x0*x1 + x3*x4 + x3*x5 + x4*x5 + x2*x6 + x3*x6 + x4*x6 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x0*x8 + x5*x8 + x6*x8 + x0*x9 + x1*x9 + x4*x9 + x5*x9 + x6*x9 + x7*x9 + x8*x9 + x2 + x4 + x5 + x6 + x7 + x8 + x9 + 1, x0*x3 + x0*x4 + x1*x4 + x1*x5 + x3*x5 + x4*x6 + x0*x7 + x1*x7 + x2*x7 + x3*x7 + x5*x7 + x6*x7 + x0*x8 + x0*x9 + x2*x9 + x3*x9 + x5*x9 + x0 + x1 + x2 + x3 + x4 + x6 + x7 + x9], 10, int(ceil(10/5.4)) + 1, ring, None)
     # print(test_c_output_solutions(sys_tuple))
-    test_c_compute_e_k(sys_tuple)
     # print("Bruteforce time:", _time_bruteforce/rounds)
     # print("U value computation time:", _time_u_values/rounds)
     # print("Time for FES interpolation:", _time_fes_recovery/rounds)

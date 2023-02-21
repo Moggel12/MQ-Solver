@@ -4,7 +4,7 @@
 // TODO: Possibly change n and m to size_t, just looks a bit nicer.
 // TODO: Make use of Macros for indexing, etc. (makes things more generic)
 
-#include "stdint.h"
+#include <stdint.h>
 
 #define MAX_HISTORY 500
 
@@ -20,12 +20,12 @@
 #define IS_INTEGER_REPR
 
 // The operations below are assumed used on bitsliced polynomials only.
-#define POLY_TYPE uint16_t
-#define VARS_TYPE uint16_t
+#define POLY_TYPE uint32_t
+#define VARS_TYPE uint32_t
 
 #if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu16, &p)
-#define _DEBUG_READ_V(v) scanf("%" SCNu16, &v)
+#define _DEBUG_READ_P(p) scanf("%" SCNu32, &p)
+#define _DEBUG_READ_V(v) scanf("%" SCNu32, &v)
 #endif
 
 #define GF2_ADD(a, b) (a ^ b)

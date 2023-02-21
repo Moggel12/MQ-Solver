@@ -7,7 +7,7 @@
 
 int lex_idx(unsigned int i, unsigned int j, unsigned int n);
 
-int hamming_weight(int x);
+unsigned int hamming_weight(unsigned int x);
 
 int gray_code(int i);
 
@@ -22,4 +22,4 @@ unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
 
 size_t gray_to_bin(size_t i);
 
-#endif // !UTILS_H
+#endif  // !UTILS_H
