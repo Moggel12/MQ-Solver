@@ -1,16 +1,18 @@
-\documentclass[11pt]{article}
+\documentclass[11pt, twoside]{article}
 \usepackage[utf8]{inputenc}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+
 
 % Essential packages
 \usepackage[english,danish]{babel}
 \usepackage[utf8]{inputenc}
 
 % Math packages
-\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{amsmath,amsfonts,amssymb,amsthm}
 
 % Programming packages
 \usepackage{listings}
-\usepackage{algorithm2e}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
 \usepackage{courier}
 
 % Layout packages
@@ -20,28 +22,53 @@
 \usepackage{graphicx}
 \usepackage{fancyhdr}
 \usepackage{lipsum}
-\usepackage{url}
+\usepackage{subcaption}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cleveref}
 \usepackage[style=numeric-comp]{biblatex}
 
 % Bibliography settings
 \addbibresource{bibliography.bib}
 \setlength{\columnsep}{4cm} %adjust base on your name length
 
+% My commands and environments
+\newcommand{\mpar}{\medskip\par}
+\theoremstyle{plain}% default
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem*{cor}{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{defn}{Definition}
+
+\newenvironment{alg}{
+        \begin{algorithm}[H]
+            \DontPrintSemicolon
+            \SetAlgoLined
+    }{
+        \end{algorithm}
+    }
+
+\newcommand{\eff}{\mathbb{F}}
+
+% Layout
+\addtolength{\topmargin}{-13.2842pt}
+\setlength{\headheight}{25.2842pt}
+\fancyhf[HLO]{Mikkel Juul Vestergaard\\IMADA, SDU}
+\fancyhf[HRO]{\leftmark}
+\fancyhf[HLE]{}
+\fancyhf[HRE]{\rightmark}
+
+\SetArgSty{textnormal} % Set text style for guard in algorithms
 
 \begin{document}
 
 \pagenumbering{gobble}
 \input{cover}
 \newpage
-\ 
-% \newpage
-% \vfill
-% Dichiaro che il sottoscritto nonché autore del
-% documento è il responsabile del suo contenuto, e per le parti tratte da altri lavori, queste vengono espressamente dichiarate
-% citando le fonti.
-% \newpage
-% \
-\pagenumbering{arabic}
+
+%\pagenumbering{arabic}
 % \newpage
 
 \selectlanguage{danish}
@@ -57,15 +84,16 @@
 % \listoftables NECESSARY?
 % \listoffigures NECESSARY?
 \newpage
-
+\pagenumbering{arabic}
 \pagestyle{fancy}
 
 % Core contents
 \input{chapters/1_introduction}
 \input{chapters/2_Prerequisites.tex}
-\input{chapters/3_Implementation.tex}
-\input{chapters/4_Evaluation.tex}
-\input{chapters/5_Conclusion.tex}
+\input{chapters/3_Extensions.tex}
+\input{chapters/4_Implementation.tex}
+\input{chapters/5_Evaluation.tex}
+\input{chapters/6_Conclusion.tex}
 
 % Bibliography
 \newpage

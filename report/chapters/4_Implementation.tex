@@ -1,0 +1,48 @@
+\section{Implementation (approx. 15-20 pages)} \label{sec:impl}
+The accompanying git repository contains more than one implementation, or \textit{variant}, of Dinur's original algorithm. These variants are divided into a faster \texttt{C} implementation and a prototype \texttt{Sagemath} implementation. \texttt{C} function declarations can be found in the \texttt{inc/} folder, other code can be found under \texttt{src/}.
+
+\subsection{Sage code}
+As was implied earlier, the \texttt{Sage} implementation of Dinur's algorithm works mostly as a prototype or testing ground for the \texttt{C} implementation. Some optimizations have been tested in this version of the code, prior to it being implemented in \texttt{C}, however, these optimizations worked on an algorithmic level more than on a machine-level. This prototype allowed for approximating the bottleneck areas of the algorithm while essentially also working as a proof-of-concept for using Dinur's algorithm in practice. These approximations of course were rougher in some areas than others, due to the overhead imposed by \texttt{Sagemath} and \texttt{Python}.
+
+The prototype implements the three procedures described by Dinur in \cite{cryptoeprint:2021/578}, in a more or less described as the pseudo code presented. The three main procedures described by Dinur can be found in \texttt{sage/dinur.sage} with some accompanying convenience and test functions. A bit-sliced version of the FES procedure, described in \cite{cryptoeprint:2010/313}, for quadratic polynomials can be found in \texttt{sage/fes.sage}. This implementation is not as heavily optimized as those in \cite{cryptoeprint:2010/313} and \cite{cryptoeprint:2013/436}, simply due to the \texttt{Sage}-induced overhead counteracting fine-adjusted optimizations. The prototype code further introduces a prototype of a FES-based recovery, acting as an alternative to the Möbius Transform originally described by Dinur. The Möbius Transform was implemented in \texttt{mob.sage} and allows for a \textit{sparse}-transform used for interpolating the $U_i$-polynomials. This implementation is rather naive as it interpolates these polynomials \textit{symbolically} using the polynomial classes from \texttt{Sagemath}. The choice of switching between FES-based recovery and using the Möbius transform is a simple boolean switch in the \texttt{solve} and \texttt{output\_potentials} functions in \texttt{src/dinur.sage}. \textbf{IF MOB IS ALTERED IN SAGE; CHANGE THIS} 
+
+Other than the prototype code implemented in \texttt{Sagemath}, a \textit{front-end} was also implemented allowing for easier loading, generation and calling of the optimized \texttt{C} code. \textbf{INSERT HOW TO CALL SAGE CODE}
+
+\subsection{Core algorithms}
+%\begin{enumerate}
+%    \item Actual implementation of Fast Exhaustive Search
+%    \subitem Degree-$d$ and quadratic
+%    \subitem FES-recover implementation
+%    \item Partial evaluation for FES, and why we reuse state
+%    \item Dinurs algorithm
+%    \item Möbius transforms and using the Möbius transform for full evaluation
+%    \item Representation of polynomials in \texttt{C}-code
+%    \item Bitslicing
+%    \item Getting interpolation points for FES recover
+%\end{enumerate}
+
+In this subsection, the implementation of the core algorithms for Dinur's algorithm are described, 
+
+\subsubsection{Fast Exhaustive Search over $\eff_2$}
+
+\subsubsection{Möbius Transform}
+
+\subsubsection{Dinur's solver}
+
+\subsection{Optimizations}
+
+\begin{enumerate}
+    \item Tight integration of U-value computation with polynomial interpolation and full evaluation
+    \item Sparse Möbius transform
+    \item FES-recover
+    \item Monotonic gray-codes for bruteforce subprocedure
+    \item \texttt{C}-specific optimizations
+    \item Handling memory
+    \item Concurrency
+\end{enumerate}
+
+\subsubsection{Fast Exhaustive Search}
+
+\subsubsection{Dinur's solver}
+
+\newpage
