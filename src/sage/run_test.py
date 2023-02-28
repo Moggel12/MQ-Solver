@@ -36,7 +36,9 @@ def call_test(all_tuples, test, write_file):
         print(sys_tuple)
         succeeded = test[1](sys_tuple)
         if not succeeded and write_file:
-            write_fukuoka(f"{int(time.time())}_failed_{test[0]}_system.txt", *sys_tuple)
+            m = hashlib.sha256()
+            m.update(bytes(str(sys_tuple), "utf-8"))
+            write_fukuoka(f"{m.hexdigest()}_failed_{test[0]}_system.txt", *sys_tuple)
             break
     if succeeded: 
         print(f"{SUCCESS}Found no errors in {len(all_tuples)} trials{CLEAR}", file=sys.stderr)

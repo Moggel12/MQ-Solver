@@ -195,7 +195,7 @@ def fetch_systems_interactive():
     load_file = (input("Load the system from txt file? [y/n] ") == "y")
     if load_file:
         fname = input("Relative path of file to load: ")
-        return load_system(fname)
+        return read_system(fname)
     else:
         amount = int(input("Amount of systems to generate: "))
         m_tuple = tuple(int(c) for c in input("System size (specified as 'm_low m_high'): ").split(" "))

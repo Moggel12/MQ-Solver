@@ -9,6 +9,8 @@ from c_config import *
 
 from utils import random_systems_with_sol
 
+from math import comb # TODO: Remove
+
 # Get index position of first bit set (if any).
 def bit1(x):
     x = x&-x
@@ -34,6 +36,24 @@ def part_eval(system, prefix, n, n1, s):
     s = update(s, system, n, n1, prefix)
     U_parities = fes_eval(system, n, n1, prefix, s, True)
     return s, U_parities
+
+def mon_to_idx(mon, n): # TODO: Remove
+    d = 0
+    index = 0
+    index_d = 0
+    for i in range(n):
+        if ((mon >> i) & 1 == 1):
+            d += 1
+            index += math.comb(i, d)
+            index_d += math.comb(n, d)
+
+        index = index_d - index
+    return index
+
+def bin_str(i, n): # TODO: Remove
+    s = bin(i)[2:]
+    l = len(s)
+    return "0"*(n - l) + s
 
 def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debugging polynomial interpolation
     res = [None] * 2^(n - n1)
@@ -128,22 +148,27 @@ def test_c_fes_recover(sys_tuple):
         print("Error with memory allocation in C code.")
         return False
     py_results = fes_recover(system, n, n1, d + 1)
-    print(py_results)
-    print(c_results)
     if len(c_results) != len(py_results):
         print("Solutions are not of equal length")
         print(c_results)
         print(py_results)
         return False
-    for c_r, p_r in zip(c_results, py_results):
+    for idx, (c_r, p_r) in enumerate(zip(c_results, py_results)):
         if (c_r != p_r):
-            print("Solutions differ!", c_r, "!=", p_r)
-            print(c_results, py_results)
+            print("Solutions differ!", c_r, "!=", p_r, f"(index {idx})")
+            print(c_results)
+            print(py_results)
             return False
     return True
+
 if __name__ == "__main__":
     # test()
     # fes_recover(sl_sys, n, n1, d)
-    ring.<x0,x1,x2,x3,x4,x5,x6,x7,x8,x9> = GF(2)[]
-    sys_tuple = ([x0*x2 + x1*x2 + x0*x3 + x2*x3 + x1*x4 + x2*x4 + x0*x5 + x3*x5 + x4*x5 + x0*x6 + x3*x6 + x4*x6 + x0*x7 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x4*x8 + x7*x8 + x1*x9 + x2*x9 + x5*x9 + x6*x9 + x8*x9 + x0 + x7 + x9, x0*x1 + x3*x4 + x3*x5 + x4*x5 + x2*x6 + x3*x6 + x4*x6 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x0*x8 + x5*x8 + x6*x8 + x0*x9 + x1*x9 + x4*x9 + x5*x9 + x6*x9 + x7*x9 + x8*x9 + x2 + x4 + x5 + x6 + x7 + x8 + x9 + 1, x0*x3 + x0*x4 + x1*x4 + x1*x5 + x3*x5 + x4*x6 + x0*x7 + x1*x7 + x2*x7 + x3*x7 + x5*x7 + x6*x7 + x0*x8 + x0*x9 + x2*x9 + x3*x9 + x5*x9 + x0 + x1 + x2 + x3 + x4 + x6 + x7 + x9], 10, int(ceil(10/5.4)) + 1, ring, None)
-    test_c_fes_recover(sys_tuple)
+    # ring.<x0,x1,x2,x3,x4,x5,x6,x7,x8,x9> = GF(2)[]
+    # sys_tuple = ([x0*x2 + x1*x2 + x0*x3 + x2*x3 + x1*x4 + x2*x4 + x0*x5 + x3*x5 + x4*x5 + x0*x6 + x3*x6 + x4*x6 + x0*x7 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x4*x8 + x7*x8 + x1*x9 + x2*x9 + x5*x9 + x6*x9 + x8*x9 + x0 + x7 + x9, x0*x1 + x3*x4 + x3*x5 + x4*x5 + x2*x6 + x3*x6 + x4*x6 + x1*x7 + x4*x7 + x5*x7 + x6*x7 + x0*x8 + x5*x8 + x6*x8 + x0*x9 + x1*x9 + x4*x9 + x5*x9 + x6*x9 + x7*x9 + x8*x9 + x2 + x4 + x5 + x6 + x7 + x8 + x9 + 1, x0*x3 + x0*x4 + x1*x4 + x1*x5 + x3*x5 + x4*x6 + x0*x7 + x1*x7 + x2*x7 + x3*x7 + x5*x7 + x6*x7 + x0*x8 + x0*x9 + x2*x9 + x3*x9 + x5*x9 + x0 + x1 + x2 + x3 + x4 + x6 + x7 + x9], 10, int(ceil(10/5.4)) + 1, ring, None)
+    # test_c_fes_recover(sys_tuple)
+    n = 7
+    n1 = 2
+    for i in range(1, 2^(n - n1)):
+        k = bits(i)[:n]
+        print(i, bin_str(i, n), sum(2^j for j in k), mon_to_idx(i, n))

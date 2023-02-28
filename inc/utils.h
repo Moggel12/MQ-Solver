@@ -20,6 +20,8 @@ unsigned int trailing_zeros(unsigned int v);
 unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
                         unsigned int n_columns);
 
-size_t gray_to_bin(size_t i);
+// size_t gray_to_bin(size_t i);
+
+poly_t parity(poly_t bits);
 
 #endif  // !UTILS_H

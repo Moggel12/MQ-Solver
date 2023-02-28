@@ -3,6 +3,16 @@
 #include <stdio.h>
 
 #include "benchmark.h"
+#include "binom.h"
+
+unsigned int binomial(int m, int n)  // TODO: Remove
+{
+  if (m < n) return 0;
+  unsigned int ret = 1;
+  int i = 1;
+  for (; i <= n; i++) ret = ret * (i + m - n) / i;
+  return ret;
+}
 
 state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
 {
@@ -65,7 +75,7 @@ unsigned int bit1(unsigned int i) { return trailing_zeros(i); }
 
 unsigned int bit2(unsigned int i) { return bit1(GF2_ADD(i, (i & -i))); }
 
-// Assumes an arr has been allocated with arr_len bits. TODO
+// TODO: Assumes an arr has been allocated with arr_len bits.
 unsigned int bits(unsigned int i, unsigned int *arr, unsigned int arr_len)
 {
   if (i == 0)
@@ -88,6 +98,28 @@ unsigned int bits(unsigned int i, unsigned int *arr, unsigned int arr_len)
   }
 
   return sum;
+}
+
+unsigned int monomial_to_index(unsigned int mon, unsigned int n,
+                               unsigned int boundary)
+{
+  unsigned int i;
+  int d = 0;
+  unsigned int index = 0;
+  unsigned int index_d = 0;
+  for (i = 0; i < n; i++)
+    if ((((mon >> i) & 1) == 1) && (i <= boundary))
+    {
+      d++;
+
+      // index += lk_binom[i * BINOM_DIM2 + d];
+      // index_d += lk_binom[n * BINOM_DIM2 + d];
+      index += binomial(i, d);
+      index_d += binomial(n, d);
+    }
+  index = index_d - index;
+
+  return index;
 }
 
 state *init(state *s, poly_t *system, unsigned int n, unsigned int n1,
@@ -443,6 +475,14 @@ state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n,
   return s;
 }
 
+void print_bits(unsigned int x, size_t n)
+{
+  for (size_t i = n; i-- > 0;)
+  {
+    printf("%u", (x >> i) & 1);
+  }
+}
+
 uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
                     unsigned int deg, vars_t *results)
 {
@@ -451,10 +491,10 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
   uint8_t *prefix = calloc((n - n1), sizeof(uint8_t));
   if (!prefix) return 1;
 
-  unsigned int d_size = 0;
-  for (unsigned int i = 1; i <= deg; i++) d_size += (1 << (n - n1 - 1));
+  size_t d_size = n;
+  for (unsigned int i = 1; i < deg; i++) d_size *= n;
   vars_t *d = calloc(
-      d_size + 1,
+      d_size,
       sizeof(
           vars_t));  // TODO: Find suitable datastructure for d and initialize.
   if (!d) return 1;
@@ -481,20 +521,17 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
   for (unsigned int si = 1; si < (1u << (n - n1)); si++)
   {
+    // unsigned int hw = hamming_weight(si);
     if (hamming_weight(si) > deg)
     {
+      // printf("%u %u\n", si ^ (si >> 1), si);
       unsigned int len_k = bits(si, k, deg);
 
       for (unsigned int j = len_k; j-- > 0;)
       {
-        unsigned int sum_idx = 0;
+        unsigned int idx = (j == 0) ? 0 : monomial_to_index(si, n, k[j - 1]);
 
-        for (unsigned int i = 0; i < j; i++)
-        {
-          sum_idx += (1 << k[i]);
-        }
-
-        d[sum_idx] = GF2_ADD(d[sum_idx], d[sum_idx + (1 << k[j])]);
+        d[idx] = GF2_ADD(d[idx], d[monomial_to_index(si, n, k[j])]);
       }
     }
     else
@@ -528,21 +565,17 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
       for (unsigned int j = 1; j <= len_k; j++)
       {
         unsigned int tmp;
-        unsigned int sum_idx = 0;
 
-        for (unsigned int i = 0; i < j - 1; i++)
+        if (j < n)
         {
-          sum_idx += (1 << k[i]);
+          tmp = d[monomial_to_index(si, n, k[j - 1])];
         }
 
-        if (j < len_k)
-        {
-          tmp = d[sum_idx + (1 << k[j - 1])];
-        }
+        unsigned int idx = (j == 1) ? 0 : monomial_to_index(si, n, k[j - 2]);
 
-        d[sum_idx + (1 << k[j - 1])] = GF2_ADD(d[sum_idx], prev);
+        d[monomial_to_index(si, n, k[j - 1])] = GF2_ADD(d[idx], prev);
 
-        if (j < len_k)
+        if (j < n)
         {
           prev = tmp;
         }

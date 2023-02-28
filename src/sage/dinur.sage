@@ -66,7 +66,10 @@ def test_c_solve(sys_tuple):
     print("System:", system, ring)
     sl_system = bitslice(system, ring.gens())
     # print(sl_system)
-    c_sol = c_solve(sl_system, n, m)
+    try:
+        c_sol = c_solve(sl_system, n, m)
+    except:
+        return False 
     py_sol = solve(system, ring)
     print("Solution found:", c_sol)
     if c_sol == None:
@@ -200,7 +203,7 @@ def output_potentials(system, ring, n1, w, fes_recovery):
         
         _time_fes_recovery -= time.time()
 
-        evals = fes_recover(system, n, n1, w, ring)
+        evals = fes_recover(system, n, n1, w + 1, ring)
 
         _time_fes_recovery += time.time()
 
@@ -382,8 +385,6 @@ def c_benchmark(system_tuples):
     ring = system_tuples[0][3]
     size = len(system_tuples)
 
-    print(type(int(math.comb(n, 2) + n + 1)))
-
     c_systems_list = (Type.P(C_POLY_T) * size)()
     for i in range(size):
         sl_sys = bitslice(system_tuples[i][0], ring.gens())
@@ -392,6 +393,7 @@ def c_benchmark(system_tuples):
     args = [Type.SZ, Type.P(Type.P(C_POLY_T)), Type.SZ, Type.SZ]
     bench_fun = fetch_c_func("e2e_benchmark", args)
     bench_fun(size, c_systems_list, Type.SZ(n), Type.SZ(m))
+        
 
 
 def test_c_compute_e_k(sys_tuple):

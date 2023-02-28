@@ -67,7 +67,7 @@ uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
   if (!evals) return 1;
   BEGIN_BENCH(g_recover_time)
 
-  uint8_t error = fes_recover(system, n, n1, w, evals);
+  uint8_t error = fes_recover(system, n, n1, w + 1, evals);
   if (error) return error;
 
   END_BENCH(g_recover_time)
@@ -211,8 +211,6 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
   }
   free(rand_sys);
   free(rand_mat);
-
-  END_BENCH(g_solve_time)
 
   return 1;
 }
