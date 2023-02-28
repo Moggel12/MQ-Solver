@@ -1,14 +1,16 @@
 #ifndef FES_H
 #define FES_H
 
-#include "mq_config.h"
-#include "utils.h"
 #include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct state {
+#include "mq_config.h"
+#include "utils.h"
+
+typedef struct state
+{
   vars_t i;
   poly_t y;
   poly_t *d1;
@@ -17,6 +19,8 @@ typedef struct state {
 } state;
 
 /*!
+ * This does not (yet) conform to the interface given through mq_config.h, and
+ * therefore does not support non integer polynomials.
  *
  * @param system
  * @param n
@@ -29,6 +33,8 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
                         unsigned int d, vars_t *solutions);
 
 /*!
+ * This does not (yet) conform to the interface given through mq_config.h, and
+ * therefore does not support non integer polynomials.
  *
  * @param system
  * @param n
@@ -53,4 +59,4 @@ void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
 uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
                     unsigned int deg, vars_t *results);
 
-#endif // FES_H
+#endif  // FES_H

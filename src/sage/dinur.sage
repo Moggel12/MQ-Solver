@@ -65,7 +65,6 @@ def test_c_solve(sys_tuple):
     print("Known solution:", known_sol)
     print("System:", system, ring)
     sl_system = bitslice(system, ring.gens())
-    # print(sl_system)
     try:
         c_sol = c_solve(sl_system, n, m)
     except:

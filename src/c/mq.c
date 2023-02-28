@@ -25,20 +25,19 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
   {
     int s_poly_deg = 0;
 
-    new_sys[0] =
-        GF2_ADD(new_sys[0], __builtin_parity(GF2_MUL(old_sys[0], mat[s])) << s);
+    new_sys[0] = GF2_ADD(new_sys[0], parity(GF2_MUL(old_sys[0], mat[s])) << s);
 
-    int parity;
+    int par;
 
     for (int i = 1; i <= n; i++)
     {
-      parity = __builtin_parity(GF2_MUL(old_sys[i], mat[s]));
+      par = parity(GF2_MUL(old_sys[i], mat[s]));
 
-      new_sys[i] = GF2_ADD(new_sys[i], parity << s);
+      new_sys[i] = GF2_ADD(new_sys[i], par << s);
 
       if (s_poly_deg == 0)
       {
-        s_poly_deg = parity;
+        s_poly_deg = par;
       }
     }
     unsigned int idx = lex_idx(0, 1, n);
@@ -46,12 +45,12 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
     {
       for (int j = i + 1; j < n; j++)
       {
-        parity = __builtin_parity(GF2_MUL(old_sys[idx], mat[s]));
+        par = parity(GF2_MUL(old_sys[idx], mat[s]));
 
-        new_sys[idx] = GF2_ADD(new_sys[idx], parity << s);
+        new_sys[idx] = GF2_ADD(new_sys[idx], par << s);
 
         idx++;
-        if ((s_poly_deg < 2) && ((parity << 1) == 2)) s_poly_deg = parity << 1;
+        if ((s_poly_deg < 2) && ((par << 1) == 2)) s_poly_deg = par << 1;
       }
     }
 
@@ -65,9 +64,11 @@ uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
 {
   vars_t *evals = calloc(1 << (n - n1), sizeof(vars_t));
   if (!evals) return 1;
+
   BEGIN_BENCH(g_recover_time)
 
   uint8_t error = fes_recover(system, n, n1, w + 1, evals);
+
   if (error) return error;
 
   END_BENCH(g_recover_time)
@@ -76,12 +77,15 @@ uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
 
   for (int y_hat = 0; y_hat < (1 << (n - n1)); y_hat++)
   {
-    if ((evals[y_hat] & 1) == 1)
+    if (!VARS_IS_ZERO(VARS_IDX(evals[y_hat], 0)))
     {
       out[*out_size] = y_hat;
-      vars_t z_bits = ((evals[y_hat]) ^ ((1 << (n1 + 1)) - 1)) >> 1;
+      // vars_t z_bits = ((evals[y_hat]) ^ ((1 << (n1 + 1)) - 1)) >> 1;
+      vars_t z_bits =
+          VARS_RSHIFT(GF2_ADD(evals[y_hat], VARS_MASK((n1 + 1))), 1);
 
-      out[(*out_size)] = GF2_ADD(out[(*out_size)], (z_bits << (n - n1)));
+      out[(*out_size)] =
+          GF2_ADD(out[(*out_size)], VARS_LSHIFT(z_bits, (n - n1)));
       (*out_size)++;
     }
   }
@@ -164,22 +168,25 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
 
     for (size_t idx = 0; idx < len_out; idx++)
     {
-      vars_t y = curr_potentials[idx] & ((1 << (n - n1)) - 1);
+      // vars_t y = curr_potentials[idx] & ((1 << (n - n1)) - 1);
+      vars_t y = GF2_MUL(curr_potentials[idx], VARS_MASK((n - n1)));
 
       for (unsigned int k1 = 0; k1 < k; k1++)
       {
         for (size_t old_idx = 0; old_idx < potential_solutions[k1]->amount;
              old_idx++)
         {
-          vars_t old_y = potential_solutions[k1]->solutions[old_idx] &
-                         ((1 << (n - n1)) - 1);
+          // vars_t old_y = potential_solutions[k1]->solutions[old_idx] &
+          //                ((1 << (n - n1)) - 1);
+          vars_t old_y = GF2_MUL(potential_solutions[k1]->solutions[old_idx],
+                                 VARS_MASK((n - n1)));
 
           if (old_y > y)
           {
             break;
           }
-          else if (curr_potentials[idx] ==
-                   potential_solutions[k1]->solutions[old_idx])
+          else if (VARS_EQ(curr_potentials[idx],
+                           potential_solutions[k1]->solutions[old_idx]))
           {
             if (!eval(system, n, curr_potentials[idx]))
             {

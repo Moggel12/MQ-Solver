@@ -201,10 +201,19 @@ void test_memory();
 
 int main(void)
 {
-  test_compute_e_k();
   // poly_t sys[16] = {14, 14, 21, 19, 26, 8, 29, 26, 29, 8, 31, 16, 9, 24, 12,
-  // 1}; unsigned int n = 5; unsigned int m = 5; vars_t sol; uint8_t err =
-  // solve(sys, n, m, &sol); printf("Error code %u\n", err);
+  poly_t sys[] = {
+      623, 764, 139, 957, 739, 945, 841, 396, 927, 320, 7,   503,  670, 448,
+      85,  395, 856, 176, 701, 227, 112, 924, 832, 537, 298, 1015, 228, 750,
+      999, 148, 140, 596, 179, 297, 95,  333, 520, 787, 636, 622,  575, 313,
+      972, 44,  747, 759, 762, 209, 942, 899, 910, 832, 103, 218,  940, 761,
+  };
+  unsigned int n = 10;
+  unsigned int m = 10;
+  vars_t sol;
+  printf("test?\n");
+  uint8_t err = solve(sys, n, m, &sol);
+  printf("Error code %u\n", err);
 
   return 0;
 }

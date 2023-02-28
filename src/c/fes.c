@@ -71,12 +71,12 @@ void destroy_state(state *s)
   free(s);
 }
 
-unsigned int bit1(unsigned int i) { return trailing_zeros(i); }
+unsigned int bit1(vars_t i) { return trailing_zeros(i); }
 
-unsigned int bit2(unsigned int i) { return bit1(GF2_ADD(i, (i & -i))); }
+unsigned int bit2(vars_t i) { return bit1(GF2_ADD(i, VARS_LSB(i))); }
 
 // TODO: Assumes an arr has been allocated with arr_len bits.
-unsigned int bits(unsigned int i, unsigned int *arr, unsigned int arr_len)
+unsigned int bits(vars_t i, unsigned int *arr, unsigned int arr_len)
 {
   if (i == 0)
   {
@@ -94,13 +94,14 @@ unsigned int bits(unsigned int i, unsigned int *arr, unsigned int arr_len)
 
     sum++;
 
-    i = i ^ (i & -i);
+    i = GF2_ADD(i, VARS_LSB(i));
+    // i = i ^ (i & -i);
   }
 
   return sum;
 }
 
-unsigned int monomial_to_index(unsigned int mon, unsigned int n,
+unsigned int monomial_to_index(vars_t mon, unsigned int n,
                                unsigned int boundary)
 {
   unsigned int i;
@@ -108,14 +109,14 @@ unsigned int monomial_to_index(unsigned int mon, unsigned int n,
   unsigned int index = 0;
   unsigned int index_d = 0;
   for (i = 0; i < n; i++)
-    if ((((mon >> i) & 1) == 1) && (i <= boundary))
+    if (!VARS_IS_ZERO(VARS_IDX(mon, i)) && (i <= boundary))
     {
       d++;
 
-      // index += lk_binom[i * BINOM_DIM2 + d];
-      // index_d += lk_binom[n * BINOM_DIM2 + d];
-      index += binomial(i, d);
-      index_d += binomial(n, d);
+      index += lk_binom[i * BINOM_DIM2 + d];
+      index_d += lk_binom[n * BINOM_DIM2 + d];
+      // index += binomial(i, d);
+      // index_d += binomial(n, d);
     }
   index = index_d - index;
 
@@ -360,34 +361,36 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
     }
   }
 
-  uint64_t pre_x = 0;
-  for (unsigned int i = 0; i < (n - n1); i++)
-  {
-    if (prefix[i] == 0) continue;  // TODO: Change representation of prefixes
+  // uint64_t pre_x = 0;
+  // for (unsigned int i = 0; i < (n - n1); i++)
+  // {
+  //   if (prefix[i] == 0) continue;  // TODO: Change representation of prefixes
 
-    pre_x += (1 << i);
-  }
+  //   pre_x += (1 << i);
+  // }
 
   if (s->y == 0)
   {
-    *parities = GF2_ADD(s->y, ((1 << (n1 + 1)) - 1));
+    *parities = GF2_ADD(s->y, VARS_MASK((n1 + 1)));
   }
 
   while (s->i < ((1 << n1) - 1))
   {
     step(s, n1);
 
-    unsigned int z = s->i ^ (s->i >> 1);
+    vars_t z = GF2_ADD(s->i, VARS_RSHIFT(s->i, 1));
 
-    if (s->y == 0)
+    if (POLY_IS_ZERO(s->y))
     {
-      *parities = GF2_ADD(*parities, 1);
+      // *parities = GF2_ADD(*parities, 1);
+      *parities = POLY_SETBIT(*parities, 0, 1);
 
       for (unsigned int pos = 0; pos < n1; pos++)
       {
-        if ((z & (1 << pos)) == 0)
+        if (POLY_IS_ZERO(POLY_IDX(z, pos)))
         {
-          *parities = GF2_ADD(*parities, (1 << (pos + 1)));
+          // *parities = GF2_ADD(*parities, (1 << (pos + 1)));
+          *parities = POLY_SETBIT(*parities, (pos + 1), 1);
         }
       }
     }
@@ -475,14 +478,6 @@ state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n,
   return s;
 }
 
-void print_bits(unsigned int x, size_t n)
-{
-  for (size_t i = n; i-- > 0;)
-  {
-    printf("%u", (x >> i) & 1);
-  }
-}
-
 uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
                     unsigned int deg, vars_t *results)
 {
@@ -491,8 +486,11 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
   uint8_t *prefix = calloc((n - n1), sizeof(uint8_t));
   if (!prefix) return 1;
 
-  size_t d_size = n;
-  for (unsigned int i = 1; i < deg; i++) d_size *= n;
+  size_t d_size = 0;
+  for (unsigned int i = 0; i <= deg; i++)
+  {
+    d_size += lk_binom[(n - n1) * BINOM_DIM2 + i];
+  }
   vars_t *d = calloc(
       d_size,
       sizeof(
@@ -502,7 +500,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
   unsigned int *k = calloc(deg, sizeof(unsigned int));
   if (!k) return 1;
 
-  vars_t parities = 0;
+  vars_t parities = VARS_0;
 
   s = part_eval(system, prefix, n, n1, &parities, s);
 
@@ -529,9 +527,10 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
       for (unsigned int j = len_k; j-- > 0;)
       {
-        unsigned int idx = (j == 0) ? 0 : monomial_to_index(si, n, k[j - 1]);
+        unsigned int idx =
+            (j == 0) ? 0 : monomial_to_index(si, n - n1, k[j - 1]);
 
-        d[idx] = GF2_ADD(d[idx], d[monomial_to_index(si, n, k[j])]);
+        d[idx] = GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, k[j])]);
       }
     }
     else
@@ -560,7 +559,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
       unsigned int prev = d[0];
       d[0] = parities;
 
-      parities = 0;
+      parities = VARS_0;
 
       for (unsigned int j = 1; j <= len_k; j++)
       {
@@ -568,12 +567,13 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
         if (j < n)
         {
-          tmp = d[monomial_to_index(si, n, k[j - 1])];
+          tmp = d[monomial_to_index(si, n - n1, k[j - 1])];
         }
 
-        unsigned int idx = (j == 1) ? 0 : monomial_to_index(si, n, k[j - 2]);
+        unsigned int idx =
+            (j == 1) ? 0 : monomial_to_index(si, n - n1, k[j - 2]);
 
-        d[monomial_to_index(si, n, k[j - 1])] = GF2_ADD(d[idx], prev);
+        d[monomial_to_index(si, n - n1, k[j - 1])] = GF2_ADD(d[idx], prev);
 
         if (j < n)
         {

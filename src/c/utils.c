@@ -4,25 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
-
-int lex_idx(unsigned int i, unsigned int j, unsigned int n)
-{
-  int sum = 0;
-  for (unsigned int k = 1; k < i + 2; k++)
-  {
-    sum += (n - k);
-  }
-  return n + sum - (n - j - 1);
-}
 
 #ifdef IS_INTEGER_REPR
-// int hamming_weight(int x) {
-//   x -= (x >> 1) & 0x5555555555555555;
-//   x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
-//   x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f;
-//   return ((x * 0x0101010101010101) & 0xffffffffffffffff) >> 56;
-// }
 
 unsigned int hamming_weight(unsigned int x) { return __builtin_popcount(x); }
 
@@ -46,10 +29,25 @@ unsigned int trailing_zeros(unsigned int v)
   }
   return c;
 }
+
+poly_t parity(poly_t bits) { return __builtin_parity(bits); }
+
+poly_t gen_row(unsigned int m) { return (rand() & ((1 << m) - 1)); }
+
 #else
 #error \
     "Remove this error whenever a representation without ordinary c integers is used, and suitable operations implemented"
 #endif
+
+int lex_idx(unsigned int i, unsigned int j, unsigned int n)
+{
+  int sum = 0;
+  for (unsigned int k = 1; k < i + 2; k++)
+  {
+    sum += (n - k);
+  }
+  return n + sum - (n - j - 1);
+}
 
 int n_choose_k(int n, int k)
 {
@@ -78,20 +76,22 @@ unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
     rank = 0;
     for (unsigned int i = 0; i < n_rows; i++)
     {
-      mat_copy[i] = mat[i] = (rand() & ((1 << n_columns) - 1));
+      mat_copy[i] = mat[i] = gen_row(n_columns);
     }
 
     for (unsigned int i = 0; i < n_rows; i++)
     {
-      if (mat_copy[i])
+      if (!POLY_IS_ZERO(mat_copy[i]))
       {
         rank++;
-        unsigned int pivot_elm = mat_copy[i] & -mat_copy[i];
+        // unsigned int pivot_elm = mat_copy[i] & -mat_copy[i];
+        unsigned int pivot_elm = POLY_LSB(mat_copy[i]);
         for (unsigned int j = i + 1; j < n_rows; j++)
         {
-          if (mat_copy[j] & pivot_elm)
+          if (!POLY_IS_ZERO(GF2_MUL(mat_copy[j], pivot_elm)))
           {
-            mat_copy[j] ^= mat_copy[i];
+            // mat_copy[j] ^= mat_copy[i];
+            mat_copy[j] = GF2_ADD(mat_copy[j], mat_copy[i]);
           }
         }
       }
@@ -106,13 +106,14 @@ unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
 
 poly_t eval(poly_t *system, size_t n, vars_t var_values)
 {
-  poly_t table[2] = {0, (-1)};
+  poly_t table[2] = {POLY_0, POLY_FF};
 
   poly_t res = system[0];
 
   for (unsigned int i = 0; i < n; i++)
   {
-    res = GF2_ADD(res, GF2_MUL(table[(var_values >> i) & 1], system[i + 1]));
+    // res = GF2_ADD(res, GF2_MUL(table[(var_values >> i) & 1], system[i + 1]));
+    res = GF2_ADD(res, GF2_MUL(table[VARS_IDX(var_values, i)], system[i + 1]));
   }
 
   int idx = lex_idx(0, 1, n);
@@ -120,8 +121,12 @@ poly_t eval(poly_t *system, size_t n, vars_t var_values)
   {
     for (unsigned int j = i + 1; j < n; j++)
     {
-      poly_t monomial =
-          GF2_MUL(table[(var_values >> i) & 1], table[(var_values >> j) & 1]);
+      // poly_t monomial =
+      //     GF2_MUL(table[(var_values >> i) & 1], table[(var_values >> j) &
+      //     1]);
+      // res = GF2_ADD(res, GF2_MUL(monomial, system[idx]));
+      poly_t monomial = GF2_MUL(table[VARS_IDX(var_values, i)],
+                                table[VARS_IDX(var_values, j)]);
       res = GF2_ADD(res, GF2_MUL(monomial, system[idx]));
       idx++;
     }
@@ -130,13 +135,13 @@ poly_t eval(poly_t *system, size_t n, vars_t var_values)
   return res;
 }
 
-size_t gray_to_bin(size_t i)
-{
-  int mask = i;
-  while (mask)
-  {
-    mask >>= 1;
-    i ^= mask;
-  }
-  return i;
-}
+// size_t gray_to_bin(size_t i)
+// {
+//   int mask = i;
+//   while (mask)
+//   {
+//     mask >>= 1;
+//     i ^= mask;
+//   }
+//   return i;
+// }

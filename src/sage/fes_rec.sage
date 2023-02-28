@@ -138,10 +138,9 @@ def c_fes_recover(system, n, n1, deg):
 def test_c_fes_recover(sys_tuple):
     system, n, _, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
-    # d = randint(1, n - n1)
-    d = 4
+    d = sum(f.degree() for f in system) - n1
     print(system)
-    print(n, n1, d)
+    print(n, n1, d + 1)
     system = bitslice(system, ring.gens())
     c_results = c_fes_recover(system, n, n1, d + 1)
     if c_results == None:
