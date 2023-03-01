@@ -30,7 +30,7 @@ Both the C code and the Sage code can be run using the `run_test.py` script. Thi
 ### Testing code
 In order to test code, whether it is the Sage code or the C code, the `run_test.py` script can be called using the `-t` (`--test`) flag (see summary of all flags above). If the flag is not specified, the script will test the first function appearing in its internal list of test functions. 
 
-If no file is specified (i.e. no `-f` or `--file` flag specified), the script prompts the user to interactively generate systems of certain sizes. E.g. running `./run_test.py -t test_c_solve` yields the prompt (below, answers for each line was already provided):
+If no file is specified (i.e. no `-f` or `--file` flag specified), the script prompts the user to interactively generate systems of certain sizes. E.g. running `./run_test.py -t test_c_solve` yields the prompt (below, answers for each line were already provided):
 ```bash
 Load the system from txt file? [y/n] n
 Amount of systems to generate: 100
