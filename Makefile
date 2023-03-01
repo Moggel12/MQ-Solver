@@ -1,6 +1,8 @@
 # Basics
 SHELL = /bin/sh
 REPORT = report/main.tex
+NSIZE = 32
+MSIZE = 32
 
 # C build setup
 CC = gcc
@@ -24,16 +26,16 @@ SAN :=\
 			 -fsanitize=leak \
 			 -fsanitize=undefined
 DEBUG := $(SAN) -Wall -Wextra -O0 -g -D_DEBUG
-OPT := -O0 -g#-O3
+OPT := -O3
 LDFLAGS := -lm
 INC := -Iinc
-CFLAGS := $(INC) $(LIB)
+CFLAGS := $(INC) -DP$(MSIZE) -DV$(NSIZE) $(LIB)
 
 VPATH = src/c:test
 
 all: $(TARGET)
 
-$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR) $(BIN_DIR)
+$(BUILD_DIR)/%.o: %.c binom.h | $(BUILD_DIR) $(BIN_DIR)
 	$(CC) -o $@ $(CFLAGS) -c $<
 
 
@@ -47,6 +49,9 @@ tests: $(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
+
+binom.h:
+	./binom.py $(NSIZE) $(MSIZE) > inc/binom.h
 
 pdf:
 	latexmk -pdf -silent -cd $(REPORT)

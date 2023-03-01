@@ -115,12 +115,16 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
 
   for (; k < MAX_HISTORY; k++)
   {
+#ifdef _DEBUG
     printf("# Commencing round %u\n", k);
+#endif
+
     memset(rand_sys, 0, amnt_sys_vars * sizeof(poly_t));
 
     BEGIN_BENCH(g_matrix_time)
 
     unsigned int error = gen_matrix(rand_mat, l, m);
+    printf("Generated matrix\n");
 
     END_BENCH(g_matrix_time)
 
@@ -135,6 +139,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
     BEGIN_BENCH(g_ek_time)
 
     unsigned int w = compute_e_k(rand_mat, rand_sys, system, l, n) - n1;
+    printf("Computed e_k\n");
 
     END_BENCH(g_ek_time)
 
@@ -149,6 +154,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
       return 1;
     }
     END_BENCH(g_output_time)
+    printf("Found potentials\n");
 
     SolutionsStruct *s = malloc(sizeof(SolutionsStruct));
     if (!s)
@@ -168,6 +174,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
 
     for (size_t idx = 0; idx < len_out; idx++)
     {
+      // printf("Looping through history!\n");
+
       // vars_t y = curr_potentials[idx] & ((1 << (n - n1)) - 1);
       vars_t y = GF2_MUL(curr_potentials[idx], VARS_MASK((n - n1)));
 
@@ -176,6 +184,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
         for (size_t old_idx = 0; old_idx < potential_solutions[k1]->amount;
              old_idx++)
         {
+          // printf("Checking old solutions in backlog\n");
+
           // vars_t old_y = potential_solutions[k1]->solutions[old_idx] &
           //                ((1 << (n - n1)) - 1);
           vars_t old_y = GF2_MUL(potential_solutions[k1]->solutions[old_idx],
@@ -183,13 +193,19 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
 
           if (old_y > y)
           {
+            // printf("Too far\n");
+
             break;
           }
           else if (VARS_EQ(curr_potentials[idx],
                            potential_solutions[k1]->solutions[old_idx]))
           {
+            // printf("Found something interesting\n");
+
             if (!eval(system, n, curr_potentials[idx]))
             {
+              // printf("Evaluated correctly!\n");
+
               *sol = curr_potentials[idx];
 
               for (unsigned int i = 0; i <= k; i++)

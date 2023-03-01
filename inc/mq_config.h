@@ -17,7 +17,7 @@
 
 // TODO: Change to function-like macro.
 //////////////// POLYNOMIAL SIZE DEFINITIONS ////////////////
-#ifdef P8
+#if defined(P8)
 
 #define POLY_TYPE uint8_t
 #if defined(_DEBUG)
@@ -25,7 +25,7 @@
 #endif
 #define IS_INTEGER_REPR
 
-#elifdef P16
+#elif defined(P16)
 
 #define POLY_TYPE uint16_t
 #if defined(_DEBUG)
@@ -33,7 +33,7 @@
 #endif
 #define IS_INTEGER_REPR
 
-#elifdef P32
+#elif defined(P32)
 
 #define POLY_TYPE uint32_t
 #if defined(_DEBUG)
@@ -41,7 +41,7 @@
 #endif
 #define IS_INTEGER_REPR
 
-#elifdef P64
+#elif defined(P64)
 
 #define POLY_TYPE uint64_t
 #if defined(_DEBUG)
@@ -49,9 +49,9 @@
 #endif
 #define IS_INTEGER_REPR
 
-#elifdef P128
+#elif defined(P128)
 
-#elifdef P256
+#elif defined(P256)
 
 #else  // Default case
 
@@ -65,14 +65,15 @@
 
 // TODO: Change to function-like macro.
 //////////////// VARIABLE SIZE DEFINITIONS ////////////////
-#ifdef V8
+#if defined(V8)
+
 #define VARS_TYPE uint8_t
 #if defined(_DEBUG)
 #define _DEBUG_READ_V(v) scanf("%" SCNu8, &v)
 #endif
 #define IS_INTEGER_REPR
 
-#elifdef V16
+#elif defined(V16)
 
 #define VARS_TYPE uint16_t
 #if defined(_DEBUG)
@@ -80,7 +81,7 @@
 #endif
 #define IS_INTEGER_REPR
 
-#elifdef V32
+#elif defined(V32)
 
 #define VARS_TYPE uint32_t
 #if defined(_DEBUG)
@@ -88,7 +89,7 @@
 #endif
 #define IS_INTEGER_REPR
 
-#elifdef V64
+#elif defined(V64)
 
 #define VARS_TYPE uint64_t
 #if defined(_DEBUG)
@@ -96,9 +97,9 @@
 #endif
 #define IS_INTEGER_REPR
 
-#elifdef V128
+#elif defined(V128)
 
-#elifdef V256
+#elif defined(V256)
 
 #else  // Default case
 
