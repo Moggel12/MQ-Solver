@@ -35,9 +35,8 @@ VPATH = src/c:test
 
 all: $(TARGET)
 
-$(BUILD_DIR)/%.o: %.c binom.h | $(BUILD_DIR) $(BIN_DIR)
+$(BUILD_DIR)/%.o: %.c binom.h sage | $(BUILD_DIR) $(BIN_DIR)
 	$(CC) -o $@ $(CFLAGS) -c $<
-
 
 $(TARGET): CFLAGS += $(OPT) -fPIC
 $(TARGET): $(OBJ)
@@ -49,6 +48,9 @@ tests: $(TEST_TARGET)
 
 $(TEST_TARGET): $(TEST_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
+
+sage:
+	make -C src/sage 
 
 binom.h:
 	./binom.py $(NSIZE) $(MSIZE) > inc/binom.h
@@ -62,6 +64,7 @@ pdfclean:
 
 clean:
 	$(RM) -rf $(BUILD_DIR) $(BIN_DIR)
+	make -C src/sage/ clean
 
 $(BIN_DIR):
 	mkdir -p $@
