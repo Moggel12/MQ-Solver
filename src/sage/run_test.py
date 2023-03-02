@@ -6,13 +6,19 @@ import sys
 import os
 import hashlib
 
-from utils import fetch_systems_interactive, read_system, SUCCESS, bitslice, random_systems_with_sol
+from utils import fetch_systems_interactive, read_system, SUCCESS, CLEAR, FAIL, bitslice, random_systems_with_sol
+from c_config import TEST_BIN_AVAILABLE
 from fes_rec import *
 from dinur import *
 from fes import *
 from mob_new import *
 
 _test_functions = {key: val for key, val in globals().items() if callable(val) and key.startswith("test_")}
+
+_availability_filter = lambda f_name : ("_SAN" in f_name) if TEST_BIN_AVAILABLE else ("_SAN" not in f_name)
+
+_available_tests = {key: val for key, val in _test_functions.items() if _availability_filter(key)}
+_unavailable_tests = {key: val for key, val in _test_functions.items() if key not in _available_tests}
 _default_test = list(_test_functions.items())[0]
 
 def parse_arguments():
@@ -25,8 +31,15 @@ def parse_arguments():
     return parser.parse_args()
 
 def list_tests():
-    for func_name, _ in _test_functions.items():
-        print(func_name)
+    print(f"{SUCCESS}Tests that may be run:{CLEAR}")
+    for func_name, _ in _available_tests.items():
+        print(f"\t{SUCCESS}{func_name}{CLEAR}")
+    if TEST_BIN_AVAILABLE:
+        print(f"{FAIL}The following tests are unavailable as they require the bin/mq.so file to run (see README for compilation instructions){CLEAR}")
+    else:
+        print(f"{FAIL}The following tests are unavailable as they require the bin/test file to run (see README for compilation instructions){CLEAR}")
+    for func_name, _ in _unavailable_tests.items():
+        print(f"\t{FAIL}{func_name}{CLEAR}")
 
 def call_test(all_tuples, test, write_file):
     print(all_tuples)

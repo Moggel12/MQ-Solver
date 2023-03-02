@@ -4,6 +4,9 @@ REPORT = report/main.tex
 NSIZE = 32
 MSIZE = 32
 
+$(shell echo "$(NSIZE) $(MSIZE)" > src/sage/.compile_config)
+$(shell ./binom.py $(NSIZE) $(MSIZE) > inc/binom.h)
+
 # C build setup
 CC = gcc
 SRCDIR = src
@@ -35,25 +38,22 @@ VPATH = src/c:test
 
 all: $(TARGET)
 
-$(BUILD_DIR)/%.o: %.c binom.h sage | $(BUILD_DIR) $(BIN_DIR)
+$(BUILD_DIR)/%.o: %.c | $(BUILD_DIR) $(BIN_DIR)
 	$(CC) -o $@ $(CFLAGS) -c $<
 
 $(TARGET): CFLAGS += $(OPT) -fPIC
-$(TARGET): $(OBJ)
+$(TARGET): $(OBJ) | sage
 	$(CC) -shared -o $@ $^
 
 tests: CFLAGS += $(DEBUG)
 tests: LDFLAGS += -fsanitize=address -fsanitize=undefined -fsanitize=leak
-tests: $(TEST_TARGET)
+tests: $(TEST_TARGET) | sage
 
 $(TEST_TARGET): $(TEST_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 sage:
 	make -C src/sage 
-
-binom.h:
-	./binom.py $(NSIZE) $(MSIZE) > inc/binom.h
 
 pdf:
 	latexmk -pdf -silent -cd $(REPORT)
@@ -72,4 +72,4 @@ $(BIN_DIR):
 $(BUILD_DIR):
 	mkdir -p $@
 
-.PHONY: clean all pdf tests pdfclean
+.PHONY: clean all pdf tests pdfclean sage

@@ -1,13 +1,19 @@
 import ctypes as ct
 import sys
 import argparse
+import os
 
-from utils import parse_fukuoka, write_fukuoka, random_systems, random_systems_with_sol, fetch_c_func
+# from utils import parse_fukuoka, write_fukuoka, random_systems, random_systems_with_sol, fetch_c_func
 
 _libc = ct.CDLL("libc.so.6")
 
 RSEED = 42
 MAX_HISTORY = 30
+
+TEST_BIN_AVAILABLE = os.path.exists("../../bin/test")
+
+C_POLY_T = None
+C_VARS_T = None
 
 # Typedefs
 class Type():
@@ -25,16 +31,28 @@ class Type():
     def P(c_type):
         return ct.POINTER(c_type)
 
-C_POLY_T = Type.U32
-C_VARS_T = Type.U32
+type_dict = {
+    8:   Type.U8,
+    16:  Type.U16,
+    32:  Type.U32,
+    64:  Type.U64,
+    128: (Type.U64 * 2),
+    256: (Type.U64 * 4) 
+}
+
+try:
+    with open(".compile_config", "r") as f:
+        n_str, m_str = f.readline().split(" ")
+        C_POLY_T = type_dict[int(m_str)]
+        C_VARS_T = type_dict[int(n_str)]
+except FileNotFoundError:
+    C_POLY_T = Type.U32
+    C_VARS_T = Type.U32
 
 def srand(seed):
     _libc.srand(seed)
 
 def rand():
     return _libc.rand()
-
-def call_c_test(name, args, args_type, res_type):
-    return fetch_c_func(name, args_type, res_type, True)(*args)
 
 

@@ -11,7 +11,6 @@ unsigned int hamming_weight(unsigned int x) { return __builtin_popcount(x); }
 
 int gray_code(int i) { return i ^ (i >> 1); }
 
-// Bit twiddling hacks
 unsigned int trailing_zeros(unsigned int v)
 {
   unsigned int c;
@@ -78,19 +77,16 @@ unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
     {
       mat_copy[i] = mat[i] = gen_row(n_columns);
     }
-
     for (unsigned int i = 0; i < n_rows; i++)
     {
       if (!POLY_IS_ZERO(mat_copy[i]))
       {
         rank++;
-        // unsigned int pivot_elm = mat_copy[i] & -mat_copy[i];
         unsigned int pivot_elm = POLY_LSB(mat_copy[i]);
         for (unsigned int j = i + 1; j < n_rows; j++)
         {
           if (!POLY_IS_ZERO(GF2_MUL(mat_copy[j], pivot_elm)))
           {
-            // mat_copy[j] ^= mat_copy[i];
             mat_copy[j] = GF2_ADD(mat_copy[j], mat_copy[i]);
           }
         }
@@ -112,7 +108,6 @@ poly_t eval(poly_t *system, size_t n, vars_t var_values)
 
   for (unsigned int i = 0; i < n; i++)
   {
-    // res = GF2_ADD(res, GF2_MUL(table[(var_values >> i) & 1], system[i + 1]));
     res = GF2_ADD(res, GF2_MUL(table[VARS_IDX(var_values, i)], system[i + 1]));
   }
 
@@ -121,10 +116,6 @@ poly_t eval(poly_t *system, size_t n, vars_t var_values)
   {
     for (unsigned int j = i + 1; j < n; j++)
     {
-      // poly_t monomial =
-      //     GF2_MUL(table[(var_values >> i) & 1], table[(var_values >> j) &
-      //     1]);
-      // res = GF2_ADD(res, GF2_MUL(monomial, system[idx]));
       poly_t monomial = GF2_MUL(table[VARS_IDX(var_values, i)],
                                 table[VARS_IDX(var_values, j)]);
       res = GF2_ADD(res, GF2_MUL(monomial, system[idx]));
@@ -134,14 +125,3 @@ poly_t eval(poly_t *system, size_t n, vars_t var_values)
 
   return res;
 }
-
-// size_t gray_to_bin(size_t i)
-// {
-//   int mask = i;
-//   while (mask)
-//   {
-//     mask >>= 1;
-//     i ^= mask;
-//   }
-//   return i;
-// }

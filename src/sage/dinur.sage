@@ -7,11 +7,10 @@ from math import ceil
 from fes_rec import fes_recover
 import time
 
-from c_config import Type, srand, rand, call_c_test, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY
+from c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY
 
 import ctypes as ct
-from utils import bitslice, fetch_c_func, write_fukuoka
-
+from utils import bitslice, fetch_c_func, write_fukuoka, run_bin_test
 from collections import defaultdict
 
 _m_low  = 5 
@@ -88,7 +87,7 @@ def test_c_solve(sys_tuple):
         print(f"{py_sol} != {c_sol}")
         return False
 
-def test_u_values(sys_tuple):
+def test_sage_u_values(sys_tuple):
     system, n, m, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) 
     # print(type(n1), type(n))
@@ -111,7 +110,7 @@ def test_u_values(sys_tuple):
                 return False
     return True
 
-def test_dinur_output_sol(sys_tuple):
+def test_sage_output_solutions(sys_tuple):
     system, n, m, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) 
     F_tilde = product((GF(2)(1) + f) for f in system)
@@ -133,7 +132,7 @@ def test_dinur_output_sol(sys_tuple):
                     return False
     return True
 
-def test_run_solve(sys_tuple):
+def test_sage_solve(sys_tuple):
     system, n, _, ring, known_sol = sys_tuple
     print("Verify known solution:", [f(*convert(known_sol, n)) for f in system]) 
     print("Known solution:", known_sol)
@@ -392,56 +391,74 @@ def c_benchmark(system_tuples):
     args = [Type.SZ, Type.P(Type.P(C_POLY_T)), Type.SZ, Type.SZ]
     bench_fun = fetch_c_func("e2e_benchmark", args)
     bench_fun(size, c_systems_list, Type.SZ(n), Type.SZ(m))
-        
 
-
-def test_c_compute_e_k(sys_tuple):
-    srand(RSEED)
+def test_c_compute_e_k_SAN(sys_tuple):
+    srand(int(RSEED))
     system, n, m, ring, _ = sys_tuple
     l = int(ceil(n/(5.4))) + 1
     sl_system = bitslice(system, ring.gens())
     mat = gen_matrix_rank_l(l, m)
     mat_dec = [index_of(e) for e in mat]
-    # TODO: Use subprocesses to run and communicate with C code.
-    print(l)
-    print(n)
-    print(len(sl_system))
+    input_data = f"{0}\n"
+    input_data += f"{l}\n{n}\n{len(sl_system)}\n"
     for e in mat_dec:
-        print(e, end=" ")
+        input_data += f"{e} "
     for e in sl_system:
-        print(e, end=" ")
+        input_data += f"{e} "
     new_sys = bitslice([sum(mat[i][j] * system[j] for j in range(m)) for i in range(l)], ring.gens())
-    print(sum(f.degree() for f in [sum(mat[i][j] * system[j] for j in range(m)) for i in range(l)]))
+    input_data += f"{sum(f.degree() for f in [sum(mat[i][j] * system[j] for j in range(m)) for i in range(l)])}\n"
     for e in new_sys:
-        print(e, end=" ")
+        input_data += f"{e} "
+    p = run_bin_test(input_data)
+    if (not p) or (p.returncode != 0):
+        return False
     return True
 
-def test_c_eval(sys_tuple):
-    # TODO: Use subprocesses to run and communicate with C code.
-    
+def test_c_eval_SAN(sys_tuple):    
     system, n, m, ring, _ = sys_tuple
-   
     sl_sys = bitslice(system, ring.gens())
-
-    print(len(sl_sys))
-    print(n)
+    input_data = f"{1}\n"
+    input_data += f"{len(sl_sys)}\n{n}\n"
     for i in sl_sys:
-        print(i, end=" ")
-
+        input_data += f"{i} "
     for i in [index_of([int(f(*convert(i, n))) for f in system]) for i in range(2^n)]:
-        print(i, end=" ")
+        input_data += f"{i} "
+    p = run_bin_test(input_data)
+    if (not p) or (p.returncode != 0):
+        return False
     return True
 
-def test_c_gen_matrix(sys_tuple):
-    # TODO: Use subprocesses to run and communicate with C code.
+def test_c_gen_matrix_SAN(sys_tuple):
+    srand(int(RSEED))
     _, n, m, _, _ = sys_tuple 
     l = int(ceil(n/(5.4))) + 1
-    print(l)
-    print(m)
+    input_data = f"{2}\n"
+    input_data += f"{l}\n{m}\n"
     mat = gen_matrix_rank_l(l, m)
     for i in mat:
-        print(index_of(i), end=" ")
+        input_data += f"{index_of(i)} "
+    p = run_bin_test(input_data)
+    if (not p) or (p.returncode != 0):
+        return False
     return True
+
+def test_c_solve_SAN(sys_tuple):
+    system, n, m, ring, _ = sys_tuple
+    solution = solve(system, ring)
+    if solution == None:
+        print("{FAIL}Sage code could not find a solution.{CLEAR}")
+        return False
+    sl_system = bitslice(system, ring)
+    input_data = f"{3}\n"
+    input_data += f"{n}\n{m}\n{solution}{len(sl_system)}\n"
+    for e in sl_system:
+        input_data += f"{e} "
+    p = run_bin_test(input_data)
+    if (not p) or (p.returncode != 0):
+        return False
+    return True
+    
+
 
 def main():
     rounds = 1

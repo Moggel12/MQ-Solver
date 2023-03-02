@@ -3,6 +3,9 @@ from itertools import combinations
 import math
 import re
 import ctypes
+import subprocess
+
+from c_config import TEST_BIN_AVAILABLE
 
 _REGEX_FIELD = r"Galois Field : GF\(2\)"
 _REGEX_NUM_VARS = r"Number of variables \(n\) : (\d+)"
@@ -11,7 +14,6 @@ _REGEX_SYS = r"(([0-1] )+);"
 _REGEX_SOL = r"Known solution: (\d+)"
 
 _MQ_URL = "www.mqchallenge.org/format.html"
-
 
 WARNING = "\033[93m"
 FAIL = "\033[91m"
@@ -51,6 +53,12 @@ def fetch_c_func(func_name, args=None, res=None, test=False):
     if args: c_func.argtypes = args
     if res: c_func.restype = res
     return c_func
+
+def run_bin_test(input_data):
+    if not TEST_BIN_AVAILABLE:
+        print(f"{FAIL}{CLEAR}")
+        return None
+    return subprocess.run(["../../bin/test"], input=input_data, text=True)
 
 def create_poly_str(poly, ring):
     X = ring.gens()
@@ -152,6 +160,7 @@ def parse_fukuoka(file_path, print_system=False):
     return system
 
 def random_systems(m_low, m_high, n_low, n_high, amount):
+    print(f"Generating {amount} systems...")
     systems = []
     for _ in range(amount):
         system = []
@@ -170,15 +179,18 @@ def random_systems(m_low, m_high, n_low, n_high, amount):
                 rem += 1
         m -= rem
         systems.append((system, n, m, ring, None))
+    print("Finished generating systems")
     return systems
 
 def random_systems_with_sol(m_low, m_high, n_low, n_high, amount):
+    print(f"Generating {amount} systems with a known solution...")
     systems = []
     for sys_tuple in random_systems(m_low, m_high, n_low, n_high, amount):
         system, n, m, ring, _ = sys_tuple
         sol = randint(0, 2^n - 1) 
         system = [f if f(*convert(sol, n)) == 0 else (f + 1) for f in system]
         systems.append((system, n, m, ring, sol))
+    print("Finished generating systems")
     return systems
 
 def read_system(fname):

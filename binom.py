@@ -3,6 +3,8 @@
 import sys
 from math import comb
 
+_SUPPORTED_SIZES = [8, 16, 32, 64, 128, 256]
+
 if len(sys.argv) != 3:
     print("Please provide the dimensions of the lookup table to be generated.")
     sys.exit(0)
@@ -13,6 +15,12 @@ if (not sys.argv[1].isdigit()) or (not sys.argv[2].isdigit()):
 
 n = int(sys.argv[1])
 m = int(sys.argv[2])
+
+if n not in _SUPPORTED_SIZES:
+    n = 32
+
+if m not in _SUPPORTED_SIZES:
+    m = 32
 
 prefix_code = (
     f"#ifndef BINOM_H\n"
