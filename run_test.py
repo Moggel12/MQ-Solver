@@ -6,12 +6,12 @@ import sys
 import os
 import hashlib
 
-from utils import fetch_systems_interactive, read_system, SUCCESS, CLEAR, FAIL, bitslice, random_systems_with_sol
-from c_config import TEST_BIN_AVAILABLE
-from fes_rec import *
-from dinur import *
-from fes import *
-from mob_new import *
+from src.sage.utils import fetch_systems_interactive, read_system, SUCCESS, CLEAR, FAIL, bitslice, random_systems_with_sol
+from src.sage.c_config import TEST_BIN_AVAILABLE
+from src.sage.fes_rec import *
+from src.sage.dinur import *
+from src.sage.fes import *
+from src.sage.mob_new import *
 
 _test_functions = {key: val for key, val in globals().items() if callable(val) and key.startswith("test_")}
 

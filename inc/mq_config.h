@@ -11,8 +11,8 @@
 #if defined(_DEBUG)
 #define RSEED 42
 #else
-// #define RSEED time(NULL)
-#define RSEED 42
+#define RSEED time(NULL)
+// #define RSEED 42
 #endif
 
 // TODO: Change to function-like macro.

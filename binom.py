@@ -29,7 +29,7 @@ prefix_code = (
     f"#define BINOM_DIM1 {n}\n"
     f"#define BINOM_DIM2 {m}\n"
      "\n"
-    f"unsigned int lk_binom[{n * m}] = \n"
+    f"const unsigned int lk_binom[{n * m}] = \n"
      "{"
 )
 

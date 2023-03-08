@@ -29,7 +29,6 @@ _time_solve = 0
 _time_fes_recovery = 0
 
 def test_c_output_solutions(sys_tuple):
-    # system, _, ring, n = random_systems_with_sol(_m_low, _m_high, _n_low, _n_high)
     system, n, m, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
     w = sum(f.degree() for f in system) - n1
@@ -90,21 +89,16 @@ def test_c_solve(sys_tuple):
 def test_sage_u_values(sys_tuple):
     system, n, m, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) 
-    # print(type(n1), type(n))
     F_tilde = product((GF(2)(1) + f) for f in system)
     w = F_tilde.degree() - n1
     V, ZV = compute_u_values(system, ring, n1, w)
     for y in range(2^(n - n1)):
-        # print("Computing s0 sum...")
         s0 = sum(F_tilde(*convert(y, n - n1), *convert(z_hat, n1)) for z_hat in range(2^n1))
-        # print("Finished sum")
         if V[y] != s0:
             print(f"Error found in V[{y}]\n\t{V[y]}\n\t{s0}")
             return False
         for i in range(n1):
-            # print(f"Computing s{i} sum...")
             si = sum(F_tilde(*convert(y, n - n1), *convert(z_hat, n1 - 1)[:i], 0, *convert(z_hat, n1 - 1)[i:]) for z_hat in range(2^(n1 - 1)))
-            # print("Finished sum")
             if (ZV[i][y]) != si:
                 print(f"Error found in ZV[{i}][{y}]\n\t{(ZV[i][y])}\n\t{si}")
                 return False
@@ -338,7 +332,6 @@ def solve(system, ring, fes_recovery=True):
         A = gen_matrix_rank_l(l, m)
         
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
-        # print(bitslice(E_k, ring.gens()))
 
         w = sum(f.degree() for f in E_k) - n1 
         _time_output_potentials -= time.time()
@@ -450,14 +443,15 @@ def test_c_solve_SAN(sys_tuple):
         return False
     sl_system = bitslice(system, ring)
     input_data = f"{3}\n"
-    input_data += f"{n}\n{m}\n{solution}{len(sl_system)}\n"
+    input_data += f"{n}\n{m}\n{len(sl_system)}\n"
+    input_data += f"{solution} "
     for e in sl_system:
         input_data += f"{e} "
     p = run_bin_test(input_data)
     if (not p) or (p.returncode != 0):
         return False
     return True
-    
+
 
 
 def main():

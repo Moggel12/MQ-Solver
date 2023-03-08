@@ -202,14 +202,40 @@ int test_gen_matrix(void)
   return 0;
 }
 
-// int test_solve_sanitized()
-// {
-//   unsigned int n = read_uint();
-//   unsigned int m = read_uint();
-//   size_t sol = read_size_t();
+int test_solve_sanitized()
+{
+  unsigned int n = read_uint();
+  unsigned int m = read_uint();
+  size_t sys_len = read_size_t();
 
-//   return 0;
-// }
+  vars_t *py_sol = read_vars_t_array(1);
+
+  if (!py_sol) return 1;
+
+  poly_t *system = read_poly_t_array(sys_len);
+
+  if (!system)
+  {
+    free(py_sol);
+    return 1;
+  }
+
+  vars_t c_sol = 0;
+
+  solve(system, n, m, &c_sol);
+
+  free(system);
+
+  if (*py_sol != c_sol)
+  {
+    free(py_sol);
+    return 1;
+  }
+
+  free(py_sol);
+
+  return 0;
+}
 
 int main(void)
 {
@@ -222,8 +248,8 @@ int main(void)
       return test_eval();
     case 2:
       return test_gen_matrix();
-    // case 3:
-    //   return test_solve_sanitized();
+    case 3:
+      return test_solve_sanitized();
     default:
       printf("Invalid function chosen: %u\n", choice);
   }

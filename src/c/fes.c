@@ -75,7 +75,7 @@ unsigned int bit1(vars_t i) { return trailing_zeros(i); }
 
 unsigned int bit2(vars_t i) { return bit1(GF2_ADD(i, VARS_LSB(i))); }
 
-// TODO: Assumes an arr has been allocated with arr_len bits.
+// Assumes arr has been allocated with arr_len bits.
 unsigned int bits(vars_t i, unsigned int *arr, unsigned int arr_len)
 {
   if (i == 0)
@@ -95,7 +95,6 @@ unsigned int bits(vars_t i, unsigned int *arr, unsigned int arr_len)
     sum++;
 
     i = GF2_ADD(i, VARS_LSB(i));
-    // i = i ^ (i & -i);
   }
 
   return sum;
@@ -115,8 +114,6 @@ unsigned int monomial_to_index(vars_t mon, unsigned int n,
 
       index += lk_binom[i * BINOM_DIM2 + d];
       index_d += lk_binom[n * BINOM_DIM2 + d];
-      // index += binomial(i, d);
-      // index_d += binomial(n, d);
     }
   index = index_d - index;
 
@@ -139,8 +136,7 @@ state *init(state *s, poly_t *system, unsigned int n, unsigned int n1,
   {
     for (unsigned int j = 0; j < k; j++)
     {
-      s->d2[k * n1 + j] =
-          system[lex_idx(j + (n - n1), k + (n - n1), n)];  // TODO
+      s->d2[k * n1 + j] = system[lex_idx(j + (n - n1), k + (n - n1), n)];
     }
   }
 
@@ -153,7 +149,7 @@ state *init(state *s, poly_t *system, unsigned int n, unsigned int n1,
 
   for (unsigned int i = 0; i < (n - n1); i++)
   {
-    if (prefix[i] == 0) continue;  // TODO: Rethink how prefix is represented
+    if (prefix[i] == 0) continue;
 
     for (unsigned int k = 0; k < n1; k++)
     {
@@ -163,14 +159,13 @@ state *init(state *s, poly_t *system, unsigned int n, unsigned int n1,
     s->y = GF2_ADD(s->y, system[i + 1]);
   }
 
-  // 2-combs
   for (unsigned int i = 0; i < (n - n1); i++)
   {
-    if (prefix[i] == 0) continue;  // TODO: Rethink how prefix is represented
+    if (prefix[i] == 0) continue;
 
     for (unsigned int j = i + 1; j < (n - n1); j++)
     {
-      if (prefix[j] == 0) continue;  // TODO: Rethink how prefix is represented
+      if (prefix[j] == 0) continue;
 
       s->y = GF2_ADD(s->y, system[lex_idx(i, j, n)]);
     }
@@ -179,7 +174,6 @@ state *init(state *s, poly_t *system, unsigned int n, unsigned int n1,
   return s;
 }
 
-// FREES prefix FROM STATE.
 state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
               uint8_t *prefix)
 {
@@ -209,10 +203,9 @@ state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
     on[i] = (s->prefix[i] == 0) && (prefix[i] == 1) ? 1 : 0;
   }
 
-  // Turn off variables not assigned in new prefix
   for (unsigned int idx = 0; idx < (n - n1); idx++)
   {
-    if (off[idx] == 0) continue;  // TODO: Rethink how off is represented
+    if (off[idx] == 0) continue;
 
     for (unsigned int k = 0; k < n1; k++)
     {
@@ -220,7 +213,7 @@ state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
       unsigned int large_idx = k + (n - n1);
 
       if (idx > k + (n - n1))
-      {  // Switch order for lex_idx
+      {
         small_idx = k + (n - n1);
         large_idx = idx;
       }
@@ -233,18 +226,17 @@ state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
 
   for (unsigned int i = 0; i < (n - n1); ++i)
   {
-    if (off[i] == 0) continue;  // TODO: Rethink how off is represented
+    if (off[i] == 0) continue;
 
     for (unsigned int j = 0; j < (n - n1); j++)
     {
-      if (!((s->prefix[j] == 1) && (off[j] == 0)))
-        continue;  // TODO: Rethink how prefix and off is represented
+      if (!((s->prefix[j] == 1) && (off[j] == 0))) continue;
 
       unsigned int small_idx = i;
       unsigned int large_idx = j;
 
       if (i > j)
-      {  // Switch order for lex_idx
+      {
         small_idx = j;
         large_idx = i;
       }
@@ -253,14 +245,13 @@ state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
     }
   }
 
-  // 2-combs
   for (unsigned int i = 0; i < (n - n1); i++)
   {
-    if (off[i] == 0) continue;  // TODO: Rethink how off is represented
+    if (off[i] == 0) continue;
 
     for (unsigned int j = i + 1; j < (n - n1); j++)
     {
-      if (off[j] == 0) continue;  // TODO: Rethink how off is represented
+      if (off[j] == 0) continue;
 
       s->y = GF2_ADD(s->y, system[lex_idx(i, j, n)]);
     }
@@ -269,7 +260,7 @@ state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
   // Turn new variables on
   for (unsigned int idx = 0; idx < (n - n1); idx++)
   {
-    if (on[idx] == 0) continue;  // TODO: Rethink how on is represented
+    if (on[idx] == 0) continue;
 
     for (unsigned int k = 0; k < n1; k++)
     {
@@ -277,7 +268,7 @@ state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
       unsigned int large_idx = k + (n - n1);
 
       if (idx > k + (n - n1))
-      {  // Switch order for lex_idx
+      {
         small_idx = k + (n - n1);
         large_idx = idx;
       }
@@ -290,18 +281,17 @@ state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
 
   for (unsigned int i = 0; i < (n - n1); i++)
   {
-    if (on[i] == 0) continue;  // TODO: Rethink how on is represented
+    if (on[i] == 0) continue;
 
     for (unsigned int j = 0; j < (n - n1); j++)
     {
-      if (!((prefix[j] == 1) && (on[j] == 0)))
-        continue;  // TODO: Rethink how prefix and on is represented
+      if (!((prefix[j] == 1) && (on[j] == 0))) continue;
 
       unsigned int small_idx = i;
       unsigned int large_idx = j;
 
       if (i > j)
-      {  // Switch order for lex_idx
+      {
         small_idx = j;
         large_idx = i;
       }
@@ -310,14 +300,13 @@ state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
     }
   }
 
-  // 2-combs
   for (unsigned int i = 0; i < (n - n1); i++)
   {
-    if (on[i] == 0) continue;  // TODO: Rethink how on is represented
+    if (on[i] == 0) continue;
 
     for (unsigned int j = i + 1; j < (n - n1); j++)
     {
-      if (on[j] == 0) continue;  // TODO: Rethink how on is represented
+      if (on[j] == 0) continue;
 
       s->y = GF2_ADD(s->y, system[lex_idx(i, j, n)]);
     }
@@ -361,14 +350,6 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
     }
   }
 
-  // uint64_t pre_x = 0;
-  // for (unsigned int i = 0; i < (n - n1); i++)
-  // {
-  //   if (prefix[i] == 0) continue;  // TODO: Change representation of prefixes
-
-  //   pre_x += (1 << i);
-  // }
-
   if (s->y == 0)
   {
     *parities = GF2_ADD(s->y, VARS_MASK((n1 + 1)));
@@ -382,14 +363,12 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
 
     if (POLY_IS_ZERO(s->y))
     {
-      // *parities = GF2_ADD(*parities, 1);
       *parities = POLY_SETBIT(*parities, 0, 1);
 
       for (unsigned int pos = 0; pos < n1; pos++)
       {
         if (POLY_IS_ZERO(POLY_IDX(z, pos)))
         {
-          // *parities = GF2_ADD(*parities, (1 << (pos + 1)));
           *parities = POLY_SETBIT(*parities, (pos + 1), 1);
         }
       }
@@ -412,7 +391,6 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
 
 // TODO: Fix memory handling if state allocation happens inside fes_eval
 // functions
-
 void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
                         uint8_t *prefix, state *s, vars_t *solutions,
                         unsigned int *sol_amount)
@@ -522,7 +500,6 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
     // unsigned int hw = hamming_weight(si);
     if (hamming_weight(si) > deg)
     {
-      // printf("%u %u\n", si ^ (si >> 1), si);
       unsigned int len_k = bits(si, k, deg);
 
       for (unsigned int j = len_k; j-- > 0;)
@@ -592,7 +569,6 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
   return 0;
 }
 
-// Expects system pre-sliced
 unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
                         unsigned int d, vars_t *solutions)
 {

@@ -16,7 +16,7 @@ unsigned int trailing_zeros(unsigned int v)
   unsigned int c;
   if (v)
   {
-    v = (v ^ (v - 1)) >> 1;  // Set v's trailing 0s to 1s and zero rest
+    v = (v ^ (v - 1)) >> 1;
     for (c = 0; v; c++)
     {
       v >>= 1;
@@ -55,7 +55,7 @@ int n_choose_k(int n, int k)
   if (k > (n - k)) k = n - k;
   double c = 1;
   for (long i = 1; i <= k; i++)
-  {  // Multiplicative form
+  {
     c *= n--;
     c /= i;
   }
