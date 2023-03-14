@@ -21,6 +21,8 @@ extern size_t g_output_time;   //
 extern size_t g_fes_time;
 extern size_t g_ek_time;      //
 extern size_t g_matrix_time;  //
+extern size_t g_eval_time;
+extern size_t g_hist_time;
 
 void readout_benchmarks();
 

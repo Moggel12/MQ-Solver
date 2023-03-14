@@ -4,8 +4,9 @@ import math
 import re
 import ctypes
 import subprocess
+import os
 
-from c_config import TEST_BIN_AVAILABLE
+from src.sage.c_config import TEST_BIN_AVAILABLE
 
 _REGEX_FIELD = r"Galois Field : GF\(2\)"
 _REGEX_NUM_VARS = r"Number of variables \(n\) : (\d+)"
@@ -42,23 +43,25 @@ def convert(v, n):
     return list(map(lambda i : (int(v[-i]) if i <= len(v) else 0), range(1, n + 1)))
 
 def index_of(y_list):
-    return sum(b << i for i, b in enumerate(y_list))
+    return sum(int(b) << i for i, b in enumerate(y_list))
 
 def fetch_c_func(func_name, args=None, res=None, test=False):
+    sage_dir = os.path.dirname(__file__)
     if test: 
-        libc = ctypes.CDLL("../../bin/test.so")
+        libc = ctypes.CDLL(os.path.join(sage_dir, "../../bin/test.so"))
     else: 
-        libc = ctypes.CDLL("../../bin/mq.so")
+        libc = ctypes.CDLL(os.path.join(sage_dir, "../../bin/mq.so"))
     c_func = eval(f"libc.{func_name}")
     if args: c_func.argtypes = args
     if res: c_func.restype = res
     return c_func
 
 def run_bin_test(input_data):
+    file_test = os.path.join(os.path.dirname(__file__), "../../bin/test")
     if not TEST_BIN_AVAILABLE:
         print(f"{FAIL}{CLEAR}")
         return None
-    return subprocess.run(["../../bin/test"], input=input_data, text=True)
+    return subprocess.run([file_test], input=input_data, text=True)
 
 def create_poly_str(poly, ring):
     X = ring.gens()

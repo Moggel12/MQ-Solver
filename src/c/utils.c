@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "benchmark.h"
+
 #ifdef IS_INTEGER_REPR
 
 unsigned int hamming_weight(unsigned int x) { return __builtin_popcount(x); }
@@ -102,6 +104,8 @@ unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
 
 poly_t eval(poly_t *system, size_t n, vars_t var_values)
 {
+  BEGIN_BENCH(g_eval_time)
+
   poly_t table[2] = {POLY_0, POLY_FF};
 
   poly_t res = system[0];
@@ -122,6 +126,8 @@ poly_t eval(poly_t *system, size_t n, vars_t var_values)
       idx++;
     }
   }
+
+  END_BENCH(g_eval_time)
 
   return res;
 }

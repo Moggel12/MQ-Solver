@@ -1,17 +1,16 @@
-from mob_new import mob_transform
-from fes import bruteforce
 import numpy as np
 from random import randint
-from utils import index_of, convert, random_systems, fetch_systems_interactive, CLEAR, WARNING, FAIL, SUCCESS, ITER
 from math import ceil
-from fes_rec import fes_recover
 import time
-
-from c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY
-
 import ctypes as ct
-from utils import bitslice, fetch_c_func, write_fukuoka, run_bin_test
 from collections import defaultdict
+
+from src.sage.mob_new import mob_transform
+from src.sage.fes import bruteforce
+from src.sage.utils import index_of, convert, random_systems, fetch_systems_interactive, CLEAR, WARNING, FAIL, SUCCESS, ITER
+from src.sage.c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY
+from src.sage.fes_rec import fes_recover
+from src.sage.utils import bitslice, fetch_c_func, write_fukuoka, run_bin_test
 
 _m_low  = 5 
 _n_low  = 5
@@ -66,6 +65,7 @@ def test_c_solve(sys_tuple):
     try:
         c_sol = c_solve(sl_system, n, m)
     except:
+        print(f"{FAIL}Encountered exception in C code.{CLEAR}")
         return False 
     py_sol = solve(system, ring)
     print("Solution found:", c_sol)
@@ -441,18 +441,16 @@ def test_c_solve_SAN(sys_tuple):
     if solution == None:
         print("{FAIL}Sage code could not find a solution.{CLEAR}")
         return False
-    sl_system = bitslice(system, ring)
+    sl_system = bitslice(system, ring.gens())
     input_data = f"{3}\n"
     input_data += f"{n}\n{m}\n{len(sl_system)}\n"
-    input_data += f"{solution} "
+    input_data += f"{index_of(solution)} "
     for e in sl_system:
         input_data += f"{e} "
     p = run_bin_test(input_data)
     if (not p) or (p.returncode != 0):
         return False
     return True
-
-
 
 def main():
     rounds = 1

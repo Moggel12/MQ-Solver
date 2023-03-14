@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-
-from utils import *
 from itertools import combinations
 import ctypes as ct
-from c_config import *
+
+from src.sage.utils import *
+from src.sage.c_config import *
 
 @dataclass
 class State:
@@ -97,11 +97,9 @@ def update(s, f, n, n1, prefix):
     for i in on:
         for j in [v for v in prefix if v not in on]:
             s.y ^^= f[lex_idx(i, j, n)]
-            # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
 
     for i, j in combinations(on, 2):
         s.y ^^= f[lex_idx(i, j, n)]
-        # s.y += f.monomial_coefficient(X[i]*X[j]) # <---- Remove when ready
 
     s.prefix = prefix
 

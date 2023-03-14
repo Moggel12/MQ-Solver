@@ -172,6 +172,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
     {
       vars_t y = GF2_MUL(curr_potentials[idx], VARS_MASK((n - n1)));
 
+      BEGIN_BENCH(g_hist_time)
+
       for (unsigned int k1 = 0; k1 < k; k1++)
       {
         for (size_t old_idx = 0; old_idx < potential_solutions[k1]->amount;
@@ -207,6 +209,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
           }
         }
       }
+
+      END_BENCH(g_hist_time)
     }
   }
 

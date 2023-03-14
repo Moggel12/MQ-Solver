@@ -1,8 +1,9 @@
 from random import randint
 from itertools import product as prod 
 from math import comb as c
-from utils import index_of
 from collections import defaultdict
+
+from src.sage.utils import index_of
 
 def next_hw(v):
     t = (v | (v - 1)) + 1

@@ -39,25 +39,6 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
                         unsigned int d, vars_t *solutions);
 
 /*!
- * This does not (yet) conform to the interface given through mq_config.h, and
- * therefore does not support non integer polynomials.
- *
- * @param system The system to exhaustively search in bitsliced format.
- * @param n The amount of input variables to *system*.
- * @param n1 The parameter denoting where the prefix and remainder of the input
- * is split.
- * @param prefix The prefix of variables for which *system* should be partially
- * evaluated.
- * @param s The current *state*, i.e. the old prefix, etc.
- * @param solutions A list of all solutions found. The solutions are stored from
- * solutions[0] to solutions[sol_amount - 1].
- * @param sol_amount The amount of solutions found.
- */
-void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
-                        uint8_t *prefix, state *s, vars_t *solutions,
-                        unsigned int *sol_amount);
-
-/*!
  * Computes the evaluations of all 2^(n - n1) inputs for the U_i polynomials in
  * Dinur's polynomial-method algorithm. The resulting evaluations are in a
 bitsliced format.

@@ -1,15 +1,12 @@
 from itertools import combinations
-from fes import update, fes_eval, c_bruteforce
 import numpy as np
-from utils import convert, bitslice, fetch_c_func
 import time
-
 import ctypes as ct
-from c_config import *
+from math import comb
 
-from utils import random_systems_with_sol
-
-from math import comb # TODO: Remove
+from src.sage.fes import update, fes_eval, c_bruteforce, random_systems_with_sol
+from src.sage.utils import convert, bitslice, fetch_c_func
+from src.sage.c_config import *
 
 # Get index position of first bit set (if any).
 def bit1(x):

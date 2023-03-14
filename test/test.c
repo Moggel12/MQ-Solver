@@ -210,12 +210,17 @@ int test_solve_sanitized()
 
   vars_t *py_sol = read_vars_t_array(1);
 
-  if (!py_sol) return 1;
+  if (!py_sol)
+  {
+    printf("Error receiving python solution\n");
+    return 1;
+  };
 
   poly_t *system = read_poly_t_array(sys_len);
 
   if (!system)
   {
+    printf("Error receiving system\n");
     free(py_sol);
     return 1;
   }
@@ -228,6 +233,7 @@ int test_solve_sanitized()
 
   if (*py_sol != c_sol)
   {
+    printf("Solutions differ\n");
     free(py_sol);
     return 1;
   }

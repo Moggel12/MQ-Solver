@@ -337,8 +337,8 @@ static void step(state *s, unsigned int n1)
   s->y = GF2_ADD(s->y, s->d1[k1]);
 }
 
-unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
-                             uint8_t *prefix, state *s, vars_t *parities)
+state *fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
+                       uint8_t *prefix, state *s, vars_t *parities)
 {
   if (!s)
   {
@@ -346,7 +346,7 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
 
     if (!s)
     {
-      return 1;
+      return NULL;
     }
   }
 
@@ -386,14 +386,14 @@ unsigned int fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
       GF2_ADD(s->d1[n1 - 1],
               s->d2[(n1 - 1) * n1 + ((n1 - 2) > (n1 - 1) ? 0 : (n1 - 2))]));
 
-  return 0;
+  return s;
 }
 
 // TODO: Fix memory handling if state allocation happens inside fes_eval
 // functions
-void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
-                        uint8_t *prefix, state *s, vars_t *solutions,
-                        unsigned int *sol_amount)
+state *fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
+                          uint8_t *prefix, state *s, vars_t *solutions,
+                          unsigned int *sol_amount)
 {
   if (!s)
   {
@@ -401,11 +401,11 @@ void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
 
     if (!s)
     {
-      return;
+      return NULL;
     }
   }
 
-  uint64_t pre_x = 0;  // TODO: Change
+  uint64_t pre_x = 0;
   for (unsigned int i = 0; i < (n - n1); i++)
   {
     if (prefix[i] == 0) continue;
@@ -438,6 +438,8 @@ void fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
       s->y,
       GF2_ADD(s->d1[n1 - 1],
               s->d2[(n1 - 1) * n1 + ((n1 - 2) > (n1 - 1) ? 0 : (n1 - 2))]));
+
+  return s;
 }
 
 state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n,
@@ -445,9 +447,9 @@ state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n,
 {
   s = update(s, system, n, n1, prefix);
 
-  unsigned int errors = fes_eval_parity(system, n, n1, prefix, s, parities);
+  s = fes_eval_parity(system, n, n1, prefix, s, parities);
 
-  if (errors)
+  if (!s)
   {
     destroy_state(s);
     return NULL;
