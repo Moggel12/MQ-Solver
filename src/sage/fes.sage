@@ -124,7 +124,7 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
         parities = 0
     else:
         res = []
-
+    
     if s == None:
         s = init(f, n, n1, prefix)
     
@@ -178,7 +178,6 @@ def bruteforce(system, vars, n1, d):
     return solutions
 
 def c_bruteforce(system, n, n1, d):
-    print("Test")
     solutions = []
     c_system = (C_POLY_T * len(system))(*system)
     c_solutions = (C_VARS_T * int((1 << n)))(0)
@@ -194,11 +193,41 @@ def c_bruteforce(system, n, n1, d):
 
     return sol_amount, py_list 
 
+def c_fes(system, n, m):
+    c_system = (C_POLY_T * len(system))(*system)
+    c_solutions = (C_VARS_T * int(1 << n))(0)
+
+    args = [Type.P(C_POLY_T), Type.U, Type.U, Type.P(C_VARS_T)]
+    res = Type.U 
+    fes_func = fetch_c_func("fes", args, res)
+    sol_amount = fes_func(c_system, n, m, c_solutions)
+
+    solutions = []
+    if sol_amount > 0:
+        for i in range(sol_amount):
+            solutions.append(int(c_solutions[i]))
+
+    return solutions
+
+def test_c_fes(sys_tuple):
+    system, n, m, ring, _ = sys_tuple
+
+    sl_system = bitslice(system, ring.gens())
+    solutions = c_fes(sl_system, n, m)
+
+    if not all(all(f(*convert(s, n)) == 0 for f in system) for s in solutions):
+        print(solutions)
+        print("Incorrect solutions.")
+        return False
+    print("All solutions verified.")
+    return True
+    
+
 def test_c_fes_eval(sys_tuple):
     system, n, _, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4)))
     # d = randint(1, n - n1)
-    d = 4
+    d = 4 # TODO
     print(system)
     print(n, n1, d)
     system = bitslice(system, ring.gens())

@@ -67,24 +67,18 @@ def test_c_solve(sys_tuple):
     except:
         print(f"{FAIL}Encountered exception in C code.{CLEAR}")
         return False 
-    py_sol = solve(system, ring)
     print("Solution found:", c_sol)
     if c_sol == None:
         print(f"{FAIL}Found No solution{CLEAR}")
         return False
-    elif (py_sol == c_sol):
-        print(f"{SUCCESS}Found identical solution to sage code.{CLEAR}")
-        return True
     else:
         out = [f(*c_sol) for f in system]
         print("Verify found solution:", out)
-        print(not all([f(*c_sol) == 0 for f in system]))
         if not all(val == 0 for val in out):
             print(f"{FAIL}Solution not valid{CLEAR}")
             return False
-        print(f"{WARNING}Solution verified, but not identical to sage solution{CLEAR}")
-        print(f"{py_sol} != {c_sol}")
-        return False
+        print(f"{SUCCESS}Solution verified.{CLEAR}")
+        return True
 
 def test_sage_u_values(sys_tuple):
     system, n, m, ring, _ = sys_tuple

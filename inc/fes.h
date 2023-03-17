@@ -9,11 +9,13 @@
 #include "mq_config.h"
 #include "utils.h"
 
+#define INC(i) i + 1
+
 /*! A struct identifying the state of of a partial evaluation of a polynomial
  * system. */
 typedef struct state
 {
-  vars_t i;        /*! The value of the input variables assigned. */
+  vars_t i; /*! The value of the input variables assigned. */  // TODO
   poly_t y;        /*! The evaluation of the system on s->i. */
   poly_t *d1;      /*! The first derivatives of the system evaluated on s->i. */
   poly_t *d2;      /*! The second derivative of the system (constants). */
@@ -37,6 +39,20 @@ typedef struct state
  */
 unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
                         unsigned int d, vars_t *solutions);
+
+/*!
+ * Barebones FES implementation for comparing against Dinur's algorith (this is
+ * essentially used internally on Dinur's algorithm).
+ *
+ * @param system The system (in a bitsliced format) to find a solution for.
+ * @param n The amount of variables in *system*.
+ * @param m The amount of polynomials in the system.
+ * @param solutions An array of which the procedure should store the solutions.
+ * The procedure expects there to be enough room for all solutions.
+ * @return Returns the amount of solutions found.
+ */
+unsigned int fes(poly_t *system, unsigned int n, unsigned int m,
+                 vars_t *solutions);
 
 /*!
  * Computes the evaluations of all 2^(n - n1) inputs for the U_i polynomials in

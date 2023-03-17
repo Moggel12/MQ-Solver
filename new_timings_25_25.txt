@@ -1,0 +1,13 @@
+g_solve_time timings: 49s, 472ms
+g_recover_time timings: 5s, 30ms
+g_recover_eval_time timings: 2s, 149ms
+g_recover_interp_time timings: 1s, 893ms
+g_output_time timings: 5s, 42ms
+g_fes_time timings: 0s, 721ms
+g_ek_time timings: 0s, 0ms
+g_matrix_time timings: 0s, 0ms
+g_eval_time timings: 0s, 5ms
+g_hist_time timings: 44s, 134ms
+FES recovery evaluations: 1961565.000000
+FES recovery interpolations: 659872.500000
+FES recovery ratio (eval/interp): 2.972642

@@ -1,23 +1,14 @@
 #include "fes.h"
 
 #include <stdio.h>
+#include <time.h>
 
 #include "benchmark.h"
 #include "binom.h"
 
-unsigned int binomial(int m, int n)  // TODO: Remove
-{
-  if (m < n) return 0;
-  unsigned int ret = 1;
-  int i = 1;
-  for (; i <= n; i++) ret = ret * (i + m - n) / i;
-  return ret;
-}
-
 state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
 {
   state *s = malloc(sizeof(state));
-
   if (!s) return NULL;
 
   s->d1 = calloc(n1, sizeof(vars_t));
@@ -39,7 +30,7 @@ state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
     return NULL;
   }
 
-  for (unsigned int i = 0; i < n1; i++)
+  for (unsigned int i = 0; i < (n - n1); i++)
   {
     s->prefix[i] = prefix[i];
   }
@@ -389,8 +380,6 @@ state *fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
   return s;
 }
 
-// TODO: Fix memory handling if state allocation happens inside fes_eval
-// functions
 state *fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
                           uint8_t *prefix, state *s, vars_t *solutions,
                           unsigned int *sol_amount)
@@ -502,6 +491,10 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
     // unsigned int hw = hamming_weight(si);
     if (hamming_weight(si) > deg)
     {
+      g_recover_eval++;
+
+      BEGIN_BENCH(g_recover_eval_time)
+
       unsigned int len_k = bits(si, k, deg);
 
       for (unsigned int j = len_k; j-- > 0;)
@@ -511,9 +504,15 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
         d[idx] = GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, k[j])]);
       }
+
+      END_BENCH(g_recover_eval_time)
     }
     else
     {
+      g_recover_interp++;
+
+      BEGIN_BENCH(g_recover_interp_time)
+
       unsigned int len_k = bits(si, k, deg);
       unsigned int gray_si = si ^ (si >> 1);
       for (unsigned int pos = 0; pos < (n - n1); pos++)
@@ -559,6 +558,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
           prev = tmp;
         }
       }
+      END_BENCH(g_recover_interp_time)
     }
 
     results[si ^ (si >> 1)] = d[0];
@@ -596,12 +596,28 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
       }
 
       s = update(s, system, n, n1, prefix);
-      fes_eval_solutions(system, n, n1, prefix, s, solutions, &sol_amount);
+      s = fes_eval_solutions(system, n, n1, prefix, s, solutions, &sol_amount);
     }
   }
 
   free(prefix);
   destroy_state(s);
+
+  return sol_amount;
+}
+
+unsigned int fes(poly_t *system, unsigned int n, unsigned int m,
+                 vars_t *solutions)
+{
+  unsigned int sol_amount = 0;
+
+  clock_t fes_time = clock();
+  state *s =
+      fes_eval_solutions(system, n, n, NULL, NULL, solutions, &sol_amount);
+  size_t msec = (clock() - fes_time) * 1000 / CLOCKS_PER_SEC;
+  printf("FES solve time: %zus, %zums\n", msec / 1000, msec % 1000);
+
+  if (!s) return 0;
 
   return sol_amount;
 }
