@@ -59,7 +59,7 @@ def fetch_c_func(func_name, args=None, res=None, test=False):
 def run_bin_test(input_data):
     file_test = os.path.join(os.path.dirname(__file__), "../../bin/test")
     if not TEST_BIN_AVAILABLE:
-        print(f"{FAIL}{CLEAR}")
+        print(f"{FAIL}Test binary is not available.{CLEAR}")
         return None
     return subprocess.run([file_test], input=input_data, text=True)
 

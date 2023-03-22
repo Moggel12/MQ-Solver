@@ -6,7 +6,7 @@ size_t g_solve_time = 0;
 size_t g_recover_time = 0;
 size_t g_recover_eval_time = 0;
 size_t g_recover_interp_time = 0;
-size_t g_output_time = 0;
+// size_t g_output_time = 0;
 size_t g_fes_time = 0;
 size_t g_ek_time = 0;
 size_t g_matrix_time = 0;
@@ -24,7 +24,7 @@ void readout_benchmarks()
   READOUT_BENCH(g_recover_time)
   READOUT_BENCH(g_recover_eval_time)
   READOUT_BENCH(g_recover_interp_time)
-  READOUT_BENCH(g_output_time)
+  // READOUT_BENCH(g_output_time)
   READOUT_BENCH(g_fes_time)
   READOUT_BENCH(g_ek_time)
   READOUT_BENCH(g_matrix_time)
@@ -54,7 +54,7 @@ void e2e_benchmark(size_t rounds, poly_t *systems[], size_t n, size_t m)
   g_recover_time /= succeeded_r;
   g_recover_eval_time /= succeeded_r;
   g_recover_interp_time /= succeeded_r;
-  g_output_time /= succeeded_r;
+  // g_output_time /= succeeded_r;
   g_fes_time /= succeeded_r;
   g_ek_time /= succeeded_r;
   g_matrix_time /= succeeded_r;

@@ -448,7 +448,8 @@ state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n,
 }
 
 uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
-                    unsigned int deg, vars_t *results)
+                    unsigned int deg, PotentialSolution *results,
+                    size_t *res_size)
 {
   state *s = NULL;
 
@@ -481,7 +482,13 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
     return 1;
   }
 
-  results[0] = parities;
+  if (!VARS_IS_ZERO(VARS_IDX(parities, 0)))
+  {
+    results[0].y_idx = 0;
+    results[0].z_bits = VARS_RSHIFT(GF2_ADD(parities, VARS_MASK((n1 + 1))), 1);
+    (*res_size)++;
+  }
+  // results[0] = parities;
   d[0] = parities;
 
   parities = 0;
@@ -560,8 +567,14 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
       }
       END_BENCH(g_recover_interp_time)
     }
-
-    results[si ^ (si >> 1)] = d[0];
+    if (!VARS_IS_ZERO(VARS_IDX(d[0], 0)))
+    {
+      results[*res_size].y_idx = si;
+      results[*res_size].z_bits =
+          VARS_RSHIFT(GF2_ADD(d[0], VARS_MASK((n1 + 1))), 1);
+      (*res_size)++;
+    }
+    // results[si ^ (si >> 1)] = d[0];
   }
   destroy_state(s);
   free(prefix);

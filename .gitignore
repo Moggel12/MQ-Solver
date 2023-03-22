@@ -1,6 +1,9 @@
 # CLion files
 .idea/*
  
+# Code files
+.vscode/*
+
 # Git files
 *.orig
 

@@ -19,7 +19,7 @@ extern size_t g_solve_time;
 extern size_t g_recover_time;
 extern size_t g_recover_eval_time;
 extern size_t g_recover_interp_time;
-extern size_t g_output_time;
+// extern size_t g_output_time;
 extern size_t g_fes_time;
 extern size_t g_ek_time;
 extern size_t g_matrix_time;

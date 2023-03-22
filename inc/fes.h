@@ -11,6 +11,12 @@
 
 #define INC(i) i + 1
 
+typedef struct PotentialSolution
+{
+  vars_t y_idx;
+  vars_t z_bits;
+} PotentialSolution;
+
 /*! A struct identifying the state of of a partial evaluation of a polynomial
  * system. */
 typedef struct state
@@ -54,6 +60,7 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
 unsigned int fes(poly_t *system, unsigned int n, unsigned int m,
                  vars_t *solutions);
 
+// TODO: Update documentation of fes_recover
 /*!
  * Computes the evaluations of all 2^(n - n1) inputs for the U_i polynomials in
  * Dinur's polynomial-method algorithm. The resulting evaluations are in a
@@ -68,6 +75,7 @@ bitsliced format.
 of *resuslts* are invalid.
  */
 uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
-                    unsigned int deg, vars_t *results);
+                    unsigned int deg, PotentialSolution *results,
+                    size_t *res_size);
 
 #endif  // FES_H

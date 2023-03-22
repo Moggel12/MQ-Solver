@@ -10,7 +10,7 @@ _libc = ct.CDLL("libc.so.6")
 RSEED = 42
 MAX_HISTORY = 30
 
-TEST_BIN_AVAILABLE = os.path.exists("../../bin/test")
+TEST_BIN_AVAILABLE = os.path.exists(os.path.join(os.path.dirname(__file__), "../../bin/test"))
 
 C_POLY_T = None
 C_VARS_T = None

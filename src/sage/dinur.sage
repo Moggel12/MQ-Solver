@@ -328,10 +328,11 @@ def solve(system, ring, fes_recovery=True):
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
 
         w = sum(f.degree() for f in E_k) - n1 
+
         _time_output_potentials -= time.time()
 
         curr_potential_sol = output_potentials(E_k, ring, n1, w, fes_recovery) 
-        
+
         _time_output_potentials += time.time()
 
         potential_solutions.append(curr_potential_sol)
