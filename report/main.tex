@@ -24,7 +24,7 @@
 \usepackage{lipsum}
 \usepackage{subcaption}
 \usepackage[hidelinks]{hyperref}
-\usepackage{cleveref}
+\usepackage[capitalise]{cleveref}
 \usepackage[style=numeric-comp]{biblatex}
 
 % Bibliography settings
@@ -61,6 +61,13 @@
 \fancyhf[HRE]{\rightmark}
 
 \SetArgSty{textnormal} % Set text style for guard in algorithms
+
+% Feedback
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{ifthen}
+\usepackage{ulem}
+\newcommand{\phrase}[2][]{\textcolor{blue}{\textbf{\ifthenelse{\equal{#1}{}}{}{(#1)}} \uline{#2}}} % needs rephrase
+\newcommand{\comment}[1]{\textcolor{red}{\textbf{(#1)}}}
 
 \begin{document}
 
