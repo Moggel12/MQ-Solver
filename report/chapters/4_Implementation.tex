@@ -1,14 +1,58 @@
 \section{Implementation (approx. 15-20 pages)} \label{sec:impl}
 The accompanying git repository contains more than one implementation, or \textit{variant}, of Dinur's original algorithm. These variants are divided into a faster \texttt{C} implementation and a prototype \texttt{Sagemath} implementation. \texttt{C} function declarations can be found in the \texttt{inc/} folder, other code can be found under \texttt{src/}.
 
-\subsection{Sage code}
-As was implied earlier, the \texttt{Sage} implementation of Dinur's algorithm works mostly as a prototype or testing ground for the \texttt{C} implementation. Some optimizations have been tested in this version of the code, prior to it being implemented in \texttt{C}, however, these optimizations worked on an algorithmic level more than on a machine-level. This prototype allowed for approximating the bottleneck areas of the algorithm while essentially also working as a proof-of-concept for using Dinur's algorithm in practice. These approximations of course were rougher in some areas than others, due to the overhead imposed by \texttt{Sagemath} and \texttt{Python}.
+For alternative implementations of some of the procedures described in \cref{sec:prereq}, see \cite{cryptoeprint:2010/313}, \cite{cryptoeprint:2013/436}, and \cite{cryptoeprint:2022/214}.
 
-The prototype implements the three procedures described by Dinur in \cite{cryptoeprint:2021/578}, in a more or less described as the pseudo code presented. The three main procedures described by Dinur can be found in \texttt{sage/dinur.sage} with some accompanying convenience and test functions. A bit-sliced version of the FES procedure, described in \cite{cryptoeprint:2010/313}, for quadratic polynomials can be found in \texttt{sage/fes.sage}. This implementation is not as heavily optimized as those in \cite{cryptoeprint:2010/313} and \cite{cryptoeprint:2013/436}, simply due to the \texttt{Sage}-induced overhead counteracting fine-adjusted optimizations. The prototype code further introduces a prototype of a FES-based recovery, acting as an alternative to the Möbius Transform originally described by Dinur. The Möbius Transform was implemented in \texttt{mob.sage} and allows for a \textit{sparse}-transform used for interpolating the $U_i$-polynomials. This implementation is rather naive as it interpolates these polynomials \textit{symbolically} using the polynomial classes from \texttt{Sagemath}. The choice of switching between FES-based recovery and using the Möbius transform is a simple boolean switch in the \texttt{solve} and \texttt{output\_potentials} functions in \texttt{src/dinur.sage}. \textbf{IF MOB IS ALTERED IN SAGE; CHANGE THIS} 
+\subsection{SageMath code}
+As was implied earlier, the SageMath implementation of Dinur's algorithm works mostly as a prototype or testing ground for the \texttt{C} implementation. Some optimizations have been tested in this version of the code, prior to it being implemented in \texttt{C}, however, these optimizations worked on an algorithmic level more than on a machine level. This prototype allowed for approximating the bottleneck areas of the algorithm while essentially also working as a proof-of-concept for using Dinur's algorithm in practice. These approximations of course were rougher in some areas than others, due to the overhead imposed by \texttt{Sagemath} and \texttt{Python}.
 
-Other than the prototype code implemented in \texttt{Sagemath}, a \textit{front-end} was also implemented allowing for easier loading, generation and calling of the optimized \texttt{C} code. \textbf{INSERT HOW TO CALL SAGE CODE}
+The prototype implements the three procedures described by Dinur in \cite{cryptoeprint:2021/578}, more or less described as the pseudo-code is presented. The three main procedures described by Dinur can be found in \texttt{sage/dinur.sage} with some accompanying convenience and test functions. A bit-sliced version of the FES procedure, described in \cite{cryptoeprint:2010/313} and \cref{sec:prereq:fes}, for quadratic polynomials can be found in \texttt{sage/fes.sage}. This implementation is not as heavily optimized as those in \cite{cryptoeprint:2010/313} and \cite{cryptoeprint:2013/436}, simply due to the SageMath-induced overhead counteracting fine-adjusted optimizations. The prototype code further introduces a prototype of an FES-based recovery, acting as an alternative to the Möbius Transform originally described by Dinur. The Möbius Transform was implemented in \texttt{mob.sage} and allows for a \textit{sparse}-transform used for interpolating the $U$-polynomials. This implementation is rather naive as it interpolates these polynomials \textit{symbolically} using the polynomial classes from \texttt{Sagemath}. The choice of switching between FES-based interpolation and using the Möbius transform is a simple boolean switch in the \texttt{solve} and \texttt{output\_potentials} functions in \texttt{src/dinur.sage}. \td{IF MOB IS ALTERED IN SAGE; CHANGE THIS} 
 
-\subsection{Core algorithms}
+The tests for the prototype code can be found in the same file as the function they test. This may not be the prettiest setup, but it should not be overlooked that most of this SageMath code is prototype and used for verification of the \texttt{C}-code.
+
+Other than the prototype code implemented in SageMath, a \textit{front-end} was also implemented allowing for easier loading, generation, and calling of the optimized \texttt{C} code. 
+\td{INSERT HOW TO CALL SAGE CODE}
+
+\subsubsection{Dinur's core procedures}
+\textbf{SageMath implementation of SOLVE.}
+The top-level \texttt{solve} procedure can be found in the \texttt{src/sage/dinur.sage} file. To test it, one may call the \texttt{test\_sage\_solve()} function with appropriate parameters. This implementation of Dinur's algorithm tries to mimic the pseudo-code (see \cref{alg:solve}) closely, e.g. by using dictionaries for checking comparing solutions found in round $k$ with those of earlier rounds. However, by close inspection, one might see that there are few differences between the implementation and the pseudo-code still. In the pseudo-code, Dinur parameterizes the variable $n_1$, allowing variation on how it is chosen. The SageMath implementation fixes this to 
+$$
+    n_1 \approx \frac{n}{5.4}.
+$$
+The choice of fixing $n_1$ to this specific value stems from Dinur's proof of the time complexity of this algorithm. Setting the parameter to approximately $\frac{n}{5.4}$ ensures that the complexity is balanced between the time evaluating the $U$ polynomials and the time taken for computing the evaluations of $\Tilde{\mathcal{P}}$ in the set $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$. This can be altered in the SageMath source code itself if necessary, however, here it was kept simple.
+
+Another part of the SageMath code that differs from the source material is its 
+\texttt{fes\_recovery} parameter. This parameter handles whether or not to use FES-based recovery, described in \cref{sec:ext:fes_interp}, to recover the $U$ polynomials. The parameter is essentially a boolean switch that tells the \texttt{output\_potentials()} function which implementation is needed. A look at the main loop inside the \texttt{solve()} function shows the last \textit{major} deviance from the pseudo-code. Here, instead of allowing the algorithm to run indefinitely the length of the \textit{history} is limited. The limit found here can be changed in \texttt{src/sage/c\_config.py} and defaults to 30.
+
+Generating the matrix $A$ of \cref{alg:solve}, \cref{alg:solve:matrix}, for constructing $\Tilde{\mathcal{P}}$ occurs in \texttt{gen\_matrix\_rank\_l()}. Ensuring that matrix $A$ has rank $\ell$ is a simple Monte Carlo approach generating new matrices until one of the needed rank is acquired. The generation of the matrix makes use of the \texttt{rand()} function from the \texttt{C} standard library. The PRNG is seeded in \texttt{solve()} using the constant \texttt{RSEED}, defaulting to 42. The underlying PRNG may be changed in the \texttt{src/sage/c\_config.py} file as well, however, is useful for simplifying the testing of the \texttt{C} implementation.
+
+Finally, the way polynomials are represented in the SageMath code is through the built-in (in SageMath) representation of boolean polynomials. As mentioned earlier, this does incur an overhead but will also simplify certain operations, such as generating the system $\Tilde{\mathcal{P}}$:
+\begin{lstlisting}[language=Python,style=mystyle]
+E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
+\end{lstlisting}
+which also eases the process of computing $d_{\Tilde{\mathcal{F}}}$,
+\begin{lstlisting}[language=Python,style=mystyle]
+w = sum(f.degree() for f in E_k) - n1 
+\end{lstlisting}
+alongside evaluating the polynomials in the system on candidate solutions:
+\begin{lstlisting}[language=Python,style=mystyle]
+def eval_system(system, sol):
+    return not any(f(*sol) for f in system)
+\end{lstlisting}
+
+\textbf{Outputting isolated solutions in reality.} The function \texttt{output\_potentials} is the SageMath equivalent of \cref{alg:output}. With the purpose of computing isolated solutions using the $U$ polynomials, the SageMath implementation takes two approaches, as noted earlier. The \texttt{fes\_recovery} parameter chooses either a FES-based interpolation and evaluation or the traditional method of using the boolean Möbius transform and using \texttt{compute\_u\_values()}. With the "traditional" method of computing isolated solutions, the code first obtains \texttt{V} and \texttt{ZV}, being a \texttt{defaultdict} and list of \texttt{defaultdict}. Once those have been saved, the procedure goes on to interpolate the $U$ polynomials and store them in an array, \texttt{U}:
+\begin{lstlisting}[language=Python,style=mystyle]
+U.append(mob_transform(V, ring_sub.gens(), w))
+for i in range(1, n1 + 1):
+    U.append(mob_transform(ZV[i - 1], ring_sub.gens(), w+1))
+\end{lstlisting}
+using the appropriate parameters ($w$ for $U_0$ and $w + 1$ for the other $U_i$s). Here, the procedure also includes \texttt{sub\_ring} which essentially is a polynomial ring with indeterminates $x_0$ through $x_{n - n_1 - 1}$ instead of $x_0$ through $x_{n - 1}$, as the actual ring of $\mathcal{P}$. This is done due to the Möbius transform implementation being symbolic, meaning that it is computed using the recursion \td{DEFINE THE RECURSION SOMEWHERE}
+
+\subsubsection{FES procedures}
+
+\subsubsection{Möbius Transform implementation}
+
+\subsection{Core algorithms in \texttt{C}} \label{sec:impl:c}
 %\begin{enumerate}
 %    \item Actual implementation of Fast Exhaustive Search
 %    \subitem Degree-$d$ and quadratic
@@ -21,13 +65,6 @@ Other than the prototype code implemented in \texttt{Sagemath}, a \textit{front-
 %    \item Getting interpolation points for FES recover
 %\end{enumerate}
 
-In this subsection, the implementation of the core algorithms for Dinur's algorithm are described, 
-
-\subsubsection{Fast Exhaustive Search over $\eff_2$}
-
-\subsubsection{Möbius Transform}
-
-\subsubsection{Dinur's solver}
 
 \subsection{Optimizations}
 
@@ -35,7 +72,7 @@ In this subsection, the implementation of the core algorithms for Dinur's algori
     \item Tight integration of U-value computation with polynomial interpolation and full evaluation
     \item Sparse Möbius transform
     \item FES-recover
-    \item Monotonic gray-codes for bruteforce subprocedure
+    \item Monotonic gray codes for bruteforce sub procedure
     \item \texttt{C}-specific optimizations
     \item Handling memory
     \item Concurrency
@@ -44,5 +81,14 @@ In this subsection, the implementation of the core algorithms for Dinur's algori
 \subsubsection{Fast Exhaustive Search}
 
 \subsubsection{Dinur's solver}
+
+\subsection{Compilation and compile-time parameters}
+The accompanying Makefile has the ability to conform to multiple platforms using either vectorized instructions or building for machines with different register sizes. Building any of these different targets requires altering the \texttt{BTIS} flag when calling the \texttt{make}. Setting \texttt{BITS} to 8, 16, 32, or 64 means building the non-AVX optimized version, but regulates the integer sizes used to store the polynomials and solutions to the given width. Specifying 128 or 256 means that the build uses 128-bit or 256-bit registers, respectively. 
+
+The default target creates the file \texttt{bin/mq.so}, ready for dynamic linking into other projects, with \texttt{-O3} optimization. This shared object is described further in \cref{sec:impl:c}. Running \texttt{make tests} will create an executable \texttt{bin/test} with memory sanitizers and debug flags enabled. 
+\td{128 AND 256 NOT SUPPORTED IN TEST FILE YET}
+
+While compiling the target, the makefile ensures that a few files are generated as well. One file is \texttt{src/sage/.compile\_config}, ensuring better interoperability between the SageMath code and the \texttt{C} code. A more prominent file is the \texttt{inc/binom.h} file generated. This is essentially a header file containing a lookup table \textit{of sufficient size} alongside the necessary macros to do lookups with a few calculations. This lookup table is generated by the Makefile which internally calls the \texttt{binom.py} script and saves the output in \texttt{inc/binom.h}.
+\td{INCLUDE RUN\_TEST.PY?}
 
 \newpage
