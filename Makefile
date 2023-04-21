@@ -1,11 +1,8 @@
 # Basics
 SHELL = /bin/sh
 REPORT = report/main.tex
-NSIZE = 32
-MSIZE = 32
+REGSIZE = 32
 
-$(shell echo "$(NSIZE) $(MSIZE)" > src/sage/.compile_config)
-$(shell ./binom.py $(NSIZE) $(MSIZE) > inc/binom.h)
 
 # C build setup
 CC = gcc
@@ -13,15 +10,36 @@ SRCDIR = src
 BUILD_DIR = build
 BIN_DIR = bin
 TEST_DIR = test
+STD_DIR = $(BUILD_DIR)/standard
+VEC_DIR = $(BUILD_DIR)/vectorzied
 TEST_TARGET = bin/test
 TARGET = bin/mq.so
+VEC_TARGET = bin/mq_vec.so
 
 # Files
 SRCEXT := c
-SRCS :=	$(shell find $(SRCDIR)/c -type f -name *.$(SRCEXT))
-OBJ := $(patsubst $(SRCDIR)/c/%,$(BUILD_DIR)/%,$(SRCS:.$(SRCEXT)=.o))
+ifeq ($(REGSIZE), 128)
+WORKDIR := $(SRCDIR)/c/vectorized
+SRCS := $(shell find $(SRCDIR)/c/vectorized -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
+CFLAGS += -mavx
+INTSIZE := 32
+else ifeq ($(REGSIZE), 256)
+WORKDIR := $(SRCDIR)/c/vectorized
+SRCS := $(shell find $(SRCDIR)/c/vectorized -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
+CFLAGS += -mavx2
+INTSIZE := 64
+else 
+WORKDIR := $(SRCDIR)/c/standard
+SRCS :=	$(shell find $(SRCDIR)/c/standard -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
+INTSIZE := $(REGSIZE)
+endif
+
 TEST_SRCS := $(shell find $(TEST_DIR) -type f -name *.$(SRCEXT))
+OBJ := $(patsubst $(WORKDIR)/%,$(BUILD_DIR)/%,$(filter $(WORKDIR)/%, $(SRCS:.$(SRCEXT)=.o))) $(patsubst $(SRCDIR)/c/%,$(BUILD_DIR)/%, $(filter-out $(WORKDIR)/%, $(SRCS:.$(SRCEXT)=.o)))
 TEST_OBJ := $(patsubst $(TEST_DIR)/%,$(BUILD_DIR)/%,$(TEST_SRCS:.$(SRCEXT)=.o)) $(OBJ)
+
+$(shell echo "$(REGSIZE)" > src/sage/.compile_config)
+$(shell ./binom.py $(INTSIZE) $(INTSIZE) > inc/binom.h)
 
 # GCC flags
 SAN :=\
@@ -32,17 +50,15 @@ DEBUG := $(SAN) -Wall -Wextra -O0 -g -D_DEBUG
 OPT := -O3
 LDFLAGS := -lm
 INC := -Iinc
-CFLAGS := $(INC) -DP$(MSIZE) -DV$(NSIZE) $(LIB)
+CFLAGS += $(INC) -DREG$(REGSIZE) $(LIB)
 
-VPATH = src/c:test
-
-all: $(TARGET)
+VPATH = src/c:$(WORKDIR):test
 
 $(BUILD_DIR)/%.o: %.c | $(BUILD_DIR) $(BIN_DIR)
 	$(CC) -o $@ $(CFLAGS) -c $<
 
 $(TARGET): CFLAGS += $(OPT) -fPIC
-$(TARGET): $(OBJ) | sage
+$(TARGET): $(OBJ) | sage $(STD_DIR)
 	$(CC) -shared -o $@ $^
 
 tests: CFLAGS += $(DEBUG)
@@ -72,4 +88,10 @@ $(BIN_DIR):
 $(BUILD_DIR):
 	mkdir -p $@
 
-.PHONY: clean all pdf tests pdfclean sage
+$(STD_DIR):
+	mkdir -p $(BUILD_DIR)/$(STD_DIR)
+
+$(VEC_DIR):
+	mkdir -p $(BUILD_DIR)/$(VEC_DIR)
+
+.PHONY: clean standard vector pdf tests pdfclean sage

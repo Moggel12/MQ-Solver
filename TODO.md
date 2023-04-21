@@ -4,15 +4,15 @@
   - Make sure it handles different integer sizes according to C code.
   - Cleanup 
 - Cleanup C code
-  - [ ] fes.c
-  - [ ] utils.c
   - [ ] mq_config.h
 - Finish solver code (in C)
   - [ ] output_potentials and solve
 - Optimize C-code
   - [ ] Multicore
-  - [ ] Bitslicing
-  - [ ] Memory (fes_recover)
+    - Strategies:
+      - Worker threads and master thread
+      - Fix variables and run multiple systems
+      - Thread for subprocedures like FES
   - [ ] Smaller algorithmic changes
   - [ ] Smaller C-stuff (unrolling, register vars, etc.)
 - Get some pages written

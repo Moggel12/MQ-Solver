@@ -8,7 +8,7 @@ from collections import defaultdict
 from src.sage.mob_new import mob_transform
 from src.sage.fes import bruteforce
 from src.sage.utils import index_of, convert, random_systems, fetch_systems_interactive, CLEAR, WARNING, FAIL, SUCCESS, ITER
-from src.sage.c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY
+from src.sage.c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY, C_VECTORIZED
 from src.sage.fes_rec import fes_recover
 from src.sage.utils import bitslice, fetch_c_func, write_fukuoka, run_bin_test
 
@@ -28,6 +28,9 @@ _time_solve = 0
 _time_fes_recovery = 0
 
 def test_c_output_solutions(sys_tuple):
+    if C_VECTORIZED:
+        print(f"{FAIL}This test does not support vectorized C functionality.{CLEAR}")
+        return False
     system, n, m, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
     w = sum(f.degree() for f in system) - n1
@@ -301,7 +304,7 @@ def preprocess(system, ring):
         new_sys.append(f)
     return new_sys
 
-def gen_matrix_rank_l(l, m):
+def gen_matrix_rank_l(l, m, vec=False):
     mat = matrix([convert(rand() & ((1 << m) - 1), m) for _ in range(l)])
     while mat.rank() != l:
         mat = matrix([convert(rand() & ((1 << m) - 1), m) for _ in range(l)])
@@ -326,7 +329,7 @@ def solve(system, ring, fes_recovery=True):
         A = gen_matrix_rank_l(l, m)
         
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
-
+        
         w = sum(f.degree() for f in E_k) - n1 
 
         _time_output_potentials -= time.time()
@@ -344,6 +347,7 @@ def solve(system, ring, fes_recovery=True):
                     if all(potential_sol == potential_solutions[k1][y_hat]):
                         sol = convert(y_hat, n - n1) + list(potential_sol[1:])
                         if eval_system(system, sol):
+                            #print(y_hat, index_of(list(potential_sol[1:])), index_of(sol))
                             _time_solve_trials += time.time()
                             return sol
                         break
@@ -381,22 +385,33 @@ def c_benchmark(system_tuples):
     bench_fun(size, c_systems_list, Type.SZ(n), Type.SZ(m))
 
 def test_c_compute_e_k_SAN(sys_tuple):
-    srand(int(RSEED))
+    srand(int(RSEED))  
+    if C_VECTORIZED:
+        amnt = 4
+    else:
+        amnt = 1
     system, n, m, ring, _ = sys_tuple
     l = int(ceil(n/(5.4))) + 1
     sl_system = bitslice(system, ring.gens())
-    mat = gen_matrix_rank_l(l, m)
-    mat_dec = [index_of(e) for e in mat]
+    mat = []
+    mat_dec = []
+    for v in range(amnt):
+        mat.append(gen_matrix_rank_l(l, m))
+        mat_dec.append([index_of(e) for e in mat[v]])
     input_data = f"{0}\n"
     input_data += f"{l}\n{n}\n{len(sl_system)}\n"
-    for e in mat_dec:
-        input_data += f"{e} "
+    for i in range(amnt):
+        for e in mat_dec[i]:
+            input_data += f"{e} "
     for e in sl_system:
         input_data += f"{e} "
-    new_sys = bitslice([sum(mat[i][j] * system[j] for j in range(m)) for i in range(l)], ring.gens())
-    input_data += f"{sum(f.degree() for f in [sum(mat[i][j] * system[j] for j in range(m)) for i in range(l)])}\n"
-    for e in new_sys:
-        input_data += f"{e} "
+    new_sys = []
+    for v in range(amnt):
+        new_sys.append(bitslice([sum(mat[v][i][j] * system[j] for j in range(m)) for i in range(l)], ring.gens()))
+        input_data += f"{sum(f.degree() for f in [sum(mat[v][i][j] * system[j] for j in range(m)) for i in range(l)])}\n"
+    for v in range(amnt):
+        for e in new_sys[v]:
+            input_data += f"{e} "
     p = run_bin_test(input_data)
     if (not p) or (p.returncode != 0):
         return False
@@ -418,13 +433,20 @@ def test_c_eval_SAN(sys_tuple):
 
 def test_c_gen_matrix_SAN(sys_tuple):
     srand(int(RSEED))
+    if C_VECTORIZED:
+        amnt = 4
+    else:
+        amnt = 1
     _, n, m, _, _ = sys_tuple 
     l = int(ceil(n/(5.4))) + 1
     input_data = f"{2}\n"
     input_data += f"{l}\n{m}\n"
-    mat = gen_matrix_rank_l(l, m)
-    for i in mat:
-        input_data += f"{index_of(i)} "
+    mat = []
+    for _ in range(amnt):
+        mat.append(gen_matrix_rank_l(l, m))
+    for v in range(amnt):
+        for i in mat[v]:
+            input_data += f"{index_of(i)} "
     p = run_bin_test(input_data)
     if (not p) or (p.returncode != 0):
         return False
@@ -434,12 +456,13 @@ def test_c_solve_SAN(sys_tuple):
     system, n, m, ring, _ = sys_tuple
     solution = solve(system, ring)
     if solution == None:
-        print("{FAIL}Sage code could not find a solution.{CLEAR}")
+        print(f"{FAIL}Sage code could not find a solution.{CLEAR}")
         return False
     sl_system = bitslice(system, ring.gens())
     input_data = f"{3}\n"
     input_data += f"{n}\n{m}\n{len(sl_system)}\n"
-    input_data += f"{index_of(solution)} "
+    if not C_VECTORIZED:
+        input_data += f"{index_of(solution)} "
     for e in sl_system:
         input_data += f"{e} "
     p = run_bin_test(input_data)

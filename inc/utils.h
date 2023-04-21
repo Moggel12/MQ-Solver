@@ -5,23 +5,56 @@
 
 #include "mq_config.h"
 
-int lex_idx(unsigned int i, unsigned int j, unsigned int n);
+#if defined(REG128) || defined(REG256)
+
+uint8_t gen_matrix(container_vec_t *mat, unsigned int n_rows,
+                   unsigned int n_columns);
+
+container_vec_t parity(container_vec_t bits);
+
+#if defined(REG128)  ///////////////// AVX 128
+
+void print_register(__m128i a);  // TODO: Remove
+
+__m128i _avx128_insert(__m128i reg, uint32_t val, int index);
+
+uint32_t _avx128_max();
+
+uint32_t _avx128_extract_sol();
+
+int _avx128_sol_overlap();
+
+#endif  ///////////////// AVX 128
+
+#if defined(REG256)  //////////////// AVX 256
+
+__m256i _avx256_insert(__m256i reg, uint64_t val, int index);
+
+uint64_t _avx256_max();
+
+int _avx256_sol_overlap();
+
+uint64_t _avx256_extract_sol();
+
+#endif  //////////////// AVX 256
+
+#else
+
+unsigned int gen_matrix(container_t *mat, unsigned int n_rows,
+                        unsigned int n_columns);
+
+container_t parity(container_t bits);
+
+#endif
 
 unsigned int hamming_weight(unsigned int x);
 
-int gray_code(int i);
+unsigned int trailing_zeros(unsigned int v);
 
-poly_t eval(poly_t *system, size_t n, vars_t var_values);
+int lex_idx(unsigned int i, unsigned int j, unsigned int n);
 
 int n_choose_k(int n, int k);
 
-unsigned int trailing_zeros(unsigned int v);
-
-unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
-                        unsigned int n_columns);
-
-// size_t gray_to_bin(size_t i);
-
-poly_t parity(poly_t bits);
+container_t eval(container_t *system, size_t n, container_t var_values);
 
 #endif  // !UTILS_H

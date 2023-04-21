@@ -17,8 +17,8 @@ typedef struct SolutionsStruct
   size_t amount;
 } SolutionsStruct;
 
-unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
-                         int n)
+unsigned int compute_e_k(container_t *mat, container_t *new_sys,
+                         container_t *old_sys, int l, int n)
 {
   unsigned int deg = 0;
   for (int s = 0; s < l; s++)
@@ -50,7 +50,7 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
         new_sys[idx] = GF2_ADD(new_sys[idx], par << s);
 
         idx++;
-        if ((s_poly_deg < 2) && ((par << 1) == 2)) s_poly_deg = par << 1;
+        if ((s_poly_deg < 2) && (par == 1)) s_poly_deg = 2;
       }
     }
 
@@ -59,41 +59,8 @@ unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
   return deg;
 }
 
-// uint8_t output_potentials(poly_t *system, unsigned int n, unsigned int n1,
-//                           unsigned int w, vars_t *out, size_t *out_size)
-// {
-//   vars_t *evals = calloc(1 << (n - n1), sizeof(vars_t));
-//   if (!evals) return 1;
-
-//   BEGIN_BENCH(g_recover_time)
-
-//   uint8_t error = fes_recover(system, n, n1, w + 1, evals);
-
-//   if (error) return error;
-
-//   END_BENCH(g_recover_time)
-
-//   *out_size = 0;
-
-//   for (int y_hat = 0; y_hat < (1 << (n - n1)); y_hat++)
-//   {
-//     if (!VARS_IS_ZERO(VARS_IDX(evals[y_hat], 0)))
-//     {
-//       out[*out_size] = y_hat;
-//       vars_t z_bits =
-//           VARS_RSHIFT(GF2_ADD(evals[y_hat], VARS_MASK((n1 + 1))), 1);
-
-//       out[(*out_size)] =
-//           GF2_ADD(out[(*out_size)], VARS_LSHIFT(z_bits, (n - n1)));
-//       (*out_size)++;
-//     }
-//   }
-//   free(evals);
-//   return 0;
-// }
-
-// TODO: Reconsider error handling and it's performance impact.
-uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
+uint8_t solve(container_t *system, unsigned int n, unsigned int m,
+              container_t *sol)
 {
   BEGIN_BENCH(g_solve_time)
 
@@ -108,10 +75,9 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
   SolutionsStruct *potential_solutions[MAX_HISTORY] = {0};
   size_t hist_progress[MAX_HISTORY] = {0};
 
-  // TODO: poly_t is not guaranteed large enough for l bits.
-  poly_t *rand_sys = malloc(amnt_sys_vars * sizeof(poly_t));
+  container_t *rand_sys = malloc(amnt_sys_vars * sizeof(container_t));
 
-  poly_t *rand_mat = malloc(l * sizeof(poly_t));
+  container_t *rand_mat = malloc(l * sizeof(container_t));
 
   for (; k < MAX_HISTORY; k++)
   {
@@ -119,7 +85,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
     printf("# Commencing round %u\n", k);
 #endif
 
-    memset(rand_sys, 0, amnt_sys_vars * sizeof(poly_t));
+    memset(rand_sys, 0, amnt_sys_vars * sizeof(container_t));
 
     BEGIN_BENCH(g_matrix_time)
 
@@ -141,17 +107,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
     unsigned int w = compute_e_k(rand_mat, rand_sys, system, l, n) - n1;
 
     END_BENCH(g_ek_time)
-    // BEGIN_BENCH(g_output_time)
 
-    // size_t len_out = 0;
-    // error = output_potentials(rand_sys, n, n1, w, curr_potentials,
-    // &len_out); if (error)
-    // {
-    //   free(rand_sys);
-    //   free(rand_mat);
-    //   return 1;
-    // }
-    // END_BENCH(g_output_time)
     size_t len_out = 0;
 
     BEGIN_BENCH(g_recover_time);
@@ -186,7 +142,6 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
     for (size_t idx = 0; idx < len_out; idx++)
     {
       PotentialSolution idx_solution = curr_potentials[idx];
-      // vars_t y = GF2_MUL(curr_potentials[idx], VARS_MASK((n - n1)));
 
       BEGIN_BENCH(g_hist_time)
 
@@ -195,8 +150,6 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
         for (; hist_progress[k1] < potential_solutions[k1]->amount;
              hist_progress[k1]++)
         {
-          // vars_t old_y = GF2_MUL(potential_solutions[k1]->solutions[old_idx],
-          //                        VARS_MASK((n - n1)));
           PotentialSolution k1_solution =
               potential_solutions[k1]->solutions[hist_progress[k1]];
 
@@ -205,12 +158,12 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, vars_t *sol)
             k1++;
             break;
           }
-          else if (VARS_EQ(idx_solution.y_idx, k1_solution.y_idx) &&
-                   VARS_EQ(idx_solution.z_bits, k1_solution.z_bits))
+          else if (INT_EQ(idx_solution.y_idx, k1_solution.y_idx) &&
+                   INT_EQ(idx_solution.z_bits, k1_solution.z_bits))
           {
-            vars_t gray_y = idx_solution.y_idx ^ (idx_solution.y_idx >> 1);
-            vars_t solution =
-                GF2_ADD(gray_y, VARS_LSHIFT(idx_solution.z_bits, (n - n1)));
+            container_t gray_y = idx_solution.y_idx ^ (idx_solution.y_idx >> 1);
+            container_t solution =
+                GF2_ADD(gray_y, INT_LSHIFT(idx_solution.z_bits, (n - n1)));
             if (!eval(system, n, solution))
             {
               *sol = solution;

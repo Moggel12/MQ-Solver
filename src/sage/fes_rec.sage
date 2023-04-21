@@ -97,19 +97,19 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
 
             prev = d[0]
             d[0] = new_parities
-
+            # if (si ^^ (si >> 1)) == int(209): print(new_parities)
             for j in range(1, len(k)+1):
 
                 if j < len(k):
                     tmp = d[sum([2^i for i in k[:j]])]
 
                 d[sum([2^i for i in k[:j]])] = int(d[sum([2^i for i in k[:j-1]])]) ^^ int(prev)
-    
+
                 if j < len(k):
                     prev = tmp
 
             fes_time_eval += time.time()
-        
+        # if (si ^^ (si >> 1)) == int(209): print(d[0])
         res[si ^^ (si >> 1)] = d[0]
 
     return res
@@ -136,8 +136,6 @@ def test_c_fes_recover(sys_tuple):
     system, n, _, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
     d = sum(f.degree() for f in system) - n1
-    print(system)
-    print(n, n1, d + 1)
     system = bitslice(system, ring.gens())
     c_results = c_fes_recover(system, n, n1, d + 1)
     if c_results == None:

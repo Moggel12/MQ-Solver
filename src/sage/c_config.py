@@ -15,6 +15,8 @@ TEST_BIN_AVAILABLE = os.path.exists(os.path.join(os.path.dirname(__file__), "../
 C_POLY_T = None
 C_VARS_T = None
 
+C_VECTORIZED = False
+
 # Typedefs
 class Type():
     U   = ct.c_uint
@@ -39,12 +41,16 @@ type_dict = {
     128: (Type.U64 * 2),
     256: (Type.U64 * 4) 
 }
-
 try:
-    with open(".compile_config", "r") as f:
-        n_str, m_str = f.readline().split(" ")
-        C_POLY_T = type_dict[int(m_str)]
-        C_VARS_T = type_dict[int(n_str)]
+    with open(os.path.join(os.path.dirname(__file__), ".compile_config"), "r") as f:
+        bits_str = f.readline()
+        bits = int(bits_str)
+        if bits >= 128:
+            C_VECTORIZED = True
+            bits = bits/4
+        C_POLY_T = bits
+        C_VARS_T = bits
+
 except FileNotFoundError:
     C_POLY_T = Type.U32
     C_VARS_T = Type.U32
