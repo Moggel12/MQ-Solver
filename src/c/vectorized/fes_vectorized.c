@@ -439,7 +439,7 @@ uint8_t fes_recover_vectorized(container_t *system,
                                container_t *result)
 {
   state *s = NULL;
-
+  // print_register(deg);
   container_t max_deg = VEC_MAX(deg);
 
   uint8_t *prefix = calloc((n - n1), sizeof(uint8_t));
@@ -502,12 +502,34 @@ uint8_t fes_recover_vectorized(container_t *system,
     {
       container_t len_k = bits(si, k, max_deg);
 
+      // if (GRAY(si) == 2912)
+      // {
+      //   for (int i = 0; i < len_k; i++)
+      //   {
+      //     printf("%u ", k[i]);
+      //   }
+      //   printf("\n");
+      // }
+
       for (unsigned int j = len_k; j-- > 0;)
       {
         mask = ~VEC_GT(VEC_ASSIGN_ONE(j), deg);
+        // if (GRAY(si) == 2912) printf("%u: ", j);
+        // if (GRAY(si) == 2912) print_register(mask);
 
         unsigned int idx =
             (j == 0) ? 0 : monomial_to_index(si, n - n1, k[j - 1]);
+        // if (GRAY(si) == 2912) printf("VAL:\n");
+        // if (GRAY(si) == 2912)
+        //   printf("IDX: %u %u\n", idx, monomial_to_index(si, n - n1, k[j]));
+        // if (GRAY(si) == 2912) print_register(d[idx]);
+        // if (GRAY(si) == 2912)
+        // print_register(d[monomial_to_index(si, n - n1, k[j])]);
+        // if (GRAY(si) == 2912) printf("\n");
+        // printf("%u %u\n", idx, monomial_to_index(si, n - n1, k[j]));
+        // printf("%u\n", j);
+        // print_register(d[idx]);
+        // print_register(d[monomial_to_index(si, n - n1, k[j])]);
 
         container_vec_t added =
             VEC_GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, k[j])]);
@@ -515,6 +537,9 @@ uint8_t fes_recover_vectorized(container_t *system,
         d[idx] = VEC_BLEND(d[idx], added, mask);
         // if (GRAY(si) == 209) print_register(d[idx]);
       }
+      // printf("===\n");
+
+      // if (GRAY(si) == 2912) printf("TEST\n");
     }
     else
     {
@@ -541,7 +566,7 @@ uint8_t fes_recover_vectorized(container_t *system,
       d[0] = parities;
 
       parities = VEC_0;
-      if (GRAY(si) == 209) print_register(d[0]);
+      // print_register(d[0]);
 
       for (unsigned int j = 1; j <= len_k; j++)
       {
@@ -551,13 +576,17 @@ uint8_t fes_recover_vectorized(container_t *system,
 
         if (j < n)
         {
+          // printf("Setting tmp\n");
           // tmp = prev;
-          tmp = VEC_BLEND(tmp, prev, mask);
+          tmp =
+              VEC_BLEND(tmp, d[monomial_to_index(si, n - n1, k[j - 1])], mask);
         }
 
         unsigned int idx =
             (j == 1) ? 0 : monomial_to_index(si, n - n1, k[j - 2]);
-
+        // printf("%u\n", j);
+        // print_register(d[idx]);
+        // print_register(prev);
         container_vec_t added = VEC_GF2_ADD(d[idx], prev);
 
         d[monomial_to_index(si, n - n1, k[j - 1])] =
@@ -565,14 +594,21 @@ uint8_t fes_recover_vectorized(container_t *system,
 
         if (j < n)
         {
+          // printf("Setting prev\n");
           // prev = tmp;
           prev = VEC_BLEND(prev, tmp, mask);
         }
       }
+      // printf("===\n");
     }
-    if (GRAY(si) == 209) print_register(d[0]);
+    // if (GRAY(si) == 2912) print_register(d[0]);
     if (VEC_SOL_OVERLAP(d[0]))
     {
+      // if (GRAY(si) == 2438) print_register(d[0]);
+      // if (GRAY(si) == 2438) printf("%u\n", VEC_EXTRACT_SOL(d[0]));
+      // if (GRAY(si) == 2438)
+      //   printf("2438 overlaps! (%u)\n",
+      //          GF2_ADD(VEC_EXTRACT_SOL(d[0]), INT_MASK(n1)));
       // if (GRAY(si) == 19) printf("Solutions overlap!\n");
       container_t solution = GF2_ADD(
           GRAY(si),

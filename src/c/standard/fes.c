@@ -506,8 +506,9 @@ uint8_t fes_recover(container_t *system, unsigned int n, unsigned int n1,
       {
         unsigned int idx =
             (j == 0) ? 0 : monomial_to_index(si, n - n1, k[j - 1]);
-
-        d[idx] = GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, k[j])]);
+        if (GRAY(si) == 2912)
+          // printf("%u %u\n", d[idx], d[monomial_to_index(si, n - n1, k[j])]);
+          d[idx] = GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, k[j])]);
       }
 
       END_BENCH(g_recover_eval_time)

@@ -104,8 +104,9 @@ uint8_t solve(container_t *system, unsigned int n, unsigned int m,
 
     container_t curr_potentials = 0;
 
-    container_vec_t w = compute_e_k(rand_mat, rand_sys, system, l, n) - n1;
-
+    container_vec_t w = VEC_SUB(compute_e_k(rand_mat, rand_sys, system, l, n),
+                                VEC_ASSIGN_ONE(n1));
+    // print_register(w);
     // if (k == 0)
     // {
     //   for (int i = 0; i < amnt_sys_vars; i++)

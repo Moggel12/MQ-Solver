@@ -197,20 +197,22 @@ int _avx128_sol_overlap(__m128i a)
 uint32_t _avx128_extract_sol(__m128i a)
 {
   __m128i perm = a;
-  __m128i mask = _mm_setzero_si128();
+  __m128i mask_eq = _mm_setzero_si128();
+  __m128i mask_zbit =
+      _mm_cmpeq_epi32(_mm_and_si128(a, _mm_set1_epi32(1)), _mm_set1_epi32(1));
 
   for (int i = 0; i < 3; i++)
   {
     perm = (__m128i)_mm_permute_ps((__m128)perm, _MM_SHUFFLE(0, 3, 2, 1));
-    mask = _mm_or_si128(mask, _mm_cmpeq_epi32(a, perm));
+    mask_eq = _mm_and_si128(mask_zbit, _mm_cmpeq_epi32(a, perm));
 
-    if (!_mm_testz_ps((__m128)mask, (__m128)mask))
+    if (!_mm_testz_ps((__m128)mask_eq, (__m128)mask_eq))
     {
       break;
     }
   }
 
-  int m_mask = _mm_movemask_ps((__m128)mask);
+  int m_mask = _mm_movemask_ps((__m128)mask_eq);
   int idx = trailing_zeros(m_mask);
 
   switch (idx)
@@ -284,8 +286,8 @@ int _avx256_sol_overlap(__m128i a)
     mask = _mm256_or_si256(mask, _mm256_cmpeq_epi64(a, perm));
   }
   mask = _mm256_and_si256(
-      mask, _mm256_cmpeq_epi64(_mm256_and_si256(a, _mm256_set1_epi64(1)),
-                               _mm256_setzero_si256()));
+      mask, _mm256_cmpeq_epi64(_mm256_and_si256(a, _mm256_set1_epi64x(1)),
+                               _mm256_set1_epi64x(1)));
 
   return !_mm256_testz_pd((__m256d)mask, (__m256d)mask);
 }
@@ -293,23 +295,25 @@ int _avx256_sol_overlap(__m128i a)
 uint64_t _avx256_extract_sol(__m256i a)
 {
   __m256i perm = a;
-  __m256i mask = _mm256_setzero_si256();
+  __m256i mask_eq;
+  __m256i mask_zbit = _mm256_cmpeq_epi64(
+      _mm256_and_si256(a, _mm256_set1_epi64x(1)), _mm256_set1_epi64x(1));
 
   int found = 0;
 
   for (int i = 0; i < 3; i++)
   {
     perm = (__m256i)_mm256_permute_pd((__m256)perm, _MM_SHUFFLE(0, 3, 2, 1));
-    mask = _mm256_or_si256(mask, _mm256_cmpeq_epi64(a, perm));
+    mask_eq = _mm256_and_si256(mask_zbit, _mm256_cmpeq_epi64(a, perm));
 
-    if (!_mm256_testz_pd((__m256d)mask, (__m256d)mask))
+    if (!_mm256_testz_pd((__m256d)mask_eq, (__m256d)mask_eq))
     {
       found = 1;
       break;
     }
   }
 
-  int m_mask = _mm256_movemask_pd((__m256d)mask);
+  int m_mask = _mm256_movemask_pd((__m256d)mask_eq);
   int idx = trailing_zeros(m_mask);
 
   switch (idx)
