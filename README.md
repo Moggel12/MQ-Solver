@@ -11,7 +11,7 @@ The `tests` target in the Makefile compiles an executable ELF file `bin/test`, c
 
 Compiling code using the root directory Makefile will also preparse the `src/sage/*.sage` files and store them as corresponding `src/sage/*.py` files.
 
-While the Makefile defaults to using 32-bit integers for bitsliced polynomials and for representing the variables, this can be changed by calling make with `NSIZE=<Upper limit of bits>` and `MSIZE=<Upper limit of bits>`, with these upper limits being one of {8, 16, 32, 64, 128, 256}.
+While the Makefile defaults to using 32-bit integers for bitsliced polynomials and for representing the variables, this can be changed by calling make with `REGSIZE=<Upper limit of bits>`, with these upper limits being one of {8, 16, 32, 64, 128, 256}. Specifying 128 or 256 bits implies that AVX or AVX2 instructions, resepectively, are available on the CPU.
 
 ## Running tests
 Both the C code and the Sage code can be run using the `run_test.py` script. This script handles running benchmarks, tests and generating polynomial systems (for testing purposes).
