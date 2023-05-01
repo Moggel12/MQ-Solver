@@ -8,7 +8,7 @@ from collections import defaultdict
 from src.sage.mob_new import mob_transform
 from src.sage.fes import bruteforce
 from src.sage.utils import index_of, convert, random_systems, fetch_systems_interactive, CLEAR, WARNING, FAIL, SUCCESS, ITER
-from src.sage.c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY, C_VECTORIZED
+from src.sage.c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY, C_VECTORIZED, C_VECTOR_SIZE, C_FIXED_VARS
 from src.sage.fes_rec import fes_recover
 from src.sage.utils import bitslice, fetch_c_func, write_fukuoka, run_bin_test
 
@@ -335,7 +335,7 @@ def solve(system, ring, fes_recovery=True):
         _time_output_potentials -= time.time()
 
         curr_potential_sol = output_potentials(E_k, ring, n1, w, fes_recovery) 
-        print(curr_potential_sol)
+
         _time_output_potentials += time.time()
 
         potential_solutions.append(curr_potential_sol)
@@ -347,7 +347,6 @@ def solve(system, ring, fes_recovery=True):
                     if all(potential_sol == potential_solutions[k1][y_hat]):
                         sol = convert(y_hat, n - n1) + list(potential_sol[1:])
                         if eval_system(system, sol):
-                            print(y_hat, index_of(list(potential_sol[1:])), index_of(sol))
                             _time_solve_trials += time.time()
                             return sol
                         break
@@ -384,31 +383,49 @@ def c_benchmark(system_tuples):
     bench_fun = fetch_c_func("e2e_benchmark", args)
     bench_fun(size, c_systems_list, Type.SZ(n), Type.SZ(m))
 
+# TEST NUM: 0
 def test_c_compute_e_k_SAN(sys_tuple):
     srand(int(RSEED))  
     if C_VECTORIZED:
-        amnt = 4
+        amnt = C_VECTOR_SIZE
     else:
         amnt = 1
     system, n, m, ring, _ = sys_tuple
     l = int(ceil(n/(5.4))) + 1
-    sl_system = bitslice(system, ring.gens())
+    if C_VECTORIZED:
+        sub_ring_generators = ring.gens()[C_FIXED_VARS:]
+        fixed_systems = [[f(*convert(i, C_FIXED_VARS), *sub_ring_generators) for f in system] for i in range(1 << C_FIXED_VARS)]
+        sl_fixed_systems = [bitslice(s, sub_ring_generators) for s in fixed_systems]
+        n = n - C_FIXED_VARS
+        sys_len = len(sl_fixed_systems[0])
+    else:
+        sl_system = bitslice(system, ring.gens())
+        sys_len = len(sl_system)
     mat = []
     mat_dec = []
     for v in range(amnt):
         mat.append(gen_matrix_rank_l(l, m))
         mat_dec.append([index_of(e) for e in mat[v]])
     input_data = f"{0}\n"
-    input_data += f"{l}\n{n}\n{len(sl_system)}\n"
+    input_data += f"{l}\n{n}\n{sys_len}\n"
     for i in range(amnt):
         for e in mat_dec[i]:
             input_data += f"{e} "
-    for e in sl_system:
-        input_data += f"{e} "
+    if C_VECTORIZED:
+        for fixed_sys in sl_fixed_systems:
+            for e in fixed_sys:
+                input_data += f"{e} "
+    else:
+        for e in sl_system:
+            input_data += f"{e} "
     new_sys = []
-    for v in range(amnt):
-        new_sys.append(bitslice([sum(mat[v][i][j] * system[j] for j in range(m)) for i in range(l)], ring.gens()))
-        input_data += f"{sum(f.degree() for f in [sum(mat[v][i][j] * system[j] for j in range(m)) for i in range(l)])}\n"
+    if C_VECTORIZED:
+        for v in range(amnt):
+            new_sys.append(bitslice([sum(mat[v][i][j] * fixed_systems[v//4][j] for j in range(m)) for i in range(l)], sub_ring_generators))
+            input_data += f"{sum(f.degree() for f in [sum(mat[v][i][j] * fixed_systems[v//4][j] for j in range(m)) for i in range(l)])}\n"
+    else:
+        new_sys.append(bitslice([sum(mat[v][i][j] * systems[j] for j in range(m)) for i in range(l)], sub_ring_generators))
+        input_data += f"{sum(f.degree() for f in [sum(mat[0][i][j] * systems[j] for j in range(m)) for i in range(l)])}\n"
     for v in range(amnt):
         for e in new_sys[v]:
             input_data += f"{e} "
@@ -417,6 +434,7 @@ def test_c_compute_e_k_SAN(sys_tuple):
         return False
     return True
 
+# TEST ID: 1
 def test_c_eval_SAN(sys_tuple):    
     system, n, m, ring, _ = sys_tuple
     sl_sys = bitslice(system, ring.gens())
@@ -431,27 +449,22 @@ def test_c_eval_SAN(sys_tuple):
         return False
     return True
 
+# TEST ID: 2
 def test_c_gen_matrix_SAN(sys_tuple):
     srand(int(RSEED))
-    if C_VECTORIZED:
-        amnt = 4
-    else:
-        amnt = 1
     _, n, m, _, _ = sys_tuple 
     l = int(ceil(n/(5.4))) + 1
     input_data = f"{2}\n"
     input_data += f"{l}\n{m}\n"
-    mat = []
-    for _ in range(amnt):
-        mat.append(gen_matrix_rank_l(l, m))
-    for v in range(amnt):
-        for i in mat[v]:
-            input_data += f"{index_of(i)} "
+    mat = gen_matrix_rank_l(l, m)
+    for i in mat:
+        input_data += f"{index_of(i)} "
     p = run_bin_test(input_data)
     if (not p) or (p.returncode != 0):
         return False
     return True
 
+# TEST ID: 3
 def test_c_solve_SAN(sys_tuple):
     system, n, m, ring, _ = sys_tuple
     solution = solve(system, ring)
@@ -469,6 +482,30 @@ def test_c_solve_SAN(sys_tuple):
     if (not p) or (p.returncode != 0):
         return False
     return True
+
+# TEST ID: 4
+def test_c_fix_poly_SAN(sys_tuple):
+    if not C_VECTORIZED:
+        print("Test is not available for non-SIMD C code.")
+        return True
+    system, n, _, ring, _ = sys_tuple
+    new_n = n - C_FIXED_VARS
+    sl_system = bitslice(system, ring.gens())
+    sub_ring_generators = ring.gens()[C_FIXED_VARS:]
+    fixed_systems = [[f(*convert(i, C_FIXED_VARS), *sub_ring_generators) for f in system] for i in range(1 << C_FIXED_VARS)]
+    sl_fixed_systems = [bitslice(s, sub_ring_generators) for s in fixed_systems]
+    input_data = f"{4}\n"
+    input_data += f"{n}\n{len(sl_system)}\n{len(sl_fixed_systems[0])}\n"
+    for e in sl_system:
+        input_data += f"{e} "
+    for fixed_sys in sl_fixed_systems:
+        for e in fixed_sys:
+            input_data += f"{e} "
+    p = run_bin_test(input_data)
+    if (not p) or (p.returncode != 0):
+        return False
+    return True
+
 
 def main():
     rounds = 1

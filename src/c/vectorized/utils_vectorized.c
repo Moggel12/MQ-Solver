@@ -5,11 +5,15 @@
 #include <xmmintrin.h>
 
 #include "benchmark.h"
-#include "utils.h"
+#include "common_utils.h"
+#include "vector_utils.h"
 
-unsigned int hamming_weight(unsigned int x) { return __builtin_popcount(x); }
+unsigned int hamming_weight(unsigned int x)
+{
+  return __builtin_popcount(x);
+}  // TODO: common
 
-unsigned int trailing_zeros(unsigned int v)
+unsigned int trailing_zeros(unsigned int v)  // TODO: common
 {
   unsigned int c;
   if (v)
@@ -27,17 +31,17 @@ unsigned int trailing_zeros(unsigned int v)
   return c;
 }
 
-container_vec_t parity(container_vec_t bits)
+container_t parity(container_t bits)
 {
-  return VEC_ASSIGN(__builtin_parity(VEC_EXTRACT(bits, 3)),
-                    __builtin_parity(VEC_EXTRACT(bits, 2)),
-                    __builtin_parity(VEC_EXTRACT(bits, 1)),
-                    __builtin_parity(VEC_EXTRACT(bits, 0)));
-}
+  return __builtin_parity(bits);
+}  // TODO: common
 
-container_t gen_row(unsigned int m) { return (rand() & ((1 << m) - 1)); }
+container_t gen_row(unsigned int m)
+{
+  return (rand() & ((1 << m) - 1));
+}  // TODO: common
 
-int lex_idx(unsigned int i, unsigned int j, unsigned int n)
+int lex_idx(unsigned int i, unsigned int j, unsigned int n)  // TODO: common
 {
   int sum = 0;
   for (unsigned int k = 1; k < i + 2; k++)
@@ -47,7 +51,7 @@ int lex_idx(unsigned int i, unsigned int j, unsigned int n)
   return n + sum - (n - j - 1);
 }
 
-int n_choose_k(int n, int k)
+int n_choose_k(int n, int k)  // TODO: common
 {
   if (k > n) return 0;
   if (k == n) return 1;
@@ -61,49 +65,46 @@ int n_choose_k(int n, int k)
   return (int)c;
 }
 
-uint8_t gen_matrix(container_vec_t *mat, unsigned int n_rows,
-                   unsigned int n_columns)
+unsigned int gen_matrix(container_t *mat, unsigned int n_rows,
+                        unsigned int n_columns)  // TODO: common
 {
   container_t *mat_copy = malloc(n_rows * sizeof(container_t));
   if (!mat_copy) return 1;
 
   unsigned int rank;
 
-  for (int idx = 4; idx-- > 0;)
+  do
   {
-    do
+    rank = 0;
+    for (unsigned int i = 0; i < n_rows; i++)
     {
-      rank = 0;
-      for (unsigned int i = 0; i < n_rows; i++)
+      mat_copy[i] = mat[i] = gen_row(n_columns);
+    }
+    for (unsigned int i = 0; i < n_rows; i++)
+    {
+      if (!INT_IS_ZERO(mat_copy[i]))
       {
-        mat_copy[i] = gen_row(n_columns);
-        mat[i] = VEC_INSERT(mat[i], mat_copy[i], idx);
-      }
-      for (unsigned int i = 0; i < n_rows; i++)
-      {
-        if (!INT_IS_ZERO(mat_copy[i]))
+        rank++;
+        unsigned int pivot_elm = INT_LSB(mat_copy[i]);
+        for (unsigned int j = i + 1; j < n_rows; j++)
         {
-          rank++;
-          unsigned int pivot_elm = INT_LSB(mat_copy[i]);
-          for (unsigned int j = i + 1; j < n_rows; j++)
+          if (!INT_IS_ZERO(GF2_MUL(mat_copy[j], pivot_elm)))
           {
-            if (!INT_IS_ZERO(GF2_MUL(mat_copy[j], pivot_elm)))
-            {
-              mat_copy[j] = GF2_ADD(mat_copy[j], mat_copy[i]);
-            }
+            mat_copy[j] = GF2_ADD(mat_copy[j], mat_copy[i]);
           }
         }
       }
+    }
 
-    } while (rank != n_rows);
-  }
+  } while (rank != n_rows);
 
   free(mat_copy);
 
-  return 0;
+  return rank != n_rows;
 }
 
-container_t eval(container_t *system, size_t n, container_t var_values)
+container_t eval(container_t *system, size_t n,
+                 container_t var_values)  // TODO: common
 {
   BEGIN_BENCH(g_eval_time)
 
@@ -133,201 +134,95 @@ container_t eval(container_t *system, size_t n, container_t var_values)
   return res;
 }
 
-#if defined(REG128)
-///////////////// AVX 128
-
-// TODO: Remove
-void print_register(__m128i a)
+void print_register(__m128i a)  // TODO: Remove
 {
-  printf("%u ", _mm_extract_epi32(a, 0));
-  printf("%u ", _mm_extract_epi32(a, 1));
-  printf("%u ", _mm_extract_epi32(a, 2));
-  printf("%u ", _mm_extract_epi32(a, 3));
+  printf("%u ", _mm_extract_epi16(a, 0));
+  printf("%u ", _mm_extract_epi16(a, 1));
+  printf("%u ", _mm_extract_epi16(a, 2));
+  printf("%u ", _mm_extract_epi16(a, 3));
+  printf("%u ", _mm_extract_epi16(a, 4));
+  printf("%u ", _mm_extract_epi16(a, 5));
+  printf("%u ", _mm_extract_epi16(a, 6));
+  printf("%u ", _mm_extract_epi16(a, 7));
   printf("\n");
 }
 
-__m128i _avx128_insert(__m128i reg, uint32_t val, int index)
+int _avx_sol_overlap(container_vec_t reg)
 {
-  switch (index)
+  for (int i = 0; i < (1 << FIXED_VARS); i++)
   {
-    case 0:
-      return _mm_insert_epi32(reg, val, 0);
-    case 1:
-      return _mm_insert_epi32(reg, val, 1);
-    case 2:
-      return _mm_insert_epi32(reg, val, 2);
-    case 3:
-      return _mm_insert_epi32(reg, val, 3);
-    default:
-      return _mm_setzero_si128();
-  }
-}
+    container_vec_t reg_alt = _avx_broadcast(_avx_rotate(reg, 4 * i));
+    container_vec_t perm = reg_alt, mask = _avx_zero();
 
-uint32_t _avx128_max(__m128i a)
-{
-  __m128i tmp = a;
-  __m128i perm, mask;
-
-  for (int i = 0; i < 4; i++)
-  {
-    perm = (__m128i)_mm_permute_ps((__m128)tmp, _MM_SHUFFLE(0, 3, 2, 1));
-    mask = _mm_cmpgt_epi32(tmp, perm);
-    tmp = (__m128i)_mm_blendv_ps((__m128)perm, (__m128)tmp, (__m128)mask);
-  }
-
-  return _mm_extract_epi32(tmp, 0);
-}
-
-int _avx128_sol_overlap(__m128i a)
-{
-  __m128i perm = a, mask = _mm_setzero_si128();
-
-  for (int i = 0; i < 3; i++)
-  {
-    perm = (__m128i)_mm_permute_ps((__m128)perm, _MM_SHUFFLE(0, 3, 2, 1));
-    mask = _mm_or_si128(mask, _mm_cmpeq_epi32(a, perm));
-  }
-  mask = _mm_and_si128(
-      mask,
-      _mm_cmpeq_epi32(_mm_and_si128(a, _mm_set1_epi32(1)), _mm_set1_epi32(1)));
-
-  return !_mm_testz_ps((__m128)mask, (__m128)mask);
-}
-
-uint32_t _avx128_extract_sol(__m128i a)
-{
-  __m128i perm = a;
-  __m128i mask_eq = _mm_setzero_si128();
-  __m128i mask_zbit =
-      _mm_cmpeq_epi32(_mm_and_si128(a, _mm_set1_epi32(1)), _mm_set1_epi32(1));
-
-  for (int i = 0; i < 3; i++)
-  {
-    perm = (__m128i)_mm_permute_ps((__m128)perm, _MM_SHUFFLE(0, 3, 2, 1));
-    mask_eq = _mm_and_si128(mask_zbit, _mm_cmpeq_epi32(a, perm));
-
-    if (!_mm_testz_ps((__m128)mask_eq, (__m128)mask_eq))
+    for (int j = 0; j < (VECTORIZED_ROUNDS - 1); j++)
     {
-      break;
+      perm = _mm_alignr_epi8(perm, perm, 2);
+      mask = _avx_or(mask, _avx_eq(reg_alt, perm));
     }
-  }
+    mask =
+        _avx_and(mask, _avx_eq(_avx_and(reg_alt, _avx_set1(1)), _avx_set1(1)));
 
-  int m_mask = _mm_movemask_ps((__m128)mask_eq);
-  int idx = trailing_zeros(m_mask);
-
-  switch (idx)
-  {
-    case 0:
-      return _mm_extract_epi32(a, 0) >> 1;
-    case 1:
-      return _mm_extract_epi32(a, 1) >> 1;
-    case 2:
-      return _mm_extract_epi32(a, 2) >> 1;
-    case 3:
-      return _mm_extract_epi32(a, 3) >> 1;
+    if (!_avx_testz(mask, mask)) return 1;
   }
 
   return 0;
 }
 
-#elif defined(REG256)
-//////////////// AVX 256
-
-// TODO: Remove
-void print_register(__m256i a)
+int _avx_extract_sol(container_vec_t reg, PotentialSolution *solutions)
 {
-  printf("%u ", _mm256_extract_epi64(a, 0));
-  printf("%u ", _mm256_extract_epi64(a, 1));
-  printf("%u ", _mm256_extract_epi64(a, 2));
-  printf("%u ", _mm256_extract_epi64(a, 3));
-  printf("\n");
-}
+  int sol_idx = 0;
 
-__m256i _avx256_insert(__m256i reg, uint64_t val, int index)
-{
-  switch (index)
+  for (int i = 0; i < (1 << FIXED_VARS); i++)
   {
-    case 0:
-      return _mm256_insert_epi64(reg, val, 0);
-    case 1:
-      return _mm256_insert_epi64(reg, val, 1);
-    case 2:
-      return _mm256_insert_epi64(reg, val, 2);
-    case 3:
-      return _mm256_insert_epi64(reg, val, 3);
-    default:
-      return _mm256_setzero_si256();
-  }
-}
+    container_vec_t reg_alt = _avx_broadcast(_avx_rotate(reg, 4 * i));
+    container_vec_t perm = reg_alt;
+    container_vec_t mask_eq = _avx_zero();
+    container_vec_t mask_zbit =
+        _avx_eq(_avx_and(reg_alt, _avx_set1(1)), _avx_set1(1));
 
-uint64_t _avx256_max(__m256i a)
-{
-  __m256i tmp = a;
-  __m256i perm, mask;
-
-  for (int i = 0; i < 4; i++)
-  {
-    perm = (__m256i)_mm_permute_pd((__m256d)tmp, _MM_SHUFFLE(0, 3, 2, 1));
-    mask = _mm256_cmpgt_epi64(tmp, perm);
-    tmp = (__m256i)_mm256_blendv_pd((__m256d)perm, (__m256d)tmp, (__m256d)mask);
-  }
-
-  return _mm256_extract_epi64(tmp, 0);
-}
-
-int _avx256_sol_overlap(__m128i a)
-{
-  __m256i perm = a;
-  __m256d = mask = _mm256_setzero_si256();
-
-  for (int i = 0; i < 3; i++)
-  {
-    perm = _mm256_permute_pd((__m256d)perm, _MM_SHUFFLE(0, 3, 2, 1));
-    mask = _mm256_or_si256(mask, _mm256_cmpeq_epi64(a, perm));
-  }
-  mask = _mm256_and_si256(
-      mask, _mm256_cmpeq_epi64(_mm256_and_si256(a, _mm256_set1_epi64x(1)),
-                               _mm256_set1_epi64x(1)));
-
-  return !_mm256_testz_pd((__m256d)mask, (__m256d)mask);
-}
-
-uint64_t _avx256_extract_sol(__m256i a)
-{
-  __m256i perm = a;
-  __m256i mask_eq;
-  __m256i mask_zbit = _mm256_cmpeq_epi64(
-      _mm256_and_si256(a, _mm256_set1_epi64x(1)), _mm256_set1_epi64x(1));
-
-  int found = 0;
-
-  for (int i = 0; i < 3; i++)
-  {
-    perm = (__m256i)_mm256_permute_pd((__m256)perm, _MM_SHUFFLE(0, 3, 2, 1));
-    mask_eq = _mm256_and_si256(mask_zbit, _mm256_cmpeq_epi64(a, perm));
-
-    if (!_mm256_testz_pd((__m256d)mask_eq, (__m256d)mask_eq))
+    for (int j = 0; j < (VECTORIZED_ROUNDS - 1); j++)
     {
-      found = 1;
-      break;
+      perm = _mm_alignr_epi8(perm, perm, 2);
+      mask_eq = _avx_and(mask_zbit, _mm_cmpeq_epi16(reg_alt, perm));
+
+      if (!_avx_testz(mask_eq, mask_eq))
+      {
+        unsigned int m_mask1 = _avx_m_mask(mask_eq) & 0xF;
+        unsigned int m_mask2 = m_mask1 & ~1;
+        unsigned int idx = trailing_zeros(m_mask1);
+
+        solutions[sol_idx].fixed_var = i;
+        solutions[sol_idx++].solution = _avx_extract(reg_alt, idx) >> 1;
+
+        if (m_mask2 > 0)
+        {
+          solutions[sol_idx].fixed_var = i;
+          solutions[sol_idx++].solution =
+              _avx_extract(reg_alt, trailing_zeros(m_mask2)) >> 1;
+        }
+      }
     }
   }
 
-  int m_mask = _mm256_movemask_pd((__m256d)mask_eq);
-  int idx = trailing_zeros(m_mask);
-
-  switch (idx)
+  for (int i = 0; i < sol_idx; i++)
   {
-    case 0:
-      return _mm256_extract_epi64(a, 0) >> 1;
-    case 1:
-      return _mm256_extract_epi64(a, 1) >> 1;
-    case 2:
-      return _mm256_extract_epi64(a, 2) >> 1;
-    case 3:
-      return _mm256_extract_epi64(a, 3) >> 1;
+    for (int j = i + 1; j < sol_idx; j++)
+    {
+      if ((solutions[i].solution == solutions[j].solution) &&
+          (solutions[i].fixed_var == solutions[j].fixed_var))
+      {
+        for (int k = j; k < sol_idx - 1; k++)
+        {
+          solutions[k] = solutions[k + 1];
+        }
+        sol_idx--;
+
+        j--;
+      }
+    }
   }
 
-  return 0;
+  return sol_idx;
 }
-#endif
+
+// TOOD: Add _avx_max here

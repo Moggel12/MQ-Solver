@@ -41,7 +41,7 @@ void e2e_benchmark(size_t rounds, container_t *systems[], size_t n, size_t m)
   size_t succeeded_r = rounds;
   for (size_t r = 0; r < rounds; r++)
   {
-    unsigned int sol;
+    container_t sol;
     uint8_t error = solve(systems[r], n, m, &sol);
     if (error)
     {

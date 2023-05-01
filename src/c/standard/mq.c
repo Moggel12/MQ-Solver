@@ -7,9 +7,10 @@
 #include <string.h>
 
 #include "benchmark.h"
+#include "common_utils.h"
 #include "fes.h"
 #include "mq_config.h"
-#include "utils.h"
+#include "standard_utils.h"
 
 typedef struct SolutionsStruct
 {

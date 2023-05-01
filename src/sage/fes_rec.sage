@@ -57,7 +57,7 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
     s = None
     prefix = []
     d = {}
-    print(degree)
+
     if ring != None:
         system = bitslice(system, ring.gens())    
 
@@ -74,7 +74,7 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
             fes_time_eval -= time.time()
 
             k = bits(si)[:degree]
-            if (si ^^ (si >> 1)) == int(2438): print(k)
+            # if (si ^^ (si >> 1)) == int(2438): print(k)
             for j in reversed(range(0, len(k))):
                 # if (si ^^ (si >> 1)) == int(2912): print(j)
                 # if (si ^^ (si >> 1)) == int(2912): print("IDX:", sum([2^i for i in k[:j]]), sum([2^i for i in k[:j+1]]))
@@ -120,7 +120,7 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
             # print("===")
 
             fes_time_eval += time.time()
-        if (si ^^ (si >> 1)) == int(2438): print(d[0])
+        # if (si ^^ (si >> 1)) == int(2438): print(d[0])
         res[si ^^ (si >> 1)] = d[0]
 
     return res

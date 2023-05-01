@@ -6,8 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common_utils.h"
 #include "mq_config.h"
-#include "utils.h"
+
+#if defined(REG128) || defined(REG256)
+#include "vector_utils.h"
+#else
+#include "standard_utils.h"
+#endif
 
 #define INC(i) i + 1
 

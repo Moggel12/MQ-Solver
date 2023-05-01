@@ -55,27 +55,17 @@
 
 #elif defined(REG128)  ////////////// vector of 64 bit integers
 
-#define INT_TYPE uint32_t
-
 typedef __m128i container_vec_t;
 
 #define ALIGNMENT 16
 
-#if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu32, &p)
-#endif
-
 #elif defined(REG256)  ////////////// vector of 64 bit integers
 
-#define INT_TYPE uint64_t
+#define POLY_TYPE uint64_t
 
 typedef __m256i container_vec_t;
 
 #define ALIGNMENT 32
-
-#if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu64, &p)
-#endif
 
 #else  ////////////// Default case <= 32 polynomials
 

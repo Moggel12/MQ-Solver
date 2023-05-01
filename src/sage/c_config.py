@@ -2,6 +2,7 @@ import ctypes as ct
 import sys
 import argparse
 import os
+import math
 
 # from utils import parse_fukuoka, write_fukuoka, random_systems, random_systems_with_sol, fetch_c_func
 
@@ -16,6 +17,8 @@ C_POLY_T = None
 C_VARS_T = None
 
 C_VECTORIZED = False
+C_VECTOR_SIZE = 0
+C_FIXED_VARS = 0
 
 # Typedefs
 class Type():
@@ -43,10 +46,12 @@ type_dict = {
 }
 try:
     with open(os.path.join(os.path.dirname(__file__), ".compile_config"), "r") as f:
-        bits_str = f.readline()
-        bits = int(bits_str)
+        bits_str = f.readline().split(" ")
+        bits = int(bits_str[0])
         if bits >= 128:
             C_VECTORIZED = True
+            C_VECTOR_SIZE = bits//int(bits_str[1])
+            C_FIXED_VARS = int(math.log2(C_VECTOR_SIZE)) - 2
             bits = bits/4
         C_POLY_T = bits
         C_VARS_T = bits

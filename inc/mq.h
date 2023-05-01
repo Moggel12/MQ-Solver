@@ -8,8 +8,11 @@
 #if defined(_DEBUG)
 
 #if defined(REG128) || defined(REG256)
-container_vec_t compute_e_k(container_vec_t *mat, container_vec_t *new_sys,
-                            container_t *old_sys, int l, int n);
+container_vec_t compute_e_k(container_t *mat, container_vec_t *new_sys,
+                            container_t *old_sys, size_t sys_len, int l, int n);
+
+void fix_poly(container_t *system, container_t *fixed_system,
+              container_t *assignment, int new_n, int n);
 #else
 unsigned int compute_e_k(container_t *mat, container_t *new_sys,
                          container_t *old_sys, int l, int n);
@@ -34,5 +37,7 @@ unsigned int compute_e_k(container_t *mat, container_t *new_sys,
  */
 uint8_t solve(container_t *system, unsigned int n, unsigned int m,
               container_t *sol);
+
+container_t eval(container_t *system, size_t n, container_t var_values);
 
 #endif  // !MQ_H

@@ -1,11 +1,11 @@
-#include "utils.h"
-
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "benchmark.h"
+#include "common_utils.h"
+#include "standard_utils.h"
 
 unsigned int hamming_weight(unsigned int x) { return __builtin_popcount(x); }
 

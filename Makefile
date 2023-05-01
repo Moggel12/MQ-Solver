@@ -21,13 +21,13 @@ SRCEXT := c
 ifeq ($(REGSIZE), 128)
 WORKDIR := $(SRCDIR)/c/vectorized
 SRCS := $(shell find $(SRCDIR)/c/vectorized -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
-CFLAGS += -mavx
 INTSIZE := 32
+CFLAGS += -mavx -DINT$(INTSIZE)
 else ifeq ($(REGSIZE), 256)
 WORKDIR := $(SRCDIR)/c/vectorized
 SRCS := $(shell find $(SRCDIR)/c/vectorized -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
-CFLAGS += -mavx2
 INTSIZE := 64
+CFLAGS += -mavx2 -DINT$(INTSIZE)
 else 
 WORKDIR := $(SRCDIR)/c/standard
 SRCS :=	$(shell find $(SRCDIR)/c/standard -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
@@ -38,7 +38,7 @@ TEST_SRCS := $(shell find $(TEST_DIR) -type f -name *.$(SRCEXT))
 OBJ := $(patsubst $(WORKDIR)/%,$(BUILD_DIR)/%,$(filter $(WORKDIR)/%, $(SRCS:.$(SRCEXT)=.o))) $(patsubst $(SRCDIR)/c/%,$(BUILD_DIR)/%, $(filter-out $(WORKDIR)/%, $(SRCS:.$(SRCEXT)=.o)))
 TEST_OBJ := $(patsubst $(TEST_DIR)/%,$(BUILD_DIR)/%,$(TEST_SRCS:.$(SRCEXT)=.o)) $(OBJ)
 
-$(shell echo "$(REGSIZE)" > src/sage/.compile_config)
+$(shell echo "$(REGSIZE) $(INTSIZE)" > src/sage/.compile_config)
 $(shell ./binom.py $(INTSIZE) $(INTSIZE) > inc/binom.h)
 
 # GCC flags
