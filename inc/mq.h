@@ -16,6 +16,8 @@ void fix_poly(poly_t *system, poly_t *fixed_system, poly_t *assignment,
 #else
 unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
                          int n);
+
+extern size_t solver_rounds;
 #endif
 
 #endif

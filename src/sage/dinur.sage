@@ -310,7 +310,7 @@ def gen_matrix_rank_l(l, m, vec=False):
         mat = matrix([convert(rand() & ((1 << m) - 1), m) for _ in range(l)])
     return mat    
 
-def solve(system, ring, fes_recovery=True):
+def solve(system, ring, fes_recovery=True, c_debugging=False):
     srand(int(RSEED)) # Seeding randomness in accordance with C code.
 
     global _time_solve_trials   
@@ -329,9 +329,9 @@ def solve(system, ring, fes_recovery=True):
         A = gen_matrix_rank_l(l, m)
         
         E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
-        
+
         w = sum(f.degree() for f in E_k) - n1 
-    
+
         _time_output_potentials -= time.time()
 
         curr_potential_sol = output_potentials(E_k, ring, n1, w, fes_recovery) 
@@ -348,10 +348,14 @@ def solve(system, ring, fes_recovery=True):
                         sol = convert(y_hat, n - n1) + list(potential_sol[1:])
                         if eval_system(system, sol):
                             _time_solve_trials += time.time()
+                            if c_debugging:
+                                return sol, (k + 1)
                             return sol
                         break
         _time_solve_trials += time.time()
         k += 1
+    if c_debugging:
+        return None, MAX_HISTORY
     return None
 
 def c_solve(system, n, m, test=False):
@@ -424,8 +428,8 @@ def test_c_compute_e_k_SAN(sys_tuple):
             new_sys.append(bitslice([sum(mat[v][i][j] * fixed_systems[v//4][j] for j in range(m)) for i in range(l)], sub_ring_generators))
             input_data += f"{sum(f.degree() for f in [sum(mat[v][i][j] * fixed_systems[v//4][j] for j in range(m)) for i in range(l)])}\n"
     else:
-        new_sys.append(bitslice([sum(mat[v][i][j] * systems[j] for j in range(m)) for i in range(l)], sub_ring_generators))
-        input_data += f"{sum(f.degree() for f in [sum(mat[0][i][j] * systems[j] for j in range(m)) for i in range(l)])}\n"
+        new_sys.append(bitslice([sum(mat[v][i][j] * system[j] for j in range(m)) for i in range(l)], ring.gens()))
+        input_data += f"{sum(f.degree() for f in [sum(mat[0][i][j] * system[j] for j in range(m)) for i in range(l)])}\n"
     for v in range(amnt):
         for e in new_sys[v]:
             input_data += f"{e} "
@@ -467,7 +471,7 @@ def test_c_gen_matrix_SAN(sys_tuple):
 # TEST ID: 3
 def test_c_solve_SAN(sys_tuple):
     system, n, m, ring, _ = sys_tuple
-    solution = solve(system, ring)
+    solution, rounds = solve(system, ring, c_debugging=True)
     if solution == None:
         print(f"{FAIL}Sage code could not find a solution.{CLEAR}")
         return False
@@ -475,7 +479,7 @@ def test_c_solve_SAN(sys_tuple):
     input_data = f"{3}\n"
     input_data += f"{n}\n{m}\n{len(sl_system)}\n"
     if not C_VECTORIZED:
-        input_data += f"{index_of(solution)} "
+        input_data += f"{rounds}\n"
     for e in sl_system:
         input_data += f"{e} "
     p = run_bin_test(input_data)

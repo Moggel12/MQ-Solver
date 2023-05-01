@@ -53,8 +53,8 @@ try:
             C_VECTOR_SIZE = bits//int(bits_str[1])
             C_FIXED_VARS = int(math.log2(C_VECTOR_SIZE)) - 2
             bits = bits/4
-        C_POLY_T = bits
-        C_VARS_T = bits
+        C_POLY_T = type_dict[bits]
+        C_VARS_T = type_dict[bits]
 
 except FileNotFoundError:
     C_POLY_T = Type.U32

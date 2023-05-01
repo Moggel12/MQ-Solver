@@ -392,37 +392,35 @@ int test_solve_sanitized()
   unsigned int m = read_uint();
   size_t sys_len = read_size_t();
 
-  poly_t *py_sol = read_poly_t_array(1);
-
-  if (!py_sol)
-  {
-    printf("Error receiving python solution\n");
-    return 1;
-  };
+  size_t rounds = read_size_t();
 
   poly_t *system = read_poly_t_array(sys_len);
 
   if (!system)
   {
     printf("Error receiving system\n");
-    free(py_sol);
     return 1;
   }
 
   poly_t c_sol = 0;
 
-  solve(system, n, m, &c_sol);
+  int error = solve(system, n, m, &c_sol);
 
-  free(system);
-
-  if (*py_sol != c_sol)
+  if (eval(system, n, c_sol) || error)
   {
-    printf("Solutions differ\n");
-    free(py_sol);
+    printf("Solution invalid.\n");
+    free(system);
     return 1;
   }
 
-  free(py_sol);
+  if (rounds != solver_rounds)
+  {
+    printf("Solution found in differing amounts of rounds.\n");
+    free(system);
+    return 1;
+  }
+
+  free(system);
 
   return 0;
 }

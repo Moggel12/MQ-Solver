@@ -11,6 +11,10 @@
 #include "mq_config.h"
 #include "utils.h"
 
+#if defined(_DEBUG)
+size_t solver_rounds = 0;
+#endif
+
 typedef struct SolutionsStruct
 {
   PotentialSolution *solutions;
@@ -156,15 +160,15 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
           if (k1_solution.y_idx > idx_solution.y_idx)
           {
-            k1++;
             break;
           }
           else if (INT_EQ(idx_solution.y_idx, k1_solution.y_idx) &&
                    INT_EQ(idx_solution.z_bits, k1_solution.z_bits))
           {
-            poly_t gray_y = idx_solution.y_idx ^ (idx_solution.y_idx >> 1);
+            poly_t gray_y = GRAY(idx_solution.y_idx);
             poly_t solution =
                 GF2_ADD(gray_y, INT_LSHIFT(idx_solution.z_bits, (n - n1)));
+
             if (!eval(system, n, solution))
             {
               *sol = solution;
@@ -180,12 +184,15 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
               END_BENCH(g_solve_time)
 
+#if defined(_DEBUG)
+              solver_rounds = k + 1;
+#endif
+
               return 0;
             }
           }
         }
       }
-
       END_BENCH(g_hist_time)
     }
 
@@ -199,6 +206,10 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
   }
   free(rand_sys);
   free(rand_mat);
+
+#if defined(_DEBUG)
+  solver_rounds = MAX_HISTORY;
+#endif
 
   return 1;
 }
