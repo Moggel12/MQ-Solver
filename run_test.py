@@ -5,8 +5,10 @@ import time
 import sys
 import os
 import hashlib
+import multiprocessing
+import math as m
 
-from src.sage.utils import fetch_systems_interactive, read_system, SUCCESS, CLEAR, FAIL, bitslice, random_systems_with_sol
+from src.sage.utils import fetch_systems_interactive, read_system, SUCCESS, CLEAR, FAIL, bitslice, random_systems_with_sol, fix_variables
 from src.sage.c_config import TEST_BIN_AVAILABLE
 from src.sage.fes_rec import *
 from src.sage.dinur import *
@@ -28,7 +30,42 @@ def parse_arguments():
     parser.add_argument("-l", "--list", help="List all available test functions", default=False, action="store_true")
     parser.add_argument("-g", "--gen", help="Generate MQ-challenge style test files. Expects a comma-separated input: '<amount>,<n_low>,<n_high>,<m_low>,<m_high>'", type=str)
     parser.add_argument("-b", "--bench", help="Measure how much the C code can bench. Expects a comma-separated input: '<amount>,<n>,<m>'", type=str)
+    parser.add_argument("-p", "--parallelize", help="Spawns parallel processes according to the available threads on the CPU, each with a set of variables fixed. This flag only affects using the script for solving systems.", default=False, action="store_true")
     return parser.parse_args()
+
+def solve(all_tuples):
+    print(f"Solving {len(all_tuples)} systems one-by-one..")
+    for i, sys_tuple in enumerate(all_tuples):
+        print(f"\n{ITER}== {i + 1} =={CLEAR}")
+        system, n, m, ring, _ = sys_tuple
+        sl_system = bitslice(system, ring.gens())
+        sol = c_solve(sl_system, n, m)
+        if not sol:
+            print("=> C code did not solve the system")
+        else:
+            print(f"=> Found solution: {sol}")
+
+def p_solve(challenge):
+    sys_tuple, fixture = challenge
+    system, n, m, ring, _ = sys_tuple
+    sl_system = bitslice(system, ring.gens())
+    start_time = time.perf_counter_ns()
+    solution = c_solve(sl_system, n, m)
+    elapsed_time = time.perf_counter_ns() - start_time
+    print(f"Process found solution (in {round(elapsed_time / 1000000)}ms): {solution + fixture if solution else None}")
+
+def parallelize(all_tuples):
+    core_count = multiprocessing.cpu_count()
+    print(f"Running {core_count} instances in parallel..")
+    if TEST_BIN_AVAILABLE:
+        print(f"{FAIL}Compile shared object with the Makefile to use this flag.{CLEAR}")
+        return None
+    fixed_vars = int(m.log2(core_count))
+    challenges = []
+    with multiprocessing.Pool((1**fixed_vars)) as pool:
+        for sys_tuple in all_tuples:
+            challenges = [(fixed_tuple, convert(i, fixed_vars)) for i, fixed_tuple in enumerate(fix_variables(sys_tuple, fixed_vars))]
+            pool.map(p_solve, challenges)
 
 def list_tests():
     print(f"{SUCCESS}Tests that may be run:{CLEAR}")
@@ -42,7 +79,7 @@ def list_tests():
         print(f"\t{FAIL}{func_name}{CLEAR}")
 
 def call_test(all_tuples, test, write_file):
-    print(all_tuples)
+    print(f"Running {len(all_tuples)} tests")
     succeeded = False
     for i, sys_tuple in enumerate(all_tuples):
         print(f"\n{ITER}== {i + 1} =={CLEAR}")
@@ -69,7 +106,6 @@ def gen_files(amount, n_low, n_high, m_low, m_high):
 
 def main():
     all_tuples = None
-    test = _default_test
     write_file = True
     args = parse_arguments()
     if args.list:
@@ -89,11 +125,17 @@ def main():
         all_tuples = read_system(args.file)
         write_file = False
     if args.test:
+        test = _default_test
         if args.test in _test_functions:
             test = (args.test, _test_functions[args.test])
         else:
             print(f"{WARNING}Could not recognize test function. Using default test ({_default_test}){CLEAR}", file=sys.stderr)
-    call_test(all_tuples, test, write_file)
+        call_test(all_tuples, test, write_file)
+        return
+    if args.parallelize:
+        parallelize(all_tuples)
+    else:
+        solve(all_tuples)
 
 
 if __name__ == "__main__":

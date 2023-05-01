@@ -41,8 +41,8 @@ type_dict = {
     16:  Type.U16,
     32:  Type.U32,
     64:  Type.U64,
-    128: (Type.U64 * 2),
-    256: (Type.U64 * 4) 
+    128: Type.U64,
+    256: Type.U64
 }
 try:
     with open(os.path.join(os.path.dirname(__file__), ".compile_config"), "r") as f:
@@ -52,7 +52,7 @@ try:
             C_VECTORIZED = True
             C_VECTOR_SIZE = bits//int(bits_str[1])
             C_FIXED_VARS = int(math.log2(C_VECTOR_SIZE)) - 2
-            bits = bits/4
+            bits = 64
         C_POLY_T = type_dict[bits]
         C_VARS_T = type_dict[bits]
 

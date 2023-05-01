@@ -221,6 +221,18 @@ def fetch_systems_interactive():
         else:
             return random_systems(*m_tuple, *n_tuple, amount)
 
+def fix_variables(sys_tuple, fixed_vars):
+    system, n, m, ring, sol = sys_tuple
+    new_tuple = []
+    new_n = n - fixed_vars
+    for i in range(2**fixed_vars):
+        fixed_values = convert(i, fixed_vars)
+        system_i = [f(*ring.gens()[:new_n], *fixed_values) for f in system]
+        ring_i = GF(2)[", ".join(["x" + str(i) for i in range(new_n)])]
+        new_tuple.append((system_i, new_n, m, ring_i, sol))
+    return new_tuple
+
+
 if __name__ == "__main__":
     n, m, system = parse_fukuoka("fukuoka_test.txt", True)
     write_fukuoka("write_fukuoka_test.txt", system, n, m, GF(2)[", ".join(["x" + str(i) for i in range(n)])])
