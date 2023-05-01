@@ -9,18 +9,15 @@
 typedef struct PotentialSolution
 {
   uint8_t fixed_var;
-  container_t solution;
+  sub_poly_t solution;
 } PotentialSolution;
 
-unsigned int gen_matrix(container_t *mat, unsigned int n_rows,
-                        unsigned int n_columns);
+sub_poly_t parity(poly_t bits);
 
-container_t parity(container_t bits);
+int _avx_sol_overlap(poly_vec_t reg);
 
-void print_register(__m128i a);  // TODO: Remove
+int _avx_extract_sol(poly_vec_t reg, PotentialSolution *solutions);
 
-int _avx_sol_overlap(container_vec_t reg);
-
-int _avx_extract_sol(container_vec_t reg, PotentialSolution *solutions);
+sub_poly_t _avx_max(poly_vec_t a);
 
 #endif  // !VECTOR_UTILS_H

@@ -11,7 +11,7 @@ state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
   state *s = malloc(sizeof(state));
   if (!s) return NULL;
 
-  s->d1 = calloc(n1, sizeof(container_t));
+  s->d1 = calloc(n1, sizeof(poly_t));
 
   if (!(s->d1))
   {
@@ -35,7 +35,7 @@ state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
     s->prefix[i] = prefix[i];
   }
 
-  s->d2 = calloc(n1 * n1, sizeof(container_t));
+  s->d2 = calloc(n1 * n1, sizeof(poly_t));
 
   if (!(s->d2))
   {
@@ -62,12 +62,12 @@ void destroy_state(state *s)
   free(s);
 }
 
-unsigned int bit1(container_t i) { return trailing_zeros(i); }
+unsigned int bit1(poly_t i) { return trailing_zeros(i); }
 
-unsigned int bit2(container_t i) { return bit1(GF2_ADD(i, INT_LSB(i))); }
+unsigned int bit2(poly_t i) { return bit1(GF2_ADD(i, INT_LSB(i))); }
 
 // Assumes arr has been allocated with arr_len bits.
-unsigned int bits(container_t i, unsigned int *arr, unsigned int arr_len)
+unsigned int bits(poly_t i, unsigned int *arr, unsigned int arr_len)
 {
   if (i == 0)
   {
@@ -91,7 +91,7 @@ unsigned int bits(container_t i, unsigned int *arr, unsigned int arr_len)
   return sum;
 }
 
-unsigned int monomial_to_index(container_t mon, unsigned int n,
+unsigned int monomial_to_index(poly_t mon, unsigned int n,
                                unsigned int boundary)
 {
   unsigned int i;
@@ -111,7 +111,7 @@ unsigned int monomial_to_index(container_t mon, unsigned int n,
   return index;
 }
 
-state *init(state *s, container_t *system, unsigned int n, unsigned int n1,
+state *init(state *s, poly_t *system, unsigned int n, unsigned int n1,
             uint8_t *prefix)
 {
   s = init_state(n, n1, prefix);
@@ -165,7 +165,7 @@ state *init(state *s, container_t *system, unsigned int n, unsigned int n1,
   return s;
 }
 
-state *update(state *s, container_t *system, unsigned int n, unsigned int n1,
+state *update(state *s, poly_t *system, unsigned int n, unsigned int n1,
               uint8_t *prefix)
 {
   if (!s)
@@ -328,8 +328,8 @@ static inline void step(state *s, unsigned int n1)
   s->y = GF2_ADD(s->y, s->d1[k1]);
 }
 
-state *fes_eval_parity(container_t *system, unsigned int n, unsigned int n1,
-                       uint8_t *prefix, state *s, container_t *parities)
+state *fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
+                       uint8_t *prefix, state *s, poly_t *parities)
 {
   if (!s)
   {
@@ -350,7 +350,7 @@ state *fes_eval_parity(container_t *system, unsigned int n, unsigned int n1,
   {
     step(s, n1);
 
-    container_t z = GF2_ADD(s->i, INT_RSHIFT(s->i, 1));
+    poly_t z = GF2_ADD(s->i, INT_RSHIFT(s->i, 1));
 
     if (INT_IS_ZERO(s->y))
     {
@@ -380,8 +380,8 @@ state *fes_eval_parity(container_t *system, unsigned int n, unsigned int n1,
   return s;
 }
 
-state *fes_eval_solutions(container_t *system, unsigned int n, unsigned int n1,
-                          uint8_t *prefix, state *s, container_t *solutions,
+state *fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
+                          uint8_t *prefix, state *s, poly_t *solutions,
                           unsigned int *sol_amount)
 {
   if (!s)
@@ -431,8 +431,8 @@ state *fes_eval_solutions(container_t *system, unsigned int n, unsigned int n1,
   return s;
 }
 
-state *part_eval(container_t *system, uint8_t *prefix, unsigned int n,
-                 unsigned int n1, container_t *parities, state *s)
+state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n,
+                 unsigned int n1, poly_t *parities, state *s)
 {
   s = update(s, system, n, n1, prefix);
 
@@ -447,7 +447,7 @@ state *part_eval(container_t *system, uint8_t *prefix, unsigned int n,
   return s;
 }
 
-uint8_t fes_recover(container_t *system, unsigned int n, unsigned int n1,
+uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
                     unsigned int deg, PotentialSolution *results,
                     size_t *res_size)
 {
@@ -461,16 +461,15 @@ uint8_t fes_recover(container_t *system, unsigned int n, unsigned int n1,
   {
     d_size += lk_binom[(n - n1) * BINOM_DIM2 + i];
   }
-  container_t *d =
-      calloc(d_size,
-             sizeof(container_t));  // TODO: Find suitable datastructure for d
-                                    // and initialize.
+  poly_t *d = calloc(d_size,
+                     sizeof(poly_t));  // TODO: Find suitable datastructure for
+                                       // d and initialize.
   if (!d) return 1;
 
   unsigned int *k = calloc(deg, sizeof(unsigned int));
   if (!k) return 1;
 
-  container_t parities = INT_0;
+  poly_t parities = INT_0;
 
   s = part_eval(system, prefix, n, n1, &parities, s);
 
@@ -582,8 +581,8 @@ uint8_t fes_recover(container_t *system, unsigned int n, unsigned int n1,
   return 0;
 }
 
-unsigned int bruteforce(container_t *system, unsigned int n, unsigned int n1,
-                        unsigned int d, container_t *solutions)
+unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
+                        unsigned int d, poly_t *solutions)
 {
   unsigned int sol_amount = 0;
 
@@ -617,8 +616,8 @@ unsigned int bruteforce(container_t *system, unsigned int n, unsigned int n1,
   return sol_amount;
 }
 
-unsigned int fes(container_t *system, unsigned int n, unsigned int m,
-                 container_t *solutions)
+unsigned int fes(poly_t *system, unsigned int n, unsigned int m,
+                 poly_t *solutions)
 {
   unsigned int sol_amount = 0;
 

@@ -5,30 +5,19 @@
 #include <string.h>
 
 #include "benchmark.h"
-#include "common_utils.h"
 #include "fes.h"
 #include "mq.h"
 #include "mq_config.h"
 #include "mq_vec.h"
+#include "utils.h"
 #include "vector_utils.h"
 
-// TODO: Remove
-void print_bits(container_t val, int amount)
+poly_vec_t compute_e_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
+                       size_t sys_len, int l, int n)
 {
-  for (int i = 0; i < amount; i++)
-  {
-    printf("%u ", (val >> i) & 1);
-  }
-  printf("\n");
-}
-
-// TODO: Change container_t to a "sub_poly_t" and create "poly_t".
-container_vec_t compute_e_k(container_t *mat, container_vec_t *new_sys,
-                            container_t *old_sys, size_t sys_len, int l, int n)
-{
-  container_vec_t deg = VEC_0;
-  container_t mon = 0;
-  container_t lin_deg = 0, quad_deg = 0;
+  poly_vec_t deg = VEC_0;
+  sub_poly_t mon = 0;
+  sub_poly_t lin_deg = 0, quad_deg = 0;
 
   for (int v = 0; v < (1 << FIXED_VARS) * 4; v++)
   {
@@ -86,8 +75,8 @@ container_vec_t compute_e_k(container_t *mat, container_vec_t *new_sys,
   return deg;  // TODO: Add degree computation
 }
 
-void fix_poly(container_t *system, container_t *fixed_system,
-              container_t *assignment, int new_n, int n)
+void fix_poly(poly_t *system, poly_t *fixed_system, poly_t *assignment,
+              int new_n, int n)
 {
   fixed_system[0] = system[0];
   for (int i = 1; i <= n; i++)
@@ -130,8 +119,7 @@ void fix_poly(container_t *system, container_t *fixed_system,
   }
 }
 
-uint8_t solve(container_t *system, unsigned int n, unsigned int m,
-              container_t *sol)
+uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 {
   srand(RSEED);  // Seeding rand
 
@@ -139,11 +127,10 @@ uint8_t solve(container_t *system, unsigned int n, unsigned int m,
 
   size_t sys_len = (n_choose_k(new_n, 2) + new_n + 1);
 
-  container_t *fixed_system =
-      calloc((1 << FIXED_VARS) * sys_len, sizeof(container_t));
+  poly_t *fixed_system = calloc((1 << FIXED_VARS) * sys_len, sizeof(poly_t));
 
-  container_t assignment[FIXED_VARS] = {0};
-  for (container_t i = 0; i < (1 << FIXED_VARS); i++)
+  poly_t assignment[FIXED_VARS] = {0};
+  for (poly_t i = 0; i < (1 << FIXED_VARS); i++)
   {
     for (int j = 0; j < FIXED_VARS; j++) assignment[j] = (i >> j) & 1;
     fix_poly(system, fixed_system + i * sys_len, assignment, new_n, n);
@@ -153,13 +140,12 @@ uint8_t solve(container_t *system, unsigned int n, unsigned int m,
   unsigned int l = n1 + 1;
   unsigned int k = 0;
 
-  container_vec_t *rand_sys =
-      aligned_alloc(ALIGNMENT, sys_len * sizeof(container_vec_t));
+  poly_vec_t *rand_sys = aligned_alloc(ALIGNMENT, sys_len * sizeof(poly_vec_t));
 
-  container_t *rand_mat =
-      aligned_alloc(ALIGNMENT, l * sizeof(container_t) * (1 << FIXED_VARS) * 4);
+  poly_t *rand_mat =
+      aligned_alloc(ALIGNMENT, l * sizeof(poly_t) * (1 << FIXED_VARS) * 4);
 
-  memset(rand_mat, 0, l * sizeof(container_t) * (1 << FIXED_VARS) * 4);
+  memset(rand_mat, 0, l * sizeof(poly_t) * (1 << FIXED_VARS) * 4);
 
   for (; k < MAX_HISTORY; k++)
   {
@@ -167,7 +153,7 @@ uint8_t solve(container_t *system, unsigned int n, unsigned int m,
     printf("# Commencing round %u\n", k);
 #endif
 
-    memset(rand_sys, 0, sys_len * sizeof(container_vec_t));
+    memset(rand_sys, 0, sys_len * sizeof(poly_vec_t));
     uint8_t exit_code;
 
     for (int i = 0; i < (1 << FIXED_VARS) * 4; i++)
@@ -185,9 +171,9 @@ uint8_t solve(container_t *system, unsigned int n, unsigned int m,
       }
     }
 
-    container_t curr_potentials = 0;
+    poly_t curr_potentials = 0;
 
-    container_vec_t w = VEC_SUB(
+    poly_vec_t w = VEC_SUB(
         compute_e_k(rand_mat, rand_sys, fixed_system, sys_len, l, new_n),
         VEC_ASSIGN_ONE(n1));  // TODO: Change to take in arrays and compute
                               // vector (do not vectorize parities).

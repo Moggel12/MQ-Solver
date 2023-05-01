@@ -6,13 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common_utils.h"
 #include "mq_config.h"
+#include "utils.h"
 
 #if defined(REG128) || defined(REG256)
 #include "vector_utils.h"
-#else
-#include "standard_utils.h"
 #endif
 
 #define INC(i) i + 1
@@ -22,12 +20,11 @@
  * system. */
 typedef struct state
 {
-  container_t i; /*! The value of the input variables assigned. */  // TODO
-  container_vec_t y; /*! The evaluation of the system on s->i. */
-  container_vec_t
-      *d1; /*! The first derivatives of the system evaluated on s->i. */
-  container_vec_t *d2; /*! The second derivative of the system (constants). */
-  uint8_t *prefix;     /*! The prefix used for the partial evaluation. */
+  poly_t i; /*! The value of the input variables assigned. */  // TODO
+  poly_vec_t y;    /*! The evaluation of the system on s->i. */
+  poly_vec_t *d1;  /*! The first derivatives of the system evaluated on s->i. */
+  poly_vec_t *d2;  /*! The second derivative of the system (constants). */
+  uint8_t *prefix; /*! The prefix used for the partial evaluation. */
 } state;
 
 // TODO: Update documentation of fes_recover
@@ -44,27 +41,26 @@ bitsliced format.
  * @return Returns 1 if an error occurred, else 0. If 1 is returned, the values
 of *resuslts* are invalid.
  */
-uint8_t fes_recover_vectorized(container_t *system,
-                               container_vec_t *e_k_systems, unsigned int n,
-                               unsigned int n1, container_vec_t deg,
-                               container_t *result);
+uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
+                               unsigned int n, unsigned int n1, poly_vec_t deg,
+                               poly_t *result);
 
 #else
 
 typedef struct PotentialSolution
 {
-  container_t y_idx;
-  container_t z_bits;
+  poly_t y_idx;
+  poly_t z_bits;
 } PotentialSolution;
 
 /*! A struct identifying the state of of a partial evaluation of a polynomial
  * system. */
 typedef struct state
 {
-  container_t i; /*! The value of the input variables assigned. */  // TODO
-  container_t y;   /*! The evaluation of the system on s->i. */
-  container_t *d1; /*! The first derivatives of the system evaluated on s->i. */
-  container_t *d2; /*! The second derivative of the system (constants). */
+  poly_t i; /*! The value of the input variables assigned. */  // TODO
+  poly_t y;        /*! The evaluation of the system on s->i. */
+  poly_t *d1;      /*! The first derivatives of the system evaluated on s->i. */
+  poly_t *d2;      /*! The second derivative of the system (constants). */
   uint8_t *prefix; /*! The prefix used for the partial evaluation. */
 } state;
 
@@ -83,8 +79,8 @@ typedef struct state
  * @param m The amount of polynomials in the system.
  * @return Returns the amount of solutions of 0xFF..FF if an error occurred.
  */
-unsigned int bruteforce(container_t *system, unsigned int n, unsigned int n1,
-                        unsigned int d, container_t *solutions);
+unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
+                        unsigned int d, poly_t *solutions);
 
 /*!
  * Barebones FES implementation for comparing against Dinur's algorith (this is
@@ -97,8 +93,8 @@ unsigned int bruteforce(container_t *system, unsigned int n, unsigned int n1,
  * The procedure expects there to be enough room for all solutions.
  * @return Returns the amount of solutions found.
  */
-unsigned int fes(container_t *system, unsigned int n, unsigned int m,
-                 container_t *solutions);
+unsigned int fes(poly_t *system, unsigned int n, unsigned int m,
+                 poly_t *solutions);
 
 // TODO: Update documentation of fes_recover
 /*!
@@ -114,7 +110,7 @@ bitsliced format.
  * @return Returns 1 if an error occurred, else 0. If 1 is returned, the values
 of *resuslts* are invalid.
  */
-uint8_t fes_recover(container_t *system, unsigned int n, unsigned int n1,
+uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
                     unsigned int deg, PotentialSolution *results,
                     size_t *res_size);
 

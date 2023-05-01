@@ -12,7 +12,7 @@ state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
   state *s = malloc(sizeof(state));
   if (!s) return NULL;
 
-  s->d1 = aligned_alloc(ALIGNMENT, n1 * sizeof(container_vec_t));
+  s->d1 = aligned_alloc(ALIGNMENT, n1 * sizeof(poly_vec_t));
 
   if (!(s->d1))
   {
@@ -36,7 +36,7 @@ state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
     s->prefix[i] = prefix[i];
   }
 
-  s->d2 = aligned_alloc(ALIGNMENT, n1 * n1 * sizeof(container_vec_t));
+  s->d2 = aligned_alloc(ALIGNMENT, n1 * n1 * sizeof(poly_vec_t));
 
   if (!(s->d2))
   {
@@ -48,8 +48,8 @@ state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
     return NULL;
   }
 
-  memset(s->d1, 0, n1 * sizeof(container_vec_t));
-  memset(s->d2, 0, n1 * n1 * sizeof(container_vec_t));
+  memset(s->d1, 0, n1 * sizeof(poly_vec_t));
+  memset(s->d2, 0, n1 * n1 * sizeof(poly_vec_t));
 
   s->i = 0;
   s->y = VEC_0;
@@ -66,12 +66,12 @@ void destroy_state(state *s)
   free(s);
 }
 
-unsigned int bit1(container_t i) { return trailing_zeros(i); }
+unsigned int bit1(poly_t i) { return trailing_zeros(i); }
 
-unsigned int bit2(container_t i) { return bit1(i ^ (i & -i)); }
+unsigned int bit2(poly_t i) { return bit1(i ^ (i & -i)); }
 
 // Assumes arr has been allocated with arr_len bits.
-container_t bits(container_t i, unsigned int *arr, container_t arr_len)
+poly_t bits(poly_t i, unsigned int *arr, poly_t arr_len)
 {
   if (i == 0)
   {
@@ -115,7 +115,7 @@ unsigned int monomial_to_index(size_t mon, unsigned int n,
   return index;
 }
 
-state *init(state *s, container_vec_t *systems, unsigned int n, unsigned int n1,
+state *init(state *s, poly_vec_t *systems, unsigned int n, unsigned int n1,
             uint8_t *prefix)
 {
   s = init_state(n, n1, prefix);
@@ -169,8 +169,8 @@ state *init(state *s, container_vec_t *systems, unsigned int n, unsigned int n1,
   return s;
 }
 
-state *update(state *s, container_vec_t *systems, unsigned int n,
-              unsigned int n1, uint8_t *prefix)
+state *update(state *s, poly_vec_t *systems, unsigned int n, unsigned int n1,
+              uint8_t *prefix)
 {
   if (!s)
   {
@@ -334,9 +334,8 @@ static inline void step(state *s, unsigned int n1)
   s->y = VEC_GF2_ADD(s->y, s->d1[k1]);
 }
 
-state *fes_eval_parity(container_vec_t *systems, unsigned int n,
-                       unsigned int n1, uint8_t *prefix, state *s,
-                       container_vec_t *parities)
+state *fes_eval_parity(poly_vec_t *systems, unsigned int n, unsigned int n1,
+                       uint8_t *prefix, state *s, poly_vec_t *parities)
 {
   if (!s)
   {
@@ -353,9 +352,9 @@ state *fes_eval_parity(container_vec_t *systems, unsigned int n,
     pre_x += prefix[pos] * (1 << pos);
   }
 
-  container_vec_t zero_mask = VEC_IS_ZERO(s->y);
+  poly_vec_t zero_mask = VEC_IS_ZERO(s->y);
 
-  container_vec_t added = VEC_GF2_ADD(*parities, VEC_MASK((n1 + 1)));
+  poly_vec_t added = VEC_GF2_ADD(*parities, VEC_MASK((n1 + 1)));
 
   *parities = VEC_BLEND(*parities, added, zero_mask);
 
@@ -363,7 +362,7 @@ state *fes_eval_parity(container_vec_t *systems, unsigned int n,
   {
     step(s, n1);
 
-    container_t z = GRAY(s->i);
+    sub_poly_t z = GRAY(s->i);
 
     zero_mask = VEC_IS_ZERO(s->y);
 
@@ -373,7 +372,7 @@ state *fes_eval_parity(container_vec_t *systems, unsigned int n,
 
     for (unsigned int pos = 0; pos < n1; pos++)
     {
-      container_vec_t z_mask =
+      poly_vec_t z_mask =
           VEC_AND(zero_mask, VEC_ASSIGN_ONE(-INT_IS_ZERO(INT_IDX(z, pos))));
 
       added = VEC_SETBIT(*parities, (pos + 1), 1);
@@ -395,8 +394,8 @@ state *fes_eval_parity(container_vec_t *systems, unsigned int n,
   return s;
 }
 
-state *part_eval(container_vec_t *systems, uint8_t *prefix, unsigned int n,
-                 unsigned int n1, container_vec_t *parities, state *s)
+state *part_eval(poly_vec_t *systems, uint8_t *prefix, unsigned int n,
+                 unsigned int n1, poly_vec_t *parities, state *s)
 {
   s = update(s, systems, n, n1, prefix);
 
@@ -411,14 +410,13 @@ state *part_eval(container_vec_t *systems, uint8_t *prefix, unsigned int n,
   return s;
 }
 
-uint8_t fes_recover_vectorized(container_t *system,
-                               container_vec_t *e_k_systems, unsigned int n,
-                               unsigned int n1, container_vec_t deg,
-                               container_t *result)
+uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
+                               unsigned int n, unsigned int n1, poly_vec_t deg,
+                               poly_t *result)
 {
   state *s = NULL;
 
-  container_t max_deg = VEC_MAX(deg);
+  sub_poly_t max_deg = VEC_MAX(deg);
 
   uint8_t *prefix = calloc((n - n1), sizeof(uint8_t));
   if (!prefix) return 1;
@@ -429,15 +427,14 @@ uint8_t fes_recover_vectorized(container_t *system,
     d_size += lk_binom[(n - n1) * BINOM_DIM2 + i];
   }
 
-  container_vec_t *d =
-      aligned_alloc(ALIGNMENT, d_size * sizeof(container_vec_t));
+  poly_vec_t *d = aligned_alloc(ALIGNMENT, d_size * sizeof(poly_vec_t));
   if (!d) return 1;
-  memset(d, 0, d_size * sizeof(container_vec_t));
+  memset(d, 0, d_size * sizeof(poly_vec_t));
 
   unsigned int *k = calloc(max_deg, sizeof(unsigned int));
   if (!k) return 1;
 
-  container_vec_t parities = VEC_0;
+  poly_vec_t parities = VEC_0;
 
   s = part_eval(e_k_systems, prefix, n, n1, &parities, s);
 
@@ -451,7 +448,7 @@ uint8_t fes_recover_vectorized(container_t *system,
 
   if (_avx_sol_overlap(parities))
   {
-    container_t solution, fixed_solution;
+    poly_t solution, fixed_solution;
     PotentialSolution potential_solutions[(1 << FIXED_VARS) * 6] = {0};
 
     int amount = _avx_extract_sol(parities, potential_solutions);
@@ -484,13 +481,13 @@ uint8_t fes_recover_vectorized(container_t *system,
 
   parities = VEC_0;
 
-  container_vec_t mask;
+  poly_vec_t mask;
 
   for (unsigned int si = 1; si < (1u << (n - n1)); si++)
   {
     if (hamming_weight(si) > max_deg)
     {
-      container_t len_k = bits(si, k, max_deg);
+      poly_t len_k = bits(si, k, max_deg);
 
       for (unsigned int j = len_k; j-- > 0;)
       {
@@ -499,7 +496,7 @@ uint8_t fes_recover_vectorized(container_t *system,
         unsigned int idx =
             (j == 0) ? 0 : monomial_to_index(si, n - n1, k[j - 1]);
 
-        container_vec_t added =
+        poly_vec_t added =
             VEC_GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, k[j])]);
 
         d[idx] = VEC_BLEND(d[idx], added, mask);
@@ -507,7 +504,7 @@ uint8_t fes_recover_vectorized(container_t *system,
     }
     else
     {
-      container_t len_k = bits(si, k, max_deg);
+      poly_t len_k = bits(si, k, max_deg);
 
       unsigned int gray_si = GRAY(si);
 
@@ -526,7 +523,7 @@ uint8_t fes_recover_vectorized(container_t *system,
         return 1;
       }
 
-      container_vec_t prev = d[0];
+      poly_vec_t prev = d[0];
       d[0] = parities;
 
       parities = VEC_0;
@@ -535,7 +532,7 @@ uint8_t fes_recover_vectorized(container_t *system,
       {
         mask = ~VEC_GT(VEC_ASSIGN_ONE(j), deg);
 
-        container_vec_t tmp;
+        poly_vec_t tmp;
 
         if (j < n)
         {
@@ -546,7 +543,7 @@ uint8_t fes_recover_vectorized(container_t *system,
         unsigned int idx =
             (j == 1) ? 0 : monomial_to_index(si, n - n1, k[j - 2]);
 
-        container_vec_t added = VEC_GF2_ADD(d[idx], prev);
+        poly_vec_t added = VEC_GF2_ADD(d[idx], prev);
 
         d[monomial_to_index(si, n - n1, k[j - 1])] =
             VEC_BLEND(d[monomial_to_index(si, n - n1, k[j - 1])], added, mask);
@@ -557,9 +554,10 @@ uint8_t fes_recover_vectorized(container_t *system,
         }
       }
     }
+
     if (_avx_sol_overlap(d[0]))
     {
-      container_t solution, fixed_solution;
+      poly_t solution, fixed_solution;
       PotentialSolution potential_solutions[6 * (1 << FIXED_VARS)] = {0};
 
       int amount = _avx_extract_sol(d[0], potential_solutions);

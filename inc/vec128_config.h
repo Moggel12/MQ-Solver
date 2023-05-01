@@ -3,18 +3,16 @@
 
 #include <immintrin.h>
 
-#include "common_utils.h"
-
 #if defined(INT8)  ////////////////////////////////////// EPI8
 
 #define VECTOR_SIZE 16
 
 #define FIXED_VARS 2
 
-#define INT_TYPE uint8_t
+#define SUB_POLY_TYPE uint8_t
 
 #if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu8, &p)
+#define _DEBUG_READ_SUB(p) scanf("%" SCNu8, &p)
 #endif
 
 #define _avx_sll(i, w) _avx128_sll_8(i, w)
@@ -194,31 +192,16 @@ static inline __m128i _avx128_srl_8(__m128i reg, int w)
   }
 }
 
-static inline uint8_t _avx_max(__m128i a)
-{
-  __m128i tmp = a;
-  __m128i perm, mask;
-
-  for (int i = 0; i < 15; i++)
-  {
-    perm = _mm_alignr_epi8(tmp, tmp, 1);
-    mask = _mm_cmpgt_epi8(tmp, perm);
-    tmp = (__m128i)_mm_blendv_ps((__m128)perm, (__m128)tmp, (__m128)mask);
-  }
-
-  return _mm_extract_epi8(tmp, 0);
-}
-
 #elif defined(INT16)  ////////////////////////////////////// EPI16
 
 #define VECTOR_SIZE 8
 
 #define FIXED_VARS 1
 
-#define INT_TYPE uint16_t
+#define SUB_POLY_TYPE uint16_t
 
 #if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu16, &p)
+#define _DEBUG_READ_SUB(p) scanf("%" SCNu16, &p)
 #endif
 
 #define _avx_sll(i, w) _mm_sll_epi16(i, _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, w))
@@ -321,30 +304,16 @@ static inline int _avx128_movemask_16(__m128i reg)
   return mask16;
 }
 
-static inline uint16_t _avx_max(__m128i reg)
-{
-  __m128i tmp = reg;
-  __m128i perm, mask;
-  for (int i = 0; i < 7; i++)
-  {
-    perm = _mm_alignr_epi8(tmp, tmp, 2);
-    mask = _mm_cmpgt_epi16(tmp, perm);
-    tmp = _mm_blendv_epi8(perm, tmp, mask);
-  }
-
-  return _mm_extract_epi32(tmp, 0);
-}
-
 #elif defined(INT32)  ////////////////////////////////////// EPI32
 
 #define VECTOR_SIZE 4
 
 #define FIXED_VARS 0
 
-#define INT_TYPE uint32_t
+#define SUB_POLY_TYPE uint32_t
 
 #if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu32, &p)
+#define _DEBUG_READ_SUB(p) scanf("%" SCNu32, &p)
 #endif
 
 #define _avx_sll(reg, w) _mm_sll_epi32(reg, _mm_set_epi32(0, 0, 0, w))
@@ -392,21 +361,6 @@ static inline uint32_t _avx128_extract_32(__m128i reg, int idx)
     default:
       return 0;
   }
-}
-
-static inline uint32_t _avx_max(__m128i reg)
-{
-  __m128i tmp = reg;
-  __m128i perm, mask;
-
-  for (int i = 0; i < 4; i++)
-  {
-    perm = (__m128i)_mm_permute_ps((__m128)tmp, _MM_SHUFFLE(0, 3, 2, 1));
-    mask = _mm_cmpgt_epi32(tmp, perm);
-    tmp = (__m128i)_mm_blendv_ps((__m128)perm, (__m128)tmp, (__m128)mask);
-  }
-
-  return _mm_extract_epi32(tmp, 0);
 }
 
 #endif

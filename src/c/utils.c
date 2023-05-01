@@ -1,15 +1,13 @@
+#include "utils.h"
+
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "benchmark.h"
-#include "common_utils.h"
-#include "standard_utils.h"
 
 unsigned int hamming_weight(unsigned int x) { return __builtin_popcount(x); }
-
-int gray_code(int i) { return i ^ (i >> 1); }  // TODO: Alter and use in solve()
 
 unsigned int trailing_zeros(unsigned int v)
 {
@@ -28,8 +26,6 @@ unsigned int trailing_zeros(unsigned int v)
   }
   return c;
 }
-
-container_t parity(container_t bits) { return __builtin_parity(bits); }
 
 int lex_idx(unsigned int i, unsigned int j, unsigned int n)
 {
@@ -55,12 +51,12 @@ int n_choose_k(int n, int k)
   return (int)c;
 }
 
-container_t gen_row(unsigned int m) { return (rand() & ((1 << m) - 1)); }
+poly_t gen_row(unsigned int m) { return (rand() & ((1 << m) - 1)); }
 
-unsigned int gen_matrix(container_t *mat, unsigned int n_rows,
+unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
                         unsigned int n_columns)
 {
-  container_t *mat_copy = malloc(n_rows * sizeof(container_t));
+  poly_t *mat_copy = malloc(n_rows * sizeof(poly_t));
   if (!mat_copy) return 1;
 
   unsigned int rank;
@@ -95,13 +91,13 @@ unsigned int gen_matrix(container_t *mat, unsigned int n_rows,
   return rank != n_rows;
 }
 
-container_t eval(container_t *system, size_t n, container_t var_values)
+poly_t eval(poly_t *system, size_t n, poly_t var_values)
 {
   BEGIN_BENCH(g_eval_time)
 
-  container_t table[2] = {INT_0, INT_FF};
+  poly_t table[2] = {INT_0, INT_FF};
 
-  container_t res = system[0];
+  poly_t res = system[0];
 
   for (unsigned int i = 0; i < n; i++)
   {
@@ -113,7 +109,7 @@ container_t eval(container_t *system, size_t n, container_t var_values)
   {
     for (unsigned int j = i + 1; j < n; j++)
     {
-      container_t monomial =
+      poly_t monomial =
           GF2_MUL(table[INT_IDX(var_values, i)], table[INT_IDX(var_values, j)]);
       res = GF2_ADD(res, GF2_MUL(monomial, system[idx]));
       idx++;

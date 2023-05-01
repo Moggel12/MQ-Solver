@@ -3,7 +3,7 @@
 import sys
 from math import comb
 
-_SUPPORTED_SIZES = [8, 16, 32, 64, 128, 256]
+_SUPPORTED_SIZES = [8, 16, 32, 64]
 
 if len(sys.argv) != 3:
     print("Please provide the dimensions of the lookup table to be generated.")
@@ -26,10 +26,12 @@ prefix_code = (
     f"#ifndef BINOM_H\n"
     f"#define BINOM_H\n"
      "\n"
+    f"#include <stdint.h>\n"
+     "\n"
     f"#define BINOM_DIM1 {n}\n"
     f"#define BINOM_DIM2 {m}\n"
      "\n"
-    f"const unsigned int lk_binom[{n * m}] = \n"
+    f"const uint{m if m > n else n}_t lk_binom[{n * m}] = \n"
      "{"
 )
 

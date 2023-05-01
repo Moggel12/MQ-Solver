@@ -5,18 +5,17 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "common_utils.h"
 #include "mq.h"
 #include "mq_config.h"
+#include "utils.h"
+
 #if defined(REG128) || defined(REG256)
 #include "vector_utils.h"
-#else
-#include "standard_utils.h"
 #endif
 
-container_t *read_container_t_array(size_t len)
+poly_t *read_poly_t_array(size_t len)
 {
-  container_t *arr = malloc(len * sizeof(container_t));
+  poly_t *arr = malloc(len * sizeof(poly_t));
   if (!arr) return NULL;
 
   for (size_t i = 0; i < len; i++)
@@ -27,14 +26,12 @@ container_t *read_container_t_array(size_t len)
   return arr;
 }
 
-container_t *read_container_t_array_static(container_t *arr, size_t len)
+void read_poly_t_array_static(poly_t *arr, size_t len)
 {
   for (size_t i = 0; i < len; i++)
   {
     _DEBUG_READ_P(arr[i]);
   }
-
-  return arr;
 }
 
 size_t read_size_t()
@@ -53,13 +50,34 @@ unsigned int read_uint()
 
 #if defined(REG128) || defined(REG256)  // TODO: Fix tests
 
+sub_poly_t *read_sub_poly_t_array(size_t len)
+{
+  sub_poly_t *arr = malloc(len * sizeof(sub_poly_t));
+  if (!arr) return NULL;
+
+  for (size_t i = 0; i < len; i++)
+  {
+    _DEBUG_READ_SUB(arr[i]);
+  }
+
+  return arr;
+}
+
+void read_sub_poly_t_array_static(sub_poly_t *arr, size_t len)
+{
+  for (size_t i = 0; i < len; i++)
+  {
+    _DEBUG_READ_SUB(arr[i]);
+  }
+}
+
 int test_compute_e_k(void)
 {
   size_t l = read_size_t();
   size_t n = read_size_t();
   size_t sys_len = read_size_t();
 
-  container_t *mat = calloc(l * 4 * (1 << FIXED_VARS), sizeof(container_t));
+  poly_t *mat = calloc(l * 4 * (1 << FIXED_VARS), sizeof(poly_t));
   if (!mat)
   {
     printf("Memory error (allocating matrix)!\n");
@@ -68,11 +86,10 @@ int test_compute_e_k(void)
 
   for (int i = 0; i < (1 << FIXED_VARS) * 4; i++)
   {
-    read_container_t_array_static(mat + i * l, l);
+    read_poly_t_array_static(mat + i * l, l);
   }
 
-  container_t *old_sys =
-      calloc((1 << FIXED_VARS) * sys_len, sizeof(container_t));
+  poly_t *old_sys = calloc((1 << FIXED_VARS) * sys_len, sizeof(poly_t));
   if (!old_sys)
   {
     printf("Memory error (allocating vectorized old sys)!\n");
@@ -82,11 +99,10 @@ int test_compute_e_k(void)
 
   for (int i = 0; i < (1 << FIXED_VARS); i++)
   {
-    read_container_t_array_static(old_sys + i * sys_len, sys_len);
+    read_poly_t_array_static(old_sys + i * sys_len, sys_len);
   }
 
-  container_vec_t *new_sys =
-      aligned_alloc(ALIGNMENT, sizeof(container_vec_t) * sys_len);
+  poly_vec_t *new_sys = aligned_alloc(ALIGNMENT, sizeof(poly_vec_t) * sys_len);
   if (!new_sys)
   {
     printf("Memory error (allocating new sys)!\n");
@@ -95,7 +111,7 @@ int test_compute_e_k(void)
     return 1;
   }
 
-  memset(new_sys, 0, sizeof(container_vec_t) * sys_len);
+  memset(new_sys, 0, sizeof(poly_vec_t) * sys_len);
 
   size_t correct_deg[VECTOR_SIZE];
   for (int i = 0; i < VECTOR_SIZE; i++)
@@ -103,11 +119,11 @@ int test_compute_e_k(void)
     correct_deg[i] = read_size_t();
   }
 
-  container_t *correct_new_sys_arr[VECTOR_SIZE] = {0};
+  sub_poly_t *correct_new_sys_arr[VECTOR_SIZE] = {0};
 
   for (int i = 0; i < VECTOR_SIZE; i++)
   {
-    correct_new_sys_arr[i] = read_container_t_array(sys_len);
+    correct_new_sys_arr[i] = read_sub_poly_t_array(sys_len);
     if (!correct_new_sys_arr[i])
     {
       printf("Memory error (allocating correct sys)!\n");
@@ -122,8 +138,8 @@ int test_compute_e_k(void)
     }
   }
 
-  container_vec_t *correct_new_sys =
-      aligned_alloc(ALIGNMENT, sys_len * sizeof(container_vec_t));
+  poly_vec_t *correct_new_sys =
+      aligned_alloc(ALIGNMENT, sys_len * sizeof(poly_vec_t));
   if (!correct_new_sys)
   {
     printf("Memory error (allocating vectorized correct sys)!\n");
@@ -148,7 +164,7 @@ int test_compute_e_k(void)
 
   srand(RSEED);
 
-  container_vec_t degrees = compute_e_k(mat, new_sys, old_sys, sys_len, l, n);
+  poly_vec_t degrees = compute_e_k(mat, new_sys, old_sys, sys_len, l, n);
 
   uint8_t acc = 1;
   for (unsigned int i = 0; i < n_choose_k(n, 2) + n + 1; i++)
@@ -157,8 +173,15 @@ int test_compute_e_k(void)
                   INT_MASK(VECTOR_SIZE));
     if (!acc)
     {
-      print_register(new_sys[i]);
-      print_register(correct_new_sys[i]);
+      for (int j = 0; j < VECTOR_SIZE; j++)
+      {
+        printf("%u ", VEC_EXTRACT(new_sys[i], j));
+      }
+      printf("!= ");
+      for (int j = 0; j < VECTOR_SIZE; j++)
+      {
+        printf("%u ", VEC_EXTRACT(correct_new_sys[i], j));
+      }
       break;
     }
   }
@@ -198,15 +221,15 @@ int test_fix_poly(void)
   size_t fixed_sys_len = read_size_t();
   size_t new_n = n - FIXED_VARS;
 
-  container_t *old_sys = read_container_t_array(sys_len);
+  poly_t *old_sys = read_poly_t_array(sys_len);
   if (!old_sys)
   {
     printf("Error allocating old system!\n");
     return 1;
   }
 
-  container_t *correct_fixed_systems =
-      calloc((1 << FIXED_VARS) * fixed_sys_len, sizeof(container_t));
+  poly_t *correct_fixed_systems =
+      calloc((1 << FIXED_VARS) * fixed_sys_len, sizeof(poly_t));
   if (!correct_fixed_systems)
   {
     printf("Error allocating correct fixed systems!\n");
@@ -215,12 +238,12 @@ int test_fix_poly(void)
   }
   for (int i = 0; i < (1 << FIXED_VARS); i++)
   {
-    read_container_t_array_static(correct_fixed_systems + i * fixed_sys_len,
-                                  fixed_sys_len);
+    read_poly_t_array_static(correct_fixed_systems + i * fixed_sys_len,
+                             fixed_sys_len);
   }
 
-  container_t *fixed_systems =
-      calloc((1 << FIXED_VARS) * fixed_sys_len, sizeof(container_t));
+  poly_t *fixed_systems =
+      calloc((1 << FIXED_VARS) * fixed_sys_len, sizeof(poly_t));
   if (!fixed_sys_len)
   {
     printf("Error allocating fixed systems!\n");
@@ -229,8 +252,8 @@ int test_fix_poly(void)
     return 1;
   }
 
-  container_t assignment[FIXED_VARS] = {0};
-  for (container_t i = 0; i < (1 << FIXED_VARS); i++)
+  poly_t assignment[FIXED_VARS] = {0};
+  for (poly_t i = 0; i < (1 << FIXED_VARS); i++)
   {
     for (int j = 0; j < FIXED_VARS; j++) assignment[j] = (i >> j) & 1;
     fix_poly(old_sys, fixed_systems + i * fixed_sys_len, assignment, new_n, n);
@@ -242,7 +265,7 @@ int test_fix_poly(void)
     acc = acc && (correct_fixed_systems[i] == fixed_systems[i]);
     if (!acc)
     {
-      printf("System fixing not correct: %u != %u (index %u)\n",
+      printf("System fixing not correct: %lu != %lu (index %u)\n",
              correct_fixed_systems[i], fixed_systems[i], i);
       free(old_sys);
       free(correct_fixed_systems);
@@ -264,7 +287,7 @@ int test_solve_sanitized()
   unsigned int m = read_uint();
   size_t sys_len = read_size_t();
 
-  container_t *system = read_container_t_array(sys_len);
+  poly_t *system = read_poly_t_array(sys_len);
 
   if (!system)
   {
@@ -272,7 +295,7 @@ int test_solve_sanitized()
     return 1;
   }
 
-  container_t c_sol = 0;
+  poly_t c_sol = 0;
 
   uint8_t error = solve(system, n, m, &c_sol);
 
@@ -296,14 +319,14 @@ int test_compute_e_k(void)
   size_t n = read_size_t();
   size_t sys_len = read_size_t();
 
-  container_t *mat = read_container_t_array(l);
+  poly_t *mat = read_poly_t_array(l);
   if (!mat)
   {
     printf("Memory error (allocating matrix)\n");
     return 1;
   }
 
-  container_t *old_sys = read_container_t_array(sys_len);
+  poly_t *old_sys = read_poly_t_array(sys_len);
   if (!old_sys)
   {
     printf("Memory error (allocating old sys)\n");
@@ -311,7 +334,7 @@ int test_compute_e_k(void)
     return 1;
   }
 
-  container_t *new_sys = calloc(sys_len, sizeof(container_t));
+  poly_t *new_sys = calloc(sys_len, sizeof(poly_t));
   if (!new_sys)
   {
     printf("Memory error (allocating new sys)\n");
@@ -322,7 +345,7 @@ int test_compute_e_k(void)
 
   unsigned int deg = read_size_t();
 
-  container_t *correct_new_sys = read_container_t_array(sys_len);
+  poly_t *correct_new_sys = read_poly_t_array(sys_len);
   if (!correct_new_sys)
   {
     printf("Memory error (allocating correct sys)\n");
@@ -369,7 +392,7 @@ int test_solve_sanitized()
   unsigned int m = read_uint();
   size_t sys_len = read_size_t();
 
-  container_t *py_sol = read_container_t_array(1);
+  poly_t *py_sol = read_poly_t_array(1);
 
   if (!py_sol)
   {
@@ -377,7 +400,7 @@ int test_solve_sanitized()
     return 1;
   };
 
-  container_t *system = read_container_t_array(sys_len);
+  poly_t *system = read_poly_t_array(sys_len);
 
   if (!system)
   {
@@ -386,7 +409,7 @@ int test_solve_sanitized()
     return 1;
   }
 
-  container_t c_sol = 0;
+  poly_t c_sol = 0;
 
   solve(system, n, m, &c_sol);
 
@@ -413,10 +436,10 @@ int test_gen_matrix(void)
   unsigned int m = read_uint();
 
   printf("%u %u\n", l, m);
-  container_t *sol_mat = read_container_t_array(l);
+  poly_t *sol_mat = read_poly_t_array(l);
   if (!sol_mat) return 1;
 
-  container_t *rand_mat = malloc(l * sizeof(container_t));
+  poly_t *rand_mat = malloc(l * sizeof(poly_t));
   if (!rand_mat)
   {
     free(sol_mat);
@@ -438,7 +461,7 @@ int test_gen_matrix(void)
     acc = acc && (sol_mat[i] == rand_mat[i]);
     if (!acc)
     {
-      printf("%u != %u\n", sol_mat[i], rand_mat[i]);
+      printf("%lu != %lu\n", sol_mat[i], rand_mat[i]);
       break;
     }
   }
@@ -458,21 +481,21 @@ int test_eval(void)
   size_t len_system = read_size_t();
   size_t n = read_uint();
 
-  container_t *system = read_container_t_array(len_system);
+  poly_t *system = read_poly_t_array(len_system);
   if (!system) return 1;
 
-  container_t *solutions = read_container_t_array(1 << n);
+  poly_t *solutions = read_poly_t_array(1 << n);
   if (!solutions) return 1;
 
   uint8_t acc = 1;
   for (size_t i = 0; i < (1u << n); i++)
   {
-    container_t val = eval(system, n, i);
+    poly_t val = eval(system, n, i);
 
     acc = acc && (solutions[i] == val);
     if (!acc)
     {
-      printf("Found differing values: %u != %u\n", val, solutions[i]);
+      printf("Found differing values: %lu != %lu\n", val, solutions[i]);
       break;
     }
   }

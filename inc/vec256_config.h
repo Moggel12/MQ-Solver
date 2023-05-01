@@ -6,8 +6,6 @@
 // TODO: Add support for computing parity across a vector (both 256 and 128, no
 // matter which integer size).
 
-#include "common_utils.h"
-
 #define _avx_xor(a, b) _mm256_xor_si256(a, b)
 #define _avx_and(a, b) _mm256_and_si256(a, b)
 #define _avx_or(a, b) _mm256_or_si256()
@@ -21,12 +19,12 @@
 
 #define VECTOR_SIZE 32
 
-#define INT_TYPE uint8_t
+#define SUB_POLY_TYPE uint8_t
 
 #define FIXED_VARS 3
 
 #if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu8, &p)
+#define _DEBUG_READ_SUB(p) scanf("%" SCNu8, &p)
 #endif
 
 #define _avx_sll(i, w) _avx256_sll_8(i, w)
@@ -295,7 +293,7 @@ static inline __m256i _avx256_srl_8(__m256i reg, int w)
     __m256i mask =
         _mm256_sll_epi16(_mm256_set1_epi16((1 << bits) - 1),
                          _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w + 8));
-    print_register_16(mask);
+
     return _mm256_xor_si256(
         _mm256_srl_epi16(_mm256_and_si256(hi, mask),
                          _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w)),
@@ -303,31 +301,16 @@ static inline __m256i _avx256_srl_8(__m256i reg, int w)
   }
 }
 
-static inline uint8_t _avx_max(__m256i a)
-{
-  __m256i tmp = a;
-  __m256i perm, mask;
-
-  for (int i = 0; i < 15; i++)
-  {
-    perm = _mm256_alignr_epi8(tmp, tmp, 1);
-    mask = _mm256_cmpgt_epi8(tmp, perm);
-    tmp = (__m256i)_mm256_blendv_epi8(perm, tmp, mask);
-  }
-
-  return _mm256_extract_epi8(tmp, 0);
-}
-
 #elif defined(INT16)  ////////////////////////////////////// EPI16
 
 #define VECTOR_SIZE 16
 
-#define INT_TYPE uint16_t
+#define SUB_POLY_TYPE uint16_t
 
 #define FIXED_VARS 2
 
 #if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu16, &p)
+#define _DEBUG_READ_SUB(p) scanf("%" SCNu16, &p)
 #endif
 
 #define _avx_sll(i, w) \
@@ -480,30 +463,16 @@ static inline static inline int _avx256_movemask_16(__m256i reg)
   return mask16;
 }
 
-uint16_t _avx_max(__m256i reg)
-{
-  __m256i tmp = reg;
-  __m256i perm, mask;
-  for (int i = 0; i < 7; i++)
-  {
-    perm = _mm256_alignr_epi8(tmp, tmp, 2);
-    mask = _mm256_cmpgt_epi16(tmp, perm);
-    tmp = _mm256_blendv_epi8(perm, tmp, mask);
-  }
-
-  return _mm256_extract_epi32(tmp, 0);
-}
-
 #elif defined(INT32)  ////////////////////////////////////// EPI32
 
 #define VECTOR_SIZE 8
 
-#define INT_TYPE uint32_t
+#define SUB_POLY_TYPE uint32_t
 
 #define FIXED_VARS 1
 
 #if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu32, &p)
+#define _DEBUG_READ_SUB(p) scanf("%" SCNu32, &p)
 #endif
 
 #define _avx_sll _mm256_sll_epi32
@@ -595,31 +564,16 @@ static inline __m256i _avx_rotate(__m256i reg, int width)
   return reg;
 }
 
-static inline uint32_t _avx_max(__m256i reg)
-{
-  __m256i tmp = reg;
-  __m256i perm, mask;
-
-  for (int i = 0; i < 4; i++)
-  {
-    perm = (__m256i)_mm256_permute_ps((__m256)tmp, _mm256_SHUFFLE(0, 3, 2, 1));
-    mask = _mm256_cmpgt_epi32(tmp, perm);
-    tmp = (__m256i)_mm256_blendv_ps((__m256)perm, (__m256)tmp, (__m256)mask);
-  }
-
-  return _mm256_extract_epi32(tmp, 0);
-}
-
 #elif defined(INT64)  ////////////////////////////////////// EPI64
 
 #define VECTOR_SIZE 4
 
-#define VAR_TYPE uint64_t
+#define SUB_POLY_TYPE uint64_t
 
 #define FIXED_VARS 0
 
 #if defined(_DEBUG)
-#define _DEBUG_READ_P(p) scanf("%" SCNu64, &p)
+#define _DEBUG_READ_SUB(p) scanf("%" SCNu64, &p)
 #endif
 
 #define _avx_sll _mm256_sll_epi64
@@ -668,21 +622,6 @@ static inline uint64_t _avx256_extract_64(__m256i reg, int idx)
     default:
       return _mm256_setzero_si256();
   }
-}
-
-static inline uint64_t _avx_max(__m256i a)
-{
-  __m256i tmp = a;
-  __m256i perm, mask;
-
-  for (int i = 0; i < 4; i++)
-  {
-    perm = (__m256i)_mm_permute_pd((__m256d)tmp, _MM_SHUFFLE(0, 3, 2, 1));
-    mask = _mm256_cmpgt_epi64(tmp, perm);
-    tmp = (__m256i)_mm256_blendv_pd((__m256d)perm, (__m256d)tmp, (__m256d)mask);
-  }
-
-  return _mm256_extract_epi64(tmp, 0);
 }
 
 #endif

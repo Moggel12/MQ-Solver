@@ -7,10 +7,9 @@
 #include <string.h>
 
 #include "benchmark.h"
-#include "common_utils.h"
 #include "fes.h"
 #include "mq_config.h"
-#include "standard_utils.h"
+#include "utils.h"
 
 typedef struct SolutionsStruct
 {
@@ -18,8 +17,10 @@ typedef struct SolutionsStruct
   size_t amount;
 } SolutionsStruct;
 
-unsigned int compute_e_k(container_t *mat, container_t *new_sys,
-                         container_t *old_sys, int l, int n)
+poly_t parity(poly_t bits) { return __builtin_parity(bits); }
+
+unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
+                         int n)
 {
   unsigned int deg = 0;
   for (int s = 0; s < l; s++)
@@ -60,8 +61,7 @@ unsigned int compute_e_k(container_t *mat, container_t *new_sys,
   return deg;
 }
 
-uint8_t solve(container_t *system, unsigned int n, unsigned int m,
-              container_t *sol)
+uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 {
   BEGIN_BENCH(g_solve_time)
 
@@ -76,9 +76,9 @@ uint8_t solve(container_t *system, unsigned int n, unsigned int m,
   SolutionsStruct *potential_solutions[MAX_HISTORY] = {0};
   size_t hist_progress[MAX_HISTORY] = {0};
 
-  container_t *rand_sys = malloc(amnt_sys_vars * sizeof(container_t));
+  poly_t *rand_sys = malloc(amnt_sys_vars * sizeof(poly_t));
 
-  container_t *rand_mat = malloc(l * sizeof(container_t));
+  poly_t *rand_mat = malloc(l * sizeof(poly_t));
 
   for (; k < MAX_HISTORY; k++)
   {
@@ -86,7 +86,7 @@ uint8_t solve(container_t *system, unsigned int n, unsigned int m,
     printf("# Commencing round %u\n", k);
 #endif
 
-    memset(rand_sys, 0, amnt_sys_vars * sizeof(container_t));
+    memset(rand_sys, 0, amnt_sys_vars * sizeof(poly_t));
 
     BEGIN_BENCH(g_matrix_time)
 
@@ -162,8 +162,8 @@ uint8_t solve(container_t *system, unsigned int n, unsigned int m,
           else if (INT_EQ(idx_solution.y_idx, k1_solution.y_idx) &&
                    INT_EQ(idx_solution.z_bits, k1_solution.z_bits))
           {
-            container_t gray_y = idx_solution.y_idx ^ (idx_solution.y_idx >> 1);
-            container_t solution =
+            poly_t gray_y = idx_solution.y_idx ^ (idx_solution.y_idx >> 1);
+            poly_t solution =
                 GF2_ADD(gray_y, INT_LSHIFT(idx_solution.z_bits, (n - n1)));
             if (!eval(system, n, solution))
             {

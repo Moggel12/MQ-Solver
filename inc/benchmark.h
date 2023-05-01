@@ -30,6 +30,6 @@ extern size_t g_recover_interp;
 
 void readout_benchmarks();
 
-void e2e_benchmark(size_t rounds, container_t *systems[], size_t n, size_t m);
+void e2e_benchmark(size_t rounds, poly_t *systems[], size_t n, size_t m);
 
 #endif  // !BENCHMARK_H

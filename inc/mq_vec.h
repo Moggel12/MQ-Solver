@@ -79,5 +79,6 @@
 #define VEC_EXTRACT(a, i) _avx_extract(a, i)
 
 #define VECTORIZED_ROUNDS 4
+typedef SUB_POLY_TYPE sub_poly_t;
 
 #endif  // !MQ_VEC_H

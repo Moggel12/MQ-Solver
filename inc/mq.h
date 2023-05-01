@@ -8,14 +8,14 @@
 #if defined(_DEBUG)
 
 #if defined(REG128) || defined(REG256)
-container_vec_t compute_e_k(container_t *mat, container_vec_t *new_sys,
-                            container_t *old_sys, size_t sys_len, int l, int n);
+poly_vec_t compute_e_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
+                       size_t sys_len, int l, int n);
 
-void fix_poly(container_t *system, container_t *fixed_system,
-              container_t *assignment, int new_n, int n);
+void fix_poly(poly_t *system, poly_t *fixed_system, poly_t *assignment,
+              int new_n, int n);
 #else
-unsigned int compute_e_k(container_t *mat, container_t *new_sys,
-                         container_t *old_sys, int l, int n);
+unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
+                         int n);
 #endif
 
 #endif
@@ -35,9 +35,8 @@ unsigned int compute_e_k(container_t *mat, container_t *new_sys,
  * is a valid solution. Returns 0 if no error occurred (solution is valid)
  * and 1 if an error occurred.
  */
-uint8_t solve(container_t *system, unsigned int n, unsigned int m,
-              container_t *sol);
+uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol);
 
-container_t eval(container_t *system, size_t n, container_t var_values);
+poly_t eval(poly_t *system, size_t n, poly_t var_values);
 
 #endif  // !MQ_H

@@ -20,26 +20,30 @@ VEC_TARGET = bin/mq_vec.so
 SRCEXT := c
 ifeq ($(REGSIZE), 128)
 WORKDIR := $(SRCDIR)/c/vectorized
-SRCS := $(shell find $(SRCDIR)/c/vectorized -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
-INTSIZE := 32
+SRCS := $(shell find $(SRCDIR)/c/vectorized -type f -name '*.$(SRCEXT)')
+INTSIZE := 16
 CFLAGS += -mavx -DINT$(INTSIZE)
+$(shell ./binom.py 64 64 > inc/binom.h)
 else ifeq ($(REGSIZE), 256)
 WORKDIR := $(SRCDIR)/c/vectorized
-SRCS := $(shell find $(SRCDIR)/c/vectorized -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
-INTSIZE := 64
+SRCS := $(shell find $(SRCDIR)/c/vectorized -type f -name '*.$(SRCEXT)')
+INTSIZE := 16
 CFLAGS += -mavx2 -DINT$(INTSIZE)
+$(shell ./binom.py 64 64 > inc/binom.h)
 else 
 WORKDIR := $(SRCDIR)/c/standard
-SRCS :=	$(shell find $(SRCDIR)/c/standard -type f -name '*.$(SRCEXT)') $(SRCDIR)/c/benchmark.c
+SRCS :=	$(shell find $(SRCDIR)/c/standard -type f -name '*.$(SRCEXT)')
 INTSIZE := $(REGSIZE)
+$(shell ./binom.py $(INTSIZE) $(INTSIZE) > inc/binom.h)
 endif
+
+SRCS += $(patsubst %,$(SRCDIR)/c/%,$(shell ls -pA src/c | grep -v /))
 
 TEST_SRCS := $(shell find $(TEST_DIR) -type f -name *.$(SRCEXT))
 OBJ := $(patsubst $(WORKDIR)/%,$(BUILD_DIR)/%,$(filter $(WORKDIR)/%, $(SRCS:.$(SRCEXT)=.o))) $(patsubst $(SRCDIR)/c/%,$(BUILD_DIR)/%, $(filter-out $(WORKDIR)/%, $(SRCS:.$(SRCEXT)=.o)))
 TEST_OBJ := $(patsubst $(TEST_DIR)/%,$(BUILD_DIR)/%,$(TEST_SRCS:.$(SRCEXT)=.o)) $(OBJ)
 
 $(shell echo "$(REGSIZE) $(INTSIZE)" > src/sage/.compile_config)
-$(shell ./binom.py $(INTSIZE) $(INTSIZE) > inc/binom.h)
 
 # GCC flags
 SAN :=\
