@@ -66,9 +66,7 @@ def run_bin_test(input_data):
 def create_poly_str(poly, ring):
     X = ring.gens()
     n = len(ring.gens())
-
     poly_str = ""
-
     for i in range(n):
         for j in range(i + 1):
             poly_str += f"{poly.monomial_coefficient(X[j]*X[i])} "
@@ -225,11 +223,11 @@ def fix_variables(sys_tuple, fixed_vars):
     system, n, m, ring, sol = sys_tuple
     new_tuple = []
     new_n = n - fixed_vars
+    new_ring = GF(2)[", ".join(["x" + str(i) for i in range(new_n)])]
     for i in range(2**fixed_vars):
         fixed_values = convert(i, fixed_vars)
-        system_i = [f(*ring.gens()[:new_n], *fixed_values) for f in system]
-        ring_i = GF(2)[", ".join(["x" + str(i) for i in range(new_n)])]
-        new_tuple.append((system_i, new_n, m, ring_i, sol))
+        system_i = [new_ring(f(*ring.gens()[:new_n], *fixed_values)) for f in system]
+        new_tuple.append((system_i, new_n, m, new_ring, sol))
     return new_tuple
 
 

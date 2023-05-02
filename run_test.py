@@ -35,6 +35,9 @@ def parse_arguments():
 
 def solve(all_tuples):
     print(f"Solving {len(all_tuples)} systems one-by-one..")
+    if TEST_BIN_AVAILABLE:
+        print(f"{FAIL}Compile shared object with the Makefile to use this flag.{CLEAR}")
+        return None
     for i, sys_tuple in enumerate(all_tuples):
         print(f"\n{ITER}== {i + 1} =={CLEAR}")
         system, n, m, ring, _ = sys_tuple
@@ -52,7 +55,7 @@ def p_solve(challenge):
     start_time = time.perf_counter_ns()
     solution = c_solve(sl_system, n, m)
     elapsed_time = time.perf_counter_ns() - start_time
-    print(f"Process found solution (in {round(elapsed_time / 1000000)}ms): {solution + fixture if solution else None}")
+    print(f"Process found {solution + fixture if solution else None} in {round(elapsed_time / 1000000)}ms")
 
 def parallelize(all_tuples):
     core_count = multiprocessing.cpu_count()
@@ -125,6 +128,8 @@ def main():
         all_tuples = read_system(args.file)
         write_file = False
     if args.test:
+        if args.parallelize:
+            print(f"{WARNING}Tests will not run parallelized, however, the -p (--p) flag was given.{CLEAR}")
         test = _default_test
         if args.test in _test_functions:
             test = (args.test, _test_functions[args.test])
