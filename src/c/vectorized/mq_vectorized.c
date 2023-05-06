@@ -14,7 +14,7 @@
 
 poly_vec_t compute_e_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
                        size_t sys_len, int l, int n)
-{
+{  
   poly_vec_t deg = VEC_0;
   sub_poly_t mon = 0;
   sub_poly_t lin_deg = 0, quad_deg = 0;
@@ -121,6 +121,9 @@ void fix_poly(poly_t *system, poly_t *fixed_system, poly_t *assignment,
 
 uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 {
+
+  BEGIN_BENCH(g_solve_time)
+
   srand(RSEED);  // Seeding rand
 
   unsigned int new_n = n - FIXED_VARS;
@@ -156,6 +159,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
     memset(rand_sys, 0, sys_len * sizeof(poly_vec_t));
     uint8_t exit_code;
 
+    BEGIN_BENCH(g_matrix_time)
+
     for (int i = 0; i < (1 << FIXED_VARS) * 4; i++)
     {
       exit_code =
@@ -171,15 +176,28 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
       }
     }
 
+    END_BENCH(g_matrix_time)
+
     poly_t curr_potentials = 0;
+
+
+    BEGIN_BENCH(g_ek_time)
 
     poly_vec_t w = VEC_SUB(
         compute_e_k(rand_mat, rand_sys, fixed_system, sys_len, l, new_n),
         VEC_ASSIGN_ONE(n1));  // TODO: Change to take in arrays and compute
                               // vector (do not vectorize parities).
+    
+    END_BENCH(g_ek_time)
+
+
+    BEGIN_BENCH(g_recover_time); 
 
     exit_code = fes_recover_vectorized(system, rand_sys, new_n, n1,
                                        VEC_ADD(w, VEC_1), &curr_potentials);
+    
+    END_BENCH(g_recover_time);
+    
     switch (exit_code)
     {
       case 0:
@@ -189,6 +207,8 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
         *sol = curr_potentials;
 
+        END_BENCH(g_solve_time)
+
         return 0;
 
       case 1:
@@ -196,12 +216,16 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
         free(rand_mat);
         free(fixed_system);
         printf("fes_recover mem error\n");
+
+        END_BENCH(g_solve_time)
+
         return 1;
 
       default:
         break;
     }
   }
+  END_BENCH(g_solve_time)
 
   free(rand_sys);
   free(rand_mat);

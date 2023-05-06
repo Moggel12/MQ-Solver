@@ -487,6 +487,9 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
   {
     if (hamming_weight(si) > max_deg)
     {
+      g_recover_eval++;
+      BEGIN_BENCH(g_recover_eval_time)
+
       poly_t len_k = bits(si, k, max_deg);
 
       for (unsigned int j = len_k; j-- > 0;)
@@ -501,9 +504,14 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
 
         d[idx] = VEC_BLEND(d[idx], added, mask);
       }
+
+      END_BENCH(g_recover_eval_time)
     }
     else
     {
+      g_recover_interp++;
+      BEGIN_BENCH(g_recover_interp_time)
+
       poly_t len_k = bits(si, k, max_deg);
 
       unsigned int gray_si = GRAY(si);
@@ -513,7 +521,11 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
         prefix[pos] = (1 & (gray_si >> pos));
       }
 
+      BEGIN_BENCH(g_fes_time) 
+
       s = part_eval(e_k_systems, prefix, n, n1, &parities, s);
+
+      END_BENCH(g_fes_time)
 
       if (!s)
       {
@@ -553,6 +565,8 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
           prev = VEC_BLEND(prev, tmp, mask);
         }
       }
+
+      END_BENCH(g_recover_interp_time)
     }
 
     if (_avx_sol_overlap(d[0]))
