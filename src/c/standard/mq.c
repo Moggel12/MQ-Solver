@@ -86,9 +86,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
   for (; k < MAX_HISTORY; k++)
   {
-#ifdef _DEBUG
     printf("# Commencing round %u\n", k);
-#endif
 
     memset(rand_sys, 0, amnt_sys_vars * sizeof(poly_t));
 
