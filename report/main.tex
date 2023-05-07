@@ -26,6 +26,7 @@
 \usepackage{lipsum}
 \usepackage{subcaption}
 \usepackage[hidelinks]{hyperref}
+\usepackage[capitalise]{cleveref}
 \usepackage{cleveref}
 \usepackage[style=numeric-comp]{biblatex}
 
@@ -91,6 +92,12 @@
     showtabs=false,                  
     tabsize=2
 }
+
+% Feedback
+\usepackage{ifthen}
+\usepackage{ulem}
+\newcommand{\phrase}[2][]{\textcolor{blue}{\textbf{\ifthenelse{\equal{#1}{}}{}{(#1)}} \uline{#2}}} % needs rephrase
+\newcommand{\comment}[1]{\textcolor{red}{\textbf{(#1)}}}
 
 \begin{document}
 
