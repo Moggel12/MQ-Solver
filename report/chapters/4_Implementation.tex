@@ -17,7 +17,7 @@ Other than the prototype code implemented in SageMath, a \textit{front-end} was 
 \textbf{SageMath implementation of SOLVE.}
 The top-level \texttt{solve} procedure can be found in the \texttt{src/sage/dinur.sage} file. To test it, one may call the \texttt{test\_sage\_solve()} function with appropriate parameters. This implementation of Dinur's algorithm tries to mimic the pseudo-code (see \cref{alg:solve}) closely, e.g. by using dictionaries for checking comparing solutions found in round $k$ with those of earlier rounds. However, by close inspection, one might see that there are few differences between the implementation and the pseudo-code still. In the pseudo-code, Dinur parameterizes the variable $n_1$, allowing variation on how it is chosen. The SageMath implementation fixes this to 
 $$
-    n_1 \approx \frac{n}{5.4}.
+    n_1 \approx \lceil \frac{n}{5.4} \rceil.
 $$
 The choice of fixing $n_1$ to this specific value stems from Dinur's proof of the time complexity of this algorithm. Setting the parameter to approximately $\frac{n}{5.4}$ ensures that the complexity is balanced between the time evaluating the $U$ polynomials and the time taken for computing the evaluations of $\Tilde{\mathcal{P}}$ in the set $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$. This can be altered in the SageMath source code itself if necessary, however, here it was kept simple.
 
@@ -46,11 +46,210 @@ U.append(mob_transform(V, ring_sub.gens(), w))
 for i in range(1, n1 + 1):
     U.append(mob_transform(ZV[i - 1], ring_sub.gens(), w+1))
 \end{lstlisting}
-using the appropriate parameters ($w$ for $U_0$ and $w + 1$ for the other $U_i$s). Here, the procedure also includes \texttt{sub\_ring} which essentially is a polynomial ring with indeterminates $x_0$ through $x_{n - n_1 - 1}$ instead of $x_0$ through $x_{n - 1}$, as the actual ring of $\mathcal{P}$. This is done due to the Möbius transform implementation being symbolic, meaning that it is computed using the recursion \td{DEFINE THE RECURSION SOMEWHERE}
+using the appropriate parameters ($w$ for $U_0$ and $w + 1$ for the other $U_i$s). Here, the procedure also includes \texttt{sub\_ring} which essentially is a polynomial ring with indeterminates $x_0$ through $x_{n - n_1 - 1}$ instead of $x_0$ through $x_{n - 1}$, as the $U$ polynomials are defined over $y$ being the first $n_1$ variables. Using this approach helped simplify the prototype implementation, as the Möbius transform then could be implemented by the recursive formula (see \cref{sec:prereq:poly_interp}). This does of course add the overhead of addition and multiplication using SageMath polynomial classes while potentially also using large amounts of stack-based memory. However, as the SageMath code acts as a prototyping platform, this is not required to change.
 
-\subsubsection{FES procedures}
+Although the traditional Möbius transform takes in either an array representing a polynomial to be evaluated or the full set of evaluations in order to interpolate a polynomial, the code called in the snippet above works as discussed originally intended by Dinur. The transform takes in sparse sets of evaluations in order to interpolate the $U_0$ and $U_i$ polynomials, with the weight values defining the recursion depth for the Möbius transform. \td{Finish paragraph}
 
-\subsubsection{Möbius Transform implementation}
+Note, the way that the procedure is implemented using the Möbius transform for interpolation and evaluation is not the most efficient, however, it does resemble the pseudo-code to quite a large degree. Should one be interested in implementing the Möbius transform in Python or SageMath and running the code with that instead, the code may be extended via the \texttt{mob\_new.sage} file. Also, the symbolic method of creating an array representing the polynomial, then evaluating and then converting the output to an array of evaluations (seen in the snippet below)
+\begin{lstlisting}[language=Python,style=mystyle]
+for i in range(n1 + 1):
+tmp = [0] * 2^(n-n1)
+for m in U[i].monomials():
+    if m == 1:
+        v = 0
+    else:
+        v = str(m)
+        v = v.replace('x', '')
+        v = [int(i) for i in v.split("*")]
+        v = sum([2^i for i in v])
+    tmp[v] = GF(2)(1)
+
+tmp = mob_transform(tmp, ring_sub.gens())
+
+evals[i] = [0] * 2^(n-n1)
+for m in tmp.monomials():
+    if m == 1:
+        v = 0
+    else:
+        v = str(m)
+        v = v.replace('x', '')
+        v = [int(i) for i in v.split("*")]
+        v = sum([2^i for i in v])
+  evals[i][v] = GF(2)(1)
+\end{lstlisting}
+should also see a revision if the Möbius transform is more "properly" implemented in \texttt{mob\_new.sage}.
+
+\td{DEFINE THE RECURSION SOMEWHERE}
+
+The remainder of this version ensures to convert the evaluations of the $U_i$ polynomials into the actual $z_i$ bit of an isolated solution, depending on the evaluation of $U_0$. The code can be seen below.
+\begin{lstlisting}[language=Python,style=mystyle]
+ for y_hat in range(2^(n - n1)):
+    if evals[0][y_hat] == 1:
+        if y_hat not in out: out[y_hat] = np.full(n1 + 1, GF(2)(0))
+        out[y_hat][0] = GF(2)(1)
+        for i in range(1, n1 + 1):
+            out[y_hat][i] = evals[i][y_hat] + 1
+\end{lstlisting}
+The output dictionary \texttt{out} is stored as a \texttt{defaultdict} essentially due to memory concerns. This of course adds processing, but it should be clear by now that execution speed was not always a priority in the SageMath code.
+
+If the caller alternatively sets the \texttt{fes\_recovery} parameter to \texttt{True}, the algorithm uses the FES-based interpolation and evaluation, described in \cref{sec:ext:fes_interp}. The gist of the code when going with a FES-based interpolation is the following (ignoring the timing code, of course):
+\begin{lstlisting}[language=Python,style=mystyle]
+_time_fes_recovery -= time.time()
+evals = fes_recover(system, n, n1, w + 1, ring)
+_time_fes_recovery += time.time()
+_time_fetch_sol -= time.time()
+for y_hat in range(2^(n - n1)):
+    if evals[y_hat] & 1 == 1:
+        if y_hat not in out: out[y_hat] = np.full(n1 + 1, GF(2)(0))
+        out[y_hat][0] = GF(2)(1)
+        for i in range(1, n1 + 1):
+            out[y_hat][i] = GF(2)((evals[y_hat] >> i) & 1) + 1
+_time_fetch_sol += time.time()
+\end{lstlisting}
+The most notable difference between the two approaches is the combination of interpolation and evaluation into one. Due to the fact that both the $U_0$ and the $U_i$ polynomials are interpolated in the same procedure, the \textit{weight} or \texttt{w} parameter is set to \texttt{w + 1} to accommodate for interpolation of both the $U_i$s and $U_0$.
+
+\textbf{Computing $U$-polynomial interpolation points.} Computing the interpolation points, used for the $U$-polynomials, takes place in much the same way as Dinur described it in \cite{cryptoeprint:2021/578}. The procedure \texttt{compute\_u\_values()} in \texttt{src/sage/dinur.sage} handles this, and is more or less the same setup as \cref{alg:uvalue}. One difference that affects performance is the use of dictionaries (\texttt{defaultdict} specifically), instead of lists, as the storage solution for the interpolation points. 
+\begin{lstlisting}[language=Python,style=mystyle]
+V = defaultdict(lambda: GF(2)(0))
+ZV = [defaultdict(lambda: GF(2)(0)) for _ in range(n1)]
+\end{lstlisting}
+As already discussed, regarding \texttt{output\_solutions()}, this choice was merely made due to memory concerns as the \texttt{defaultdict} serves as a way of doing lookups on non-existing keys without taking up too much valuable memory.
+
+Although the \texttt{bruteforce()} procedure is a product of Dinur's use case for the FES procedure, and not necessarily the brainchild of \cite{cryptoeprint:2013/436} and \cite{cryptoeprint:2010/313}, it is described in \cref{sec:impl:fes}.
+
+\subsubsection{FES procedures} \label{sec:impl:fes}
+
+\textbf{Bruteforce and FES as we know it:} One aspect of the \texttt{compute\_u\_values()} process that is different from \cite{cryptoeprint:2021/578} is the \texttt{bruteforce()} procedure described. The description in \cite{cryptoeprint:2021/578} leaves much to the imagination as it is only really stated that the FES procedure of \cite{cryptoeprint:2013/436} and \cite{cryptoeprint:2010/313} would be used to evaluate the sparse set of inputs, $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$. However, Dinur does make arguments for two general approaches and their performance penalties/impacts. These alternatives are described as either simply iterating through the set $W^{n - n_1}_{w + 1}$ while going through all $\{0,1\}^{n_1}$ values at each such iteration, or alternatively the use of \textit{monotonic gray codes}. The structure of monotonic gray codes was briefly mentioned in \cref{sec:prereq:fes:gray_codes}. Due to simplicity and the negligible performance penalty, the choice here was to use the former approach. 
+\td{Add monotonic gray code description in the section on gray codes}
+The \texttt{bruteforce()} procedure can be found in \texttt{src/sage/fes.sage} and is in essence rather simple. The function simply slices the polynomial system into $1 + n + \binom{n}{2}$ integers and uses the bit-sliced representation to actually run the FES procedure on the entire system at once. The procedure loops through a sequence of integers $i = 0, \dots 2^{n - n_1} - 1$ skipping any value of $i$ where the $hw(i) > d$ for a parameter $d = w + 1$. For each value of $i$ where $hw(i) \leq w + 1$, a \textit{prefix} is computed and stored as a list of indices for the $1$-bits in $i$.
+\begin{lstlisting}[language=python,style=mystyle]
+prefix = [pos for pos, b in enumerate(reversed(bin(i)[2:])) if b == "1"]
+\end{lstlisting}
+This prefix represents the value of $i$, by storing the indices of the 1-bits, and is used for representing the FES procedure \textit{state}.
+
+The FES procedure was not originally intended to evaluate across a sparse set of inputs and so some alterations had to be taken. First off, the FES code relies on a dataclass \texttt{State}:
+\begin{lstlisting}[language=Python,style=mystyle]
+@dataclass
+class State:
+    i: int
+    y: int
+    d1: list
+    d2: list
+    prefix: list
+\end{lstlisting}
+This class represents an intermediate state used in-between calls to the underlying FES procedure. The state, \texttt{s}, is updated whenever a new value of $i \in W^{n - n_1}_{n_1}$ is reached in the counter using the \texttt{update()} procedure:
+\begin{lstlisting}[language=Python,style=mystyle]
+s = update(s, system, n, n1, prefix)
+\end{lstlisting}
+The way this update process can be thought of is by interpreting the system as being partially evaluated on the bit representation of the counter $i$. Say $i = 5$ and $d = 6$, then $hw(i) = 2 < 6$ and so $i \in W^{n - n_1}_{w + 1}$. Because of this, we essentially partially evaluate the polynomials $p \in \mathcal{P}$ on the first $n - n_1$ variables using the binary representation of $i$. However, instead of going through the process of evaluating the polynomials $p$ in code, the \texttt{state} class acts as a representation of this. When a new counter value, $i' \in W^{n - n_1}_{w + 1}$, is reached the \texttt{update()} function ensures to \textit{turn on} or \textit{turn off} (set variables to 1 or 0, respectively) the bits off in the representation of $d_1$ and $d_2$ (see \cref{sec:prereq:fes} for reference) depending on which bits were turned off and which were turned on going from counter value $i$ to $i'$. An example of this process is the following code:
+\begin{lstlisting}[language=Python,style=mystyle]
+for idx in off:
+    for k in range(n1):
+        s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)] 
+    s.y ^^= f[idx + 1]
+\end{lstlisting}
+This snippet goes through all variables that are turned off, going from $i$ to $i'$, and adds the coefficient of the monomial $x_{idx}x_{k + n - n_1}$ to the value of $\frac{\partial f}{\partial x_{k + n - n_1}}$. If it is not clear from the example, adding $n - n_1$ to the indices is due to the fact that we "eliminate" the first $n - n_1$ variable of each $p \in \mathcal{P}$ by assigning them a value from $\{0,1\}$, and so the following FES procedure should only be concerned with searching for solutions for the partially evaluated polynomials (being of $n_1$ variables instead of $n$). Likewise, the "evaluation", or \texttt{s.y}, also takes effect of changing the values of the first $n - n_1$ variables, and so, for this reason, we must ensure to subtract the values of $\frac{\partial f}{\partial x_{idx}}$ from the evaluation \texttt{s.y}.
+
+Similarly, the \texttt{update()} function handles the effect of changing the assignment of some $x_{idx}$ on monomials $x_{idx}x_j$ where $j \leq (n - n_1)$. This process is then proceeded to account for variables in the prefix that are turned \textit{on} and at last assigns the \texttt{state.prefix} the value of \texttt{prefix}. Followingly, the procedure has updated the FES state, and accounted for the effects of changing some variable assignments (of the first $n - n_1$ variables) from $0$ to $1$ or conversely.
+
+The subsequent code in \texttt{bruteforce()} then may simply call the \texttt{fes\_eval()} procedure with the newly update state \texttt{s} as such:
+\begin{lstlisting}[language=Python,style=mystyle]
+sub_sol = fes_eval(system, n, n1, prefix, s)
+\end{lstlisting}
+which internally works much like the pseudo-code described in \cref{sec:prereq:fes}. The function \texttt{fes\_eval()} handles two cases, depending on whether or not it is used in tandem with \texttt{bruteforce()} or \texttt{fes\_recover()}. For now, this section will focus on the code of \texttt{bruteforce()} and related parts. The function declaration looks like
+\begin{lstlisting}[language=Python,style=mystyle]
+def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
+\end{lstlisting}
+where the \texttt{compute\_parity} parameter is set to false when called from \texttt{bruteforce()}, as this then ensures that the procedure returns solutions, like traditionally done in FES. The parameters of \texttt{f}, \texttt{n} and \texttt{n1}, should be clear to anyone that read \cref{sec:prereq}, or \cite{cryptoeprint:2021/578} and \cite{cryptoeprint:2013/436}. the parameters of \texttt{prefix} and \texttt{s} then relate to the state processing described just now.
+
+Whenever the \texttt{fes\_eval()} function is called with \texttt{s = None}, the code has to initiate a new state \texttt{s}. In the same vein as the \texttt{update()} function, the \texttt{init()} function (in \texttt{src/sage/fes.sage}) ensures to initiate the first and second derivatives according to the prefix that the system is being partially evaluated on. This leads to computations like
+\begin{lstlisting}[language=Python,style=mystyle]
+for idx in prefix:
+    for k in range(n1):
+        s.d1[k] ^^= f[lex_idx(idx, k + (n - n1), n)]
+\end{lstlisting}
+where the computation is very much like the one in \texttt{update()}. This initialization procedure also accounts for quadratic monomials, where we may assign both variables a value. Of course, other than initializing the state according to the current prefix the state also needs to be initialized in accordance with \cref{alg:fes_init}.
+
+Once the state has been initialized, the execution of \texttt{fes\_eval()} follows the ideas of \cref{alg:fes_eval} closely, again assuming the \texttt{compute\_parities} parameter is set to \texttt{False}. However, the procedure is essentially doing an exhaustive search on the space $\{0,1\}^{n_1}$, but we seek solutions from $W^{n - n_1}_{w + 1} \times \{0, 1\}^{n_1}$. Therefore, instead of storing the value of $s.i \oplus (s.i \rightshift 1)$ (the gray code value of \texttt{s.i}), the binary representation of the prefix has to be prepended to the bitstring as well. 
+
+Once all solutions have been found and stored with the currently set \textit{prefix}, the procedure may not yet return control to \texttt{bruteforce()}. Since the \texttt{state} is re-used and updated between successive calls to \texttt{fes\_eval()}, the state also has to reset certain values. That is, at the end of \texttt{fes\_eval()} the procedure resets \texttt{s.d1}, \texttt{s.d2} and \texttt{s.i} to the values they had at the beginning of the execution of \texttt{fes\_eval()}. The snippet here shows this process:
+\begin{lstlisting}[language=Python,style=mystyle]
+for i in range(n1-1):
+    s.d1[i] ^^= s.d2[n1-1][i]
+s.y ^^= s.d1[n1-1] ^^ s.d2[n1-1][n1-2]
+\end{lstlisting}
+where it is clear that the code essentially "subtracts" second derivatives added to the first derivative (during the search for solutions) for each of the first $n_1-1$ \textit{unassigned} variables. Following this, the procedure can reset \texttt{s.y}. Inspecting the xor operations of \cref{alg:fes_step}, it should be clear how this process resets \texttt{s.d1} and \texttt{s.y}. Of course, the counter in \texttt{s.i} is also reset to ensure that the next run of \texttt{fes\_eval()} only goes through $\{0,1\}^{n_1}$ as well. 
+\td{CONSIDER MORE VISUAL EXAMPLES}
+\td{CONSIDER SEPARATING BRUTEFORCE AND FES\_EVAL MORE}
+The last part of the \texttt{bruteforce()} procedure in \texttt{src/sage/fes.sage} adds the solutions obtained by \texttt{fes\_eval} as lists of $GF(2)$ elements. Once all prefixes, or all values of $W^{n - n_1}_{w + 1}$, have been processed the algorithm returns all solutions found to the caller.
+
+\textbf{FES-based recovery:} The procedures STEP, $\text{BIT}_1$, and $\text{BIT}_2$ from \cref{alg:fes_step} are all implemented in a quite straightforward manner, meaning that they will not be explained here. In return, the \texttt{fes\_recover()} function from \texttt{fes\_rec.sage} probably deserves some explanation. There are essentially three parts to this function; \texttt{fes\_recover()} itself, \texttt{fes\_eval()} with \texttt{compute\_parities} set to \texttt{True} and \texttt{part\_eval()}. As the observant reader may have already noticed, the \texttt{fes\_recover()} function is an implementation of the procedure described in \cref{sec:ext:fes_interp}. As the idea of combining an interpolation and evaluation procedure, using FES-related means is a rather novel idea it was necessary to add this feature to the SageMath prototype as well. 
+
+The prototype \texttt{fes\_recover()} procedure acts similarly to the Möbius transform approach of \cref{alg:output}, as it fills an array of size $2^{n - n_1}$ with the evaluations of the $U$ polynomials. Unlike the "traditional" implementation in \texttt{output\_solutions()} of \texttt{src/sage/dinur.sage}, the implementation here bit-slices the $U$ polynomials, such that each of the $2^{n - n_1}$ entries hold $n_1 + 1$ bits in an integer. Due to this, the \texttt{output\_solutions()} function takes this bit-slicing into account as it computes the \texttt{out}-array when the function is called with \texttt{fes\_recovery} set to \texttt{True}.
+\td{CHECK DESCRIPTION OF OUTPUT\_SOL AND SEE IF IT MATCHES}
+Given its dependence on interpolating the $U$ polynomials via the same set of inputs, $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$, the procedure uses the \texttt{state} class from \texttt{src/sage/fes.sage}, described earlier in this section. Alongside the \texttt{state} class, a prefix also has to be stored, just as was described earlier. The most interesting addition is that of the dictionary \texttt{d}. Since the interpolation and evaluation are over the $U$ polynomials, the \texttt{fes\_eval()} code may not be reused as it only supports quadratic polynomials. Therefore, the procedures described in \cref{alg:fes_step}, \cref{alg:fes_eval}, and \cref{alg:fes_init} are no longer sufficient, as was also described in \cref{sec:ext:fes_interp}. The derivatives now have to be a table instead of independent arrays, as it is not known in advance the degree of $U$ and the level of partial derivatives needed.
+
+Fundamentally, the way the table \texttt{d} stores derivative values of varying degrees is by simply interpreting the counter \texttt{si} as a bitstring, and then selecting maximally \texttt{degree} 1-bits of this bit-string. An example of this is $si = 101101_2$ and $degree = 3$, where the index would be $si = 1101_2 = 13$. This is computed using the \texttt{bits()} function, returning an array of indices for all 1-bits in $si$:
+\begin{lstlisting}[language=Python,style=mystyle]
+k = bits(si)[:degree]
+\end{lstlisting}
+The value \texttt{k} is here simply an array of such indices. This is much the same as $\text{BIT}_1$ and $\text{BIT}_2$ in \cref{alg:fes_step}, just now generally instead. The values in this array \texttt{k} are then used to compute the indices into the derivative table, according to which monomial $si$ represents. An example of the computation of indices into \texttt{d} is:
+\begin{lstlisting}[language=Python,style=mystyle]
+d[sum([2^i for i in k[:j-1]])]
+\end{lstlisting}
+It should further be noted that index $0$ in \texttt{d} represents the evaluation of \texttt{si} on the $U$ polynomials. 
+
+Then, as the procedure seeks to evaluate the $U$ polynomials on $\{0,1\}^{n - n_1}$, it goes through all values $i = 0, \dots 2^{n - n_1}$. At each iteration, the procedure makes a choice about interpolating or evaluating given the current iteration count $i$. In much the same sense as interpolation using the Möbius transform on sparse inputs, the interpolation of \texttt{fes\_recover} occurs whenever the counter value has $hw(i) < d$ where $d$ is the \textit{degree} specified through the \texttt{degree} parameter to \texttt{fes\_recover}. In all other cases, the procedure conversely evaluates the polynomial, given the interpolations computed.
+
+Focusing on the interpolation part for a bit, it can be seen that the line
+\begin{lstlisting}[language=Python,style=mystyle]
+s, new_parities = part_eval(system, prefix, n, n1, s)
+\end{lstlisting}
+is rather prominent, whether it be for interpolating $i = 0$ or $i > 0$. The prefix, much like in \texttt{bruteforce()}, represents the input to the various $U$ polynomials; $U(prefix)$. Internally, the \texttt{part\_eval()} function updates the state \texttt{s} and computes \textit{parities}. These parities are then simply returned alongside the updated state \texttt{s}. This behavior of \texttt{fes\_eval()} is of course invoked by the \texttt{compute\_parities} parameter being set to \texttt{True}. It may be worth noting here that the parities computed in \texttt{fes\_eval()} are computed through the solutions of each $r \in \Tilde{\mathcal{P}_k}$ generated in \cref{alg:solve}. Therefore, even though the \texttt{fes\_recover()} procedure as a whole requires evaluation of degree $d$ polynomials, it still internally uses quadratic polynomials to interpolate and evaluate the $U$ polynomials. It essentially boils down to \texttt{fes\_recover()} having two different kinds of FES in use.
+
+Now, the \textit{parities} are nothing more than the values computed in \texttt{compute\_u\_values()}, however, this time they are computed directly in \texttt{fes\_eval()}. An example of the parity computation in \texttt{fes\_eval()} is 
+\begin{lstlisting}[language=Python,style=mystyle]
+parities ^^= 1
+z = (s.i ^^ (s.i >> 1))
+for pos in range(n1):
+    if z & (1 << pos) == 0:
+        parities ^^= (1 << (pos + 1))
+\end{lstlisting}
+Again, this is bit-sliced and so each integer contains $n_1 + 1$ bits, corresponding to each of the $U$ polynomials. The snippet above is the \textit{parity computing} version of the main loop of \cref{alg:fes_eval}. Comparing the snippet above to the main loop of \texttt{compute\_u\_values()} (or \cref{alg:uvalue}) it should be clear that these are more-or-less the same computations. Setting \texttt{compute\_parities} in \texttt{fes\_eval()} to \texttt{True} does not affect anything else than how solutions are handled when encountered. This also means that the derivative table \texttt{d} stores derivative values in a bit-sliced format.
+
+Once the \textit{parities} of a certain prefix have been computed, they may be stored in the derivative table immediately as these represent an evaluation of the $U$ polynomials. Once these have been stored, we may do the computations described in \cref{sec:ext:fes_interp} in order to interpolate related derivative table entries and store them for later use. This process is implemented in the following way:
+\begin{lstlisting}[language=Python,style=mystyle]
+prev = d[0]
+d[0] = new_parities
+for j in range(1, len(k)+1):
+    if j < len(k):
+        tmp = d[sum([2^i for i in k[:j]])]
+    d[sum([2^i for i in k[:j]])] = int(d[sum([2^i for i in k[:j-1]])]) ^^ int(prev)
+    if j < len(k):
+        prev = tmp
+\end{lstlisting}
+Here, the \textit{backtracking} steps for interpolating the derivative table, as described in \cref{sec:ext:fes_interp}, should be clear.
+\td{BE SURE TO ADD GOOD DESCRIPTION OF GGCE (GENERAL FES)}
+
+Conversely, if the hamming weight of the counter is sufficiently high, $hw(si) > degree$, we are in a position to evaluate the polynomials instead of interpolating. This process does not need the parity computation, as the low hamming weight entries in the derivative table have already been updated by earlier interpolation steps, as explained in \cref{sec:ext:fes_interp}. Therefore, the code is simply going bottom-up computing the high-order derivatives first, as explained in \cref{sec:ext:fes_interp}. For these computations, the first \texttt{degree} 1-bits of $si$ are once more used in order to compute the derivative table entries required. The following snippet shows these computations:
+\begin{lstlisting}[language=Python,style=mystyle]
+k = bits(si)[:degree]
+for j in reversed(range(0, len(k))):
+    d[sum([2^i for i in k[:j]])] = int(d[sum([2^i for i in k[:j]])]) ^^ int(d[sum([2^i for i in k[:j+1]])])
+fes_time_eval += time.time()
+\end{lstlisting}
+Examining the snippet above, one may observe the converse nature of the interpolation snippet from earlier in contrast to the snippet here. This should show how evaluation and interpolation are functioning via the same principles.
+\td{BE SURE TO EXPLAIN INTERPOLATION AND EVALUATION STUFF IN EXTENSIONS SECTION ALONGSIDE GGCE.}
+
+Once the current iteration either finished interpolation or evaluation, the procedure stores the \texttt{d[0]} value in the array of evaluations:
+\begin{lstlisting}[language=Python,style=mystyle]
+res[si ^^ (si >> 1)] = d[0]
+\end{lstlisting}
+Given that this approach is a variant of FES, the evaluations stored in \texttt{d[0]} are the result of evaluating the $U$ polynomials on the gray code value of \texttt{si}, and must therefore be stored accordingly in the \texttt{res} array.
+
+This approach of combining the two may help further mitigate memory problems by possibly adding some computational needs, though nothing theory-breaking, while still conforming to the intent of the Möbius transform in \cref{alg:output}. Evaluations and thoughts on this approach can be found in the \cref{sec:impl:c} section as well as \cref{sec:eval}.
+
+\subsubsection{Möbius Transform and utilities}
 
 \subsection{Core algorithms in \texttt{C}} \label{sec:impl:c}
 %\begin{enumerate}
@@ -68,21 +267,49 @@ using the appropriate parameters ($w$ for $U_0$ and $w + 1$ for the other $U_i$s
 
 \subsection{Optimizations}
 
-\begin{enumerate}
-    \item Tight integration of U-value computation with polynomial interpolation and full evaluation
-    \item Sparse Möbius transform
-    \item FES-recover
-    \item Monotonic gray codes for bruteforce sub procedure
-    \item \texttt{C}-specific optimizations
-    \item Handling memory
-    \item Concurrency
-\end{enumerate}
+% \begin{enumerate}
+%     \item Tight integration of U-value computation with polynomial interpolation and full evaluation
+%     \item Sparse Möbius transform
+%     \item FES-recover
+%     \item FES-recover derivative table
+%     \item \texttt{C}-specific optimizations
+%     \item Handling memory
+%     \item Concurrency
+% \end{enumerate}
+
+\subsubsection{Vectorization}
 
 \subsubsection{Fast Exhaustive Search}
 
 \subsubsection{Dinur's solver}
 
-\subsection{Compilation and compile-time parameters}
+\subsection{Testing the code}
+The following subsection contains some brief notes on the testing methodology and how it was executed. For more on how to run and test different areas of the code-base, see the \texttt{README.md} file in the accompanying repository.
+
+\subsubsection{SageMath}
+
+For each of the procedures implemented in Python or SageMath, the accompanying test functions can be found in the same file as the procedure being tested. I.e. tests related to \texttt{bruteforce()} and \texttt{fes\_eval()} can be found in \texttt{src/sage/fes.sage}, while tests related to \texttt{solve()}, \texttt{output\_potentials} and \texttt{compute\_u\_values()} are found in \texttt{src/sage/dinur.sage}.
+
+Since this SageMath prototype would eventually act as a reference point for the C implementation, the testing approach was to essentially create unit tests for select parts of the code base. For procedures such as \texttt{output\_potentials}, the testing methodology was to evaluate the $U$ polynomials in their entirety. I.e.
+\begin{lstlisting}[language=Python,style=mystyle]
+si = sum(F_tilde(*convert(y, n - n1), *convert(z_hat, n1 - 1)[:i - 1], 0, *convert(z_hat, n1 - 1)[i - 1:]) for z_hat in range(2^(n1 - 1)))
+\end{lstlisting}
+is the computation of the sums related to the $U_i$ polynomials ($i = 1, \dots n_1$). This testing strategy, where values for the theoretical constructs are computed directly and compared against the outputs of their target procedures, is repeated whenever possible. This way, the testing process is not bound to only run with test cases where answers are known in advance. In addition, the testing framework allows for generating multiple systems and storing any input system that would fail in a test, so it may be reused later.
+
+These tests may be run using the \texttt{run.py} script with the \texttt{-t} flag, specifying what test should be run. To list all available tests, use the \texttt{-l} flag. Information about the \texttt{run.py} script can be found in the accompanying \texttt{README.md} file and partly in \cref{sec:impl:interface}.
+
+\subsubsection{C code}
+
+For the C implementation, there are different levels of tests. Either one may compile the \texttt{bin/test} binary, using the appropriate compilation flags and targets (see \cref{sec:impl:compile}, or alternatively one may run tests using the shared library \texttt{bin/mq.so} (if compiled). In both cases, the results of the C implementations are compared against relevant reference points in the SageMath code implementations. This way, going from the unit tests for the SageMath code, we may compare directly the C code to the verified SageMath code. The test functions for the C code may also be run via the \texttt{run.py} script.
+
+Running tests with the \texttt{bin/test} executable file memory sanitizers, and debugging information are enabled. These tests are used for testing procedures like the computation of the $\Tilde{P}_k$ \textit{sub}-systems and comparing it against the SageMath version. In general, these tests are fed relevant inputs via the SageMath code as well as the desired result(s) and checks against them internally. All these tests may be found in \texttt{src/sage/dinur.sage} and contain a postfix of \texttt{\_SAN} in their function name.
+
+The alternative is to test different functions using the \texttt{bin/mq.so} shared library. Other than testing for correctness, these tests also help test the bridge between shared library and Python/SageMath. Like the tests for the SageMath code itself, these tests may be found in the related \texttt{.sage} files; tests for \texttt{fes()} and \texttt{bruteforce()} may be found in \texttt{fes.sage}, \texttt{fes\_recover()} in \texttt{src/sage/fes\_rec.sage}, etc.
+
+\subsection{Interface for running the C code} \label{sec:impl:interface}
+
+
+\subsection{Compilation and compile-time parameters} \label{sec:impl:compile}
 The accompanying Makefile has the ability to conform to multiple platforms using either vectorized instructions or building for machines with different register sizes. Building any of these different targets requires altering the \texttt{BTIS} flag when calling the \texttt{make}. Setting \texttt{BITS} to 8, 16, 32, or 64 means building the non-AVX optimized version, but regulates the integer sizes used to store the polynomials and solutions to the given width. Specifying 128 or 256 means that the build uses 128-bit or 256-bit registers, respectively. 
 
 The default target creates the file \texttt{bin/mq.so}, ready for dynamic linking into other projects, with \texttt{-O3} optimization. This shared object is described further in \cref{sec:impl:c}. Running \texttt{make tests} will create an executable \texttt{bin/test} with memory sanitizers and debug flags enabled. 

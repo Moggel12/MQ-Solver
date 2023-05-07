@@ -2,8 +2,10 @@
 
 \subsection{Polynomial method for solving MQ systems} \label{sec:prereq:polymethod}
 
-\subsection{Fast exhaustive search for multivariate polynomials} \label{sec:prereq:fes}
+\subsection{Fast exhaustive search for multivariate polynomials}
+\label{sec:prereq:fes}
 \td{ADD DESCRIPTION OF PREPROCESSING POLYNOMIALS}
+\td{ADD EXAMPLE SECTION}
 The fast exhaustive search procedure for polynomials over $\eff_2$, \cite{cryptoeprint:2010/313, cryptoeprint:2013/436}, is an important algorithm in the realm of practical MQ-solvers. This algorithm, typically denoted \textit{FES}, is an exhaustive search algorithm for polynomial systems with coefficients in $\eff_2$ in $n$ variables and $m$ polynomials of degree $d$. FES seeks to minimize the operations needed when computing all solutions of a system of multivariate polynomials. The algorithm can be implemented nicely in practice, with good use of the parallelization resources present in modern computers. The algorithm needs $2d\cdot \log_2n \cdot 2^n$ bit operations (in expectation) for systems of quadratic polynomials, and is a core element in Dinur's polynomial-method algorithm from \cite{cryptoeprint:2021/578}.
 
 The main FES procedure is shown in \cref{alg:fes_eval} with the helper functions \cref{alg:fes_init} and \cref{alg:fes_step}. This merely serves to give context to the following subsections.
@@ -117,6 +119,26 @@ Two important ideas for obtaining a sufficient parallelization of the combined p
 The approach used by the authors of \cite{cryptoeprint:2010/313, cryptoeprint:2013/436} was therefore to select $w$ polynomials, fixing $k$ variables and producing $2^k$ smaller systems of $w$ polynomials which are searched using the recursive procedure described in \cref{sec:prereq:fes:exh_g_code}. Any common zero of these systems is then checked against the remaining $m-w$ polynomials. This approach achieves the proclaimed complexity of $2d\cdot\log_2 n \cdot 2^n$, as proved in \cite{cryptoeprint:2010/313}, which consequently is the one Dinur requires for his polynomial-method algorithm of \cite{cryptoeprint:2021/578}.
 
 \subsection{Polynomial interpolation} \label{sec:prereq:poly_interp}
+Polynomial interpolation is quite an important concept in terms of Dinur's polynomial-method algorithm. The Möbius transform, as described in \cite{joux2009algorithmic}, enables obtaining the algebraic normal form (ANF) of a boolean function using its truth table as input. The algebraic normal form of a boolean function $f$ is written
+$$
+    f(x_0, \dots x_{n - 1}) = \bigoplus_{(a_0,\dots a_{n - 1}) \in \eff_2^n} g(a_0, \dots a_{n - 1})) \prod_i x_i^{a_i}
+$$
+where $g$ is the Möbius transform. The Möbius transform $g$ is a boolean function itself and may therefore be implemented using bit operations.
+
+The Möbius transform of a boolean function $f$ on $n$ variables is given through the formula
+$$
+    f(x_0, \dots x_{n - 1}) = f^{(0)}(x_0, \dots x_{n - 2}) \oplus f^{(1)}(x_0, \dots x_{n - 2}) \cdot x_{n - 1}
+$$
+where $f^{(0)}$ and $f^{(1)}$ are defined as 
+\begin{equation*}
+    \begin{split}
+        f^{(0)}(x_0, \dots x_{n - 2}) &= f(x_0, \dots x_{n - 2}, 0), \\
+        f^{(1)}(x_0, \dots x_{n - 2}) &= f(x_0, \dots x_{n - 2}, 0) \oplus f(x_0, \dots x_{n - 2}, 1).
+    \end{split}
+\end{equation*}
+Now, a nice side effect of this definition is that the Möbius transform is an involution, and so we may both obtain the ANF of a boolean function/polynomial $f$ via its truth table but may also use the polynomial as input and obtain its truth table, i.e. a full evaluation on its input-space.
+\td{Finish subsection}
+\subsubsection{Transformations on partial data}
 
 \subsection{Dinur's polynomial-method algorithm}
 A specific instance of the polynomial-method type algorithms for solving multivariate quadratic polynomial systems (see \cref{sec:prereq:polymethod}) is the algorithm of \cite{cryptoeprint:2021/578}, due to Dinur. As the title of the thesis states, this will be the algorithm in focus.
@@ -127,12 +149,11 @@ A specific instance of the polynomial-method type algorithms for solving multiva
 % Describe z_i \leftarrow 0
 
 For the following sub-section to make sense, some notation is due, all of which is borrowed from \cite{cryptoeprint:2021/578}.
-
-Let $W^n_w$ be the set $\{x \in \{0, 1\}^n \mid HW(x) \leq w \}$, where $HW(x)$ is the hamming weight of a vector $x$. 
-
-Let $\binom{n}{\downarrow w} = \sum^w_{i = 0} \binom{n}{i}$. This is also the size of the set $W^n_w$.
-
-The subscript $z_i \leftarrow 0$ implies that a polynomial $p_{z_i \leftarrow 0}(y,z)$ has it's $i$th $z$-bit set to zero.
+\begin{itemize}
+    \item Let $W^n_w$ be the set $\{x \in \{0, 1\}^n \mid HW(x) \leq w \}$, where $HW(x)$ is the hamming weight of a vector $x$. 
+    \item Let $\binom{n}{\downarrow w} = \sum^w_{i = 0} \binom{n}{i}$. This is also the size of the set $W^n_w$.
+    \item The subscript $z_i \leftarrow 0$ implies that a polynomial $p_{z_i \leftarrow 0}(y,z)$ has it's $i$th $z$-bit set to zero.
+\end{itemize}
 
 \subsubsection{Complexities}
 
@@ -220,7 +241,7 @@ Once the $U_i$ polynomials have been interpolated in \cref{alg:output:mob_0} and
         \caption{OUTPUT\_POTENTIALS($\Tilde{\mathcal{P}}$, $n$, $n_1$, $w$)}
         \label{alg:output}
         \KwIn{$\Tilde{\mathcal{P}}$: $\{r_i(\mathbf{x})\}_{i = 0}^{\ell - 1}$, $n$: Integer, $n_1$: Integer, $w$: Integer}
-        \KwResult{A two-dimensional list of size $(n - n_1) \times (n_1 + 1)$ containing the $z_i$ bits, $y$ bits and $U_0(y)$ bit.}
+        \KwResult{A two-dimensional list of size $2^{n - n_1} \times (n_1 + 1)$ containing the $z_i$ bits, $y$ bits and $U_0(y)$ bit.}
         $(V, ZV[0,\dots(n_1 - 1)]) \gets $ COMPUTE\_U\_VALUES($\Tilde{\mathcal{P}}$, $n$, $n_1$, $w$)\; \label{alg:output:uvalues}
         $U_0 \gets$ MOB\_TRANSFORM($V$[$0\dots |W^{n - n_1}_{w}| - 1$])\; \label{alg:output:mob_0}
         \ForEach{$i = 1\dots n_1$}{
