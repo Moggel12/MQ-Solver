@@ -14,7 +14,7 @@ Other than the prototype code implemented in SageMath, a \textit{front-end} was 
 \td{INSERT HOW TO CALL SAGE CODE}
 
 \subsubsection{Dinur's core procedures}
-\textbf{SageMath implementation of SOLVE.}
+\paragraph{SageMath implementation of SOLVE.}
 The top-level \texttt{solve} procedure can be found in the \texttt{src/sage/dinur.sage} file. To test it, one may call the \texttt{test\_sage\_solve()} function with appropriate parameters. This implementation of Dinur's algorithm tries to mimic the pseudo-code (see \cref{alg:solve}) closely, e.g. by using dictionaries for checking comparing solutions found in round $k$ with those of earlier rounds. However, by close inspection, one might see that there are few differences between the implementation and the pseudo-code still. In the pseudo-code, Dinur parameterizes the variable $n_1$, allowing variation on how it is chosen. The SageMath implementation fixes this to 
 $$
     n_1 \approx \lceil \frac{n}{5.4} \rceil.
@@ -40,7 +40,7 @@ def eval_system(system, sol):
     return not any(f(*sol) for f in system)
 \end{lstlisting}
 
-\textbf{Outputting isolated solutions in reality.} The function \texttt{output\_potentials} is the SageMath equivalent of \cref{alg:output}. With the purpose of computing isolated solutions using the $U$ polynomials, the SageMath implementation takes two approaches, as noted earlier. The \texttt{fes\_recovery} parameter chooses either a FES-based interpolation and evaluation or the traditional method of using the boolean Möbius transform and using \texttt{compute\_u\_values()}. With the "traditional" method of computing isolated solutions, the code first obtains \texttt{V} and \texttt{ZV}, being a \texttt{defaultdict} and list of \texttt{defaultdict}. Once those have been saved, the procedure goes on to interpolate the $U$ polynomials and store them in an array, \texttt{U}:
+\paragraph{Outputting isolated solutions in reality.} The function \texttt{output\_potentials} is the SageMath equivalent of \cref{alg:output}. With the purpose of computing isolated solutions using the $U$ polynomials, the SageMath implementation takes two approaches, as noted earlier. The \texttt{fes\_recovery} parameter chooses either a FES-based interpolation and evaluation or the traditional method of using the boolean Möbius transform and using \texttt{compute\_u\_values()}. With the "traditional" method of computing isolated solutions, the code first obtains \texttt{V} and \texttt{ZV}, being a \texttt{defaultdict} and list of \texttt{defaultdict}. Once those have been saved, the procedure goes on to interpolate the $U$ polynomials and store them in an array, \texttt{U}:
 \begin{lstlisting}[language=Python,style=mystyle]
 U.append(mob_transform(V, ring_sub.gens(), w))
 for i in range(1, n1 + 1):
@@ -108,7 +108,7 @@ _time_fetch_sol += time.time()
 \end{lstlisting}
 The most notable difference between the two approaches is the combination of interpolation and evaluation into one. Due to the fact that both the $U_0$ and the $U_i$ polynomials are interpolated in the same procedure, the \textit{weight} or \texttt{w} parameter is set to \texttt{w + 1} to accommodate for interpolation of both the $U_i$s and $U_0$.
 
-\textbf{Computing $U$-polynomial interpolation points.} Computing the interpolation points, used for the $U$-polynomials, takes place in much the same way as Dinur described it in \cite{cryptoeprint:2021/578}. The procedure \texttt{compute\_u\_values()} in \texttt{src/sage/dinur.sage} handles this, and is more or less the same setup as \cref{alg:uvalue}. One difference that affects performance is the use of dictionaries (\texttt{defaultdict} specifically), instead of lists, as the storage solution for the interpolation points. 
+\paragraph{Computing $U$-polynomial interpolation points.} Computing the interpolation points, used for the $U$-polynomials, takes place in much the same way as Dinur described it in \cite{cryptoeprint:2021/578}. The procedure \texttt{compute\_u\_values()} in \texttt{src/sage/dinur.sage} handles this, and is more or less the same setup as \cref{alg:uvalue}. One difference that affects performance is the use of dictionaries (\texttt{defaultdict} specifically), instead of lists, as the storage solution for the interpolation points. 
 \begin{lstlisting}[language=Python,style=mystyle]
 V = defaultdict(lambda: GF(2)(0))
 ZV = [defaultdict(lambda: GF(2)(0)) for _ in range(n1)]
@@ -119,7 +119,7 @@ Although the \texttt{bruteforce()} procedure is a product of Dinur's use case fo
 
 \subsubsection{FES procedures} \label{sec:impl:fes}
 
-\textbf{Bruteforce and FES as we know it:} One aspect of the \texttt{compute\_u\_values()} process that is different from \cite{cryptoeprint:2021/578} is the \texttt{bruteforce()} procedure described. The description in \cite{cryptoeprint:2021/578} leaves much to the imagination as it is only really stated that the FES procedure of \cite{cryptoeprint:2013/436} and \cite{cryptoeprint:2010/313} would be used to evaluate the sparse set of inputs, $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$. However, Dinur does make arguments for two general approaches and their performance penalties/impacts. These alternatives are described as either simply iterating through the set $W^{n - n_1}_{w + 1}$ while going through all $\{0,1\}^{n_1}$ values at each such iteration, or alternatively the use of \textit{monotonic gray codes}. The structure of monotonic gray codes was briefly mentioned in \cref{sec:prereq:fes:gray_codes}. Due to simplicity and the negligible performance penalty, the choice here was to use the former approach. 
+\paragraph{Bruteforce and FES as we know it:} One aspect of the \texttt{compute\_u\_values()} process that is different from \cite{cryptoeprint:2021/578} is the \texttt{bruteforce()} procedure described. The description in \cite{cryptoeprint:2021/578} leaves much to the imagination as it is only really stated that the FES procedure of \cite{cryptoeprint:2013/436} and \cite{cryptoeprint:2010/313} would be used to evaluate the sparse set of inputs, $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$. However, Dinur does make arguments for two general approaches and their performance penalties/impacts. These alternatives are described as either simply iterating through the set $W^{n - n_1}_{w + 1}$ while going through all $\{0,1\}^{n_1}$ values at each such iteration, or alternatively the use of \textit{monotonic gray codes}. The structure of monotonic gray codes was briefly mentioned in \cref{sec:prereq:fes:gray_codes}. Due to simplicity and the negligible performance penalty, the choice here was to use the former approach. 
 \td{Add monotonic gray code description in the section on gray codes}
 The \texttt{bruteforce()} procedure can be found in \texttt{src/sage/fes.sage} and is in essence rather simple. The function simply slices the polynomial system into $1 + n + \binom{n}{2}$ integers and uses the bit-sliced representation to actually run the FES procedure on the entire system at once. The procedure loops through a sequence of integers $i = 0, \dots 2^{n - n_1} - 1$ skipping any value of $i$ where the $hw(i) > d$ for a parameter $d = w + 1$. For each value of $i$ where $hw(i) \leq w + 1$, a \textit{prefix} is computed and stored as a list of indices for the $1$-bits in $i$.
 \begin{lstlisting}[language=python,style=mystyle]
@@ -183,7 +183,7 @@ where it is clear that the code essentially "subtracts" second derivatives added
 \td{CONSIDER SEPARATING BRUTEFORCE AND FES\_EVAL MORE}
 The last part of the \texttt{bruteforce()} procedure in \texttt{src/sage/fes.sage} adds the solutions obtained by \texttt{fes\_eval} as lists of $GF(2)$ elements. Once all prefixes, or all values of $W^{n - n_1}_{w + 1}$, have been processed the algorithm returns all solutions found to the caller.
 
-\textbf{FES-based recovery:} The procedures STEP, $\text{BIT}_1$, and $\text{BIT}_2$ from \cref{alg:fes_step} are all implemented in a quite straightforward manner, meaning that they will not be explained here. In return, the \texttt{fes\_recover()} function from \texttt{fes\_rec.sage} probably deserves some explanation. There are essentially three parts to this function; \texttt{fes\_recover()} itself, \texttt{fes\_eval()} with \texttt{compute\_parities} set to \texttt{True} and \texttt{part\_eval()}. As the observant reader may have already noticed, the \texttt{fes\_recover()} function is an implementation of the procedure described in \cref{sec:ext:fes_interp}. As the idea of combining an interpolation and evaluation procedure, using FES-related means is a rather novel idea it was necessary to add this feature to the SageMath prototype as well. 
+\paragraph{FES-based recovery:} The procedures STEP, $\text{BIT}_1$, and $\text{BIT}_2$ from \cref{alg:fes_step} are all implemented in a quite straightforward manner, meaning that they will not be explained here. In return, the \texttt{fes\_recover()} function from \texttt{fes\_rec.sage} probably deserves some explanation. There are essentially three parts to this function; \texttt{fes\_recover()} itself, \texttt{fes\_eval()} with \texttt{compute\_parities} set to \texttt{True} and \texttt{part\_eval()}. As the observant reader may have already noticed, the \texttt{fes\_recover()} function is an implementation of the procedure described in \cref{sec:ext:fes_interp}. As the idea of combining an interpolation and evaluation procedure, using FES-related means is a rather novel idea it was necessary to add this feature to the SageMath prototype as well. 
 
 The prototype \texttt{fes\_recover()} procedure acts similarly to the Möbius transform approach of \cref{alg:output}, as it fills an array of size $2^{n - n_1}$ with the evaluations of the $U$ polynomials. Unlike the "traditional" implementation in \texttt{output\_solutions()} of \texttt{src/sage/dinur.sage}, the implementation here bit-slices the $U$ polynomials, such that each of the $2^{n - n_1}$ entries hold $n_1 + 1$ bits in an integer. Due to this, the \texttt{output\_solutions()} function takes this bit-slicing into account as it computes the \texttt{out}-array when the function is called with \texttt{fes\_recovery} set to \texttt{True}.
 \td{CHECK DESCRIPTION OF OUTPUT\_SOL AND SEE IF IT MATCHES}
@@ -263,7 +263,6 @@ This approach of combining the two may help further mitigate memory problems by 
 %    \item Bitslicing
 %    \item Getting interpolation points for FES recover
 %\end{enumerate}
-
 
 \subsection{Optimizations}
 
