@@ -6,14 +6,26 @@
 \label{sec:prereq:fes}
 \td{ADD DESCRIPTION OF PREPROCESSING POLYNOMIALS}
 \td{ADD EXAMPLE SECTION}
-The fast exhaustive search procedure for polynomials over $\eff_2$, \cite{cryptoeprint:2010/313, cryptoeprint:2013/436}, is an important algorithm in the realm of practical MQ-solvers. This algorithm, typically denoted \textit{FES}, is an exhaustive search algorithm for polynomial systems with coefficients in $\eff_2$ in $n$ variables and $m$ polynomials of degree $d$. FES seeks to minimize the operations needed when computing all solutions of a system of multivariate polynomials. The algorithm can be implemented nicely in practice, with good use of the parallelization resources present in modern computers. The algorithm needs $2d\cdot \log_2n \cdot 2^n$ bit operations (in expectation) for systems of quadratic polynomials, and is a core element in Dinur's polynomial-method algorithm from \cite{cryptoeprint:2021/578}.
+The fast exhaustive search procedure for polynomials over $\eff_2$, \cite{cryptoeprint:2010/313, cryptoeprint:2013/436},
+\comment{Commas around citations are strange here...}
+is an important algorithm in the realm of practical MQ-solvers. This algorithm, typically denoted \textit{FES}, is an exhaustive search algorithm for polynomial systems with coefficients in $\eff_2$ in $n$ variables and $m$ polynomials of degree $d$. FES seeks to minimize the operations needed when computing all solutions of a system of multivariate polynomials. The algorithm can be implemented nicely
+\comment{What does 'nicely' mean?}
+in practice, with good use of the parallelization resources present in modern computers. The algorithm needs $2d\cdot \log_2n \cdot 2^n$ bit operations (in expectation)
+\comment{I believe that is the maximum... Check!}
+for systems of quadratic polynomials, and is a core element in Dinur's polynomial-method algorithm from \cite{cryptoeprint:2021/578}.
+
+\comment{I would recomment to provide an intuition here (see my mail on that)
+and to move and reference the algorithms, say, at the end of Section 2.2.2.}
 
 The main FES procedure is shown in \cref{alg:fes_eval} with the helper functions \cref{alg:fes_init} and \cref{alg:fes_step}. This merely serves to give context to the following subsections.
 
 \subsubsection{Gray codes} \label{sec:prereq:fes:gray_codes}
 \td{Revisit}
 
-An essential part of the innards of FES is that of \textit{gray codes} or \textit{reflected binary codes}. This is fundamentally an ordering of the binary numbers. In this ordering, any two consecutive numbers will differ in only \textit{one} bit. An example of this is the binary encoding of the decimal 3, using three bits, being $011_2$ whereas its corresponding gray code is $010_2$. The consecutive value, decimal 4, has the binary encoding $100_2$ and gray code $110_2$. These codes have various properties making them applicable in error correction, position encoders and more. The type of gray code used in the FES procedure from \cite{cryptoeprint:2010/313, cryptoeprint:2013/436} is not the only one, as multiple other types with different additional properties exist.
+An essential part of the innards of FES is that of \textit{gray codes} or \textit{reflected binary codes}. This is fundamentally an ordering of the binary numbers. In this ordering, any two consecutive numbers will differ in only \textit{one} bit. An example of this is the binary encoding of the decimal 3, using three bits, being $011_2$ whereas its corresponding gray code is $010_2$.
+\comment{So --- is it an ordering of numbers or an encoding of numbers? You can
+see it as either --- but don't mix!}
+The consecutive value, decimal 4, has the binary encoding $100_2$ and gray code $110_2$. These codes have various properties making them applicable in error correction, position encoders and more. The type of gray code used in the FES procedure from \cite{cryptoeprint:2010/313, cryptoeprint:2013/436} is not the only one, as multiple other types with different additional properties exist.
 
 To construct the sequence of all $n$-bit binary reflected gray codes, a recursive formulation can be used. The idea is, in each recursive step, to reflect-append-prepend. Starting with the sequence $0_2, 1_2$, one first \textit{reflects} the sequence (being $1_2, 0_2$) and \textit{appends} it to the original sequence. Lastly, one prepends $0$ to entries of the first half of this new sequence and a $1$ on the latter half. The sequence is now $00_2, 01_2, 11_2, 10_2$. These steps can then be repeated until the codes are formed of $n$ bits.
 
@@ -21,6 +33,8 @@ From the construction method just explained, it can be derived that constructing
 $$
     g_i = i \oplus (i \rightshift 1)
 $$
+\comment{The connection between the reflect-append-prepend construction and the
+formula is unclear from this explanation.}
 where $\rightshift$ denotes a logical right-shift operation in the binary representation of $i$ and $\oplus$ denotes the bit-wise \textit{xor} operation between two binary numbers. This formula can be derived by observing that inverting the bit at position $i$ of all binary encoded numbers in the sequence $0,\dots 2^{n} - 1$ will change the order of blocks of $2^i$ codewords.
 
 \subsubsection{Exhaustive Search using Gray Codes} \label{sec:prereq:fes:exh_g_code}
@@ -86,17 +100,22 @@ where $\rightshift$ denotes a logical right-shift operation in the binary repres
 \end{figure}
 
 \begin{defn}[] \label{sec2:def:bk}
-    Let $b_k(i)$ denote the $k$th lowest significant bit in the binary representation of the decimal $i$. If $i$ has hamming weight less than $k$, $b_k(i) = -1$.
+    Let $b_k(i)$ denote the $k$th lowest significant bit
+\comment{``least significant bit''?}
+in the binary representation of the decimal $i$. If $i$ has hamming weight less than $k$, $b_k(i) = -1$.
 \end{defn}
 
 \begin{defn}[Derivatives] \label{sec2:def:deriv}
     Let $\{\mathbf{e}_0, \dots, \mathbf{e}_{n-1}\}$ denote the canonical basis over the vector-space $(\eff_2)^n$. The derivative of a polynomial, $p$, in the ring $\eff_2[x_0,\dots,x_{n-1}]$ w.r.t. the $i$th variable is $\frac{\partial p}{\partial x_i} : \mathbf{x} \mapsto p(\mathbf{x} + \mathbf{e}_i) + p(\mathbf{x})$.
-\end{defn}
+\comment{Explain what this means.}
+\end{defn} 
 
-In order to minimize the amount of operations needed between iterations in an exhaustive search procedure, the authors of \cite{cryptoeprint:2010/313} suggests to look at inputs in gray code order. Examining inputs in gray code order allows for efficient use of partial derivatives for computing the output of one input based on the evaluation of the previous input. Inspecting \cref{sec2:def:deriv} reveals the foundation for this idea. In each iteration of the exhaustive search procedure $p(\mathbf{x}_i)$ needs to be evaluated. Using the gray code approach, only one variable in the input changes so $\mathbf{x}_i$ and $\mathbf{x}_{i - 1}$ differ in only the $j$th variable, meaning $p(\mathbf{x}_{i - 1} + \mathbf{e}_j) = p(\mathbf{x}_i)$. From \cref{sec2:def:deriv}, $$
+In order to minimize the amount of operations needed between iterations in an exhaustive search procedure, the authors of \cite{cryptoeprint:2010/313} suggests to look at inputs in gray code order.
+\comment{``gray code'' $\rightarrow$ ``Gray code'' (several times)}
+Examining inputs in gray code order allows for efficient use of partial derivatives for computing the output of one input based on the evaluation of the previous input. Inspecting \cref{sec2:def:deriv} reveals the foundation for this idea. In each iteration of the exhaustive search procedure $p(\mathbf{x}_i)$ needs to be evaluated. Using the gray code approach, only one variable in the input changes so $\mathbf{x}_i$ and $\mathbf{x}_{i - 1}$ differ in only the $j$th variable, meaning $p(\mathbf{x}_{i - 1} + \mathbf{e}_j) = p(\mathbf{x}_i)$. From \cref{sec2:def:deriv}, $$
     p(\mathbf{x} + \mathbf{e}_j) = p(\mathbf{x}) + \frac{\partial p}{\partial x_j}(\mathbf{x})
 $$ 
-which implies that the difference between two consecutive inputs in gray code order is $\frac{\partial p}{\partial x_j}(\mathbf{x}_{i - 1}) = \frac{\partial p}{\partial x_j}(\mathbf{x}_i)$, and was proven in \cite{tungchoumasters}. Therefore, storing $p(\mathbf{x}_i)$ adding $\frac{\partial p}{\partial x_j}(\mathbf{x}_{i-1}$ is sufficient for computing the next evaluation in a gray-code ordered input sequence.
+which implies that the difference between two consecutive inputs in gray code order is $\frac{\partial p}{\partial x_j}(\mathbf{x}_{i - 1}) = \frac{\partial p}{\partial x_j}(\mathbf{x}_i)$, and was proven in \cite{tungchoumasters}. Therefore, storing $p(\mathbf{x}_i)$ adding $\frac{\partial p}{\partial x_j}(\mathbf{x}_{i-1})$ is sufficient for computing the next evaluation in a gray-code ordered input sequence.
 
 In other terms, let $i = 0,\dots 2^n-1$ denote the iteration count of the FES procedure, or alternatively the current index into the gray code sequence of $n$-bit codewords. Between two consecutive steps of FES, say $i = 10$ and $i = 11$, the gray codes $g_{10} = 1111_2$ and $g_{11} = 1110_2$ differ in only the least significant bit. Letting $\mathbf{x}_{10}$ and $\mathbf{x}_{11}$ be vector forms of $g_{10}$ and $g_{11}$, respectively, the difference between $p(\mathbf{x}_{10})$ and $p(\mathbf{x}_{11})$ is exactly $\frac{\partial p}{\partial x_0}(\mathbf{x}_{11})$. In the previous example, since $x_0$ was the only variable that changed, the partial derivative w.r.t. $x_0$ represents the only parts of $p$ that change between evaluations of $\mathbf{x}_{10}$ and $\mathbf{x}_{11}$.
 
@@ -106,15 +125,22 @@ Letting $\mathbf{v}_i$ be the vector-form of the binary encoding of $\mathbf{x}_
 
 Due to this structure, FES is required to have initialized these derivative values for whenever it encounters the \textit{first toggle} of each bit, i.e. when \texttt{state.i + 1} sets a bit in a position that so far has been untouched. Therefore, some time is spent for pre-evaluating these derivative values directly. For the quadratic case, the pre-evaluation is done in \cref{alg:fes_init}, lines 10-13, equivalently the valued stored is $\frac{\partial p}{\partial x_k \partial x_{k-1}} + a_k$ for $a_k$ being the coefficient to the monomial $x_k$. An example where this is necessary is when evaluating $p(1,1,0,0)$, at which point no previous $\frac{\partial p}{\partial x_1}$ evaluations exist (if not initialized). This derivative would need to be initialized to $\frac{\partial p}{\partial x_1}(\mathbf{e}_0) = \frac{\partial p}{\partial x_1 \partial x_0}$, as is shown in \cite{tungchoumasters}. This last example assumes $p$ is a quadratic polynomial.
 
-To see that the recursive procedure above may be further optimized, one may observe that running such a procedure on a single polynomial, $p$, of degree $d$ yields a complexity of $O(d\cdot2^n)$ and consuming $O(n^d)$ bits of memory. These facts were proven in \cite{cryptoeprint:2010/313}. This paper further introduces smaller optimizations to the theoretical construction of the algorithm, such as removing computations of a \texttt{state.x} variable, which in \cref{fig:fes_subparts} have already been applied. As is also stated in \cite{cryptoeprint:2010/313}, this initial FES version may be parallelized quite nicely, due to the evaluation procedure doing computations independently from the coefficients of $p$. This means that running an instance per $p_i \in \mathcal{P} = \{p_0, \dots p_{m-1}\}$ is possible, where each instance is essentially running on independent data. Extending the values (e.g. \texttt{state.y}) of \cref{fig:fes_subparts} to be bit-vectors instead of a singular bit then yields a version of the recursive procedure that can find all common zeroes of a system in $O(2m2^n)$ bit operations. For \cref{alg:fes_init}, \cref{alg:fes_eval} and \cref{alg:fes_step}, the pseudo-code only represents FES on single polynomials, but should still be clear how to parallelize using bit-vectors and inputting entire systems $\mathcal{P}$ (with appropriate method calls) instead of single polynomials $p$. 
+To see that the recursive procedure above may be further optimized, one may observe that running such a procedure on a single polynomial, $p$, of degree $d$ yields a complexity of $O(d\cdot2^n)$ and consuming $O(n^d)$ bits of memory. These facts were proven in \cite{cryptoeprint:2010/313}. This paper further introduces smaller optimizations to the theoretical construction of the algorithm, such as removing computations of a \texttt{state.x} variable, which in \cref{fig:fes_subparts} have already been applied. As is also stated in \cite{cryptoeprint:2010/313}, this initial FES version may be parallelized quite nicely, due to the evaluation procedure doing computations independently from the coefficients of $p$.
+\comment{This part is a bit unclear...}
+\comment{Maybe introduce bitslicing as a principle..?}
+This means that running an instance per $p_i \in \mathcal{P} = \{p_0, \dots p_{m-1}\}$ is possible, where each instance is essentially running on independent data. Extending the values (e.g. \texttt{state.y}) of \cref{fig:fes_subparts} to be bit-vectors instead of a singular bit then yields a version of the recursive procedure that can find all common zeroes of a system in $O(2m2^n)$ bit operations. For \cref{alg:fes_init}, \cref{alg:fes_eval} and \cref{alg:fes_step}, the pseudo-code only represents FES on single polynomials, but should still be clear how to parallelize using bit-vectors and inputting entire systems $\mathcal{P}$ (with appropriate method calls) instead of single polynomials $p$. 
 
 \subsubsection{Early abort and Naive evaluation} \label{sec:prereq:fes:early_naive_eval}
+
+\comment{Unclear section; what is early abort and what is naive evaluation --- and how does each affect complexity?}
 
 The complexity of $O(2m2^n)$ bit operations is neither what the FES authors claim, \cite{cryptoeprint:2010/313, cryptoeprint:2013/436}, nor what Dinur necessitates, \cite{cryptoeprint:2021/578}. Using the procedure described earlier, further ideas may be used for a more efficient exhaustive search. Using the parallelization already mentioned, the authors of \cite{cryptoeprint:2010/313, cryptoeprint:2013/436} note that using an early abort strategy alongside the recursive algorithm already mentioned yields an algorithm which finds all common zeroes of $m$ polynomials in $log_2n \cdot 2^{n+2}$ bit operations. This early abort strategy is essentially to compute the common zeroes of $k$ polynomials (with a well-chosen $k$) in parallel, followed by then sequentially computing the common zeroes of the remainder of the polynomials. This last part is what \cite{cryptoeprint:2010/313, cryptoeprint:2013/436} denotes as \textit{candidate checking} as it boils down to checking only the common zeroes of the first $k$ polynomials, as any other evaluation point trivially cannot be a common zero of all $m$ polynomials.
 
 \subsubsection{Partial evaluation and FES}
 
 Two important ideas for obtaining a sufficient parallelization of the combined procedure (in practice) from \cref{sec:prereq:fes:exh_g_code} and \cref{sec:prereq:fes:early_naive_eval}; using bit-vectors for collecting bit operations of multiple polynomials in the system as well as \textit{partial evaluation}. By fixing $k$ variables, say $x_{n-k}$ to $x_{n-1}$, $2^k$ new systems may be obtained in which each $p_i \in \mathcal{P}$ is partially evaluated on some corresponding permutation of $k$ bits.
+
+\comment{Explain what ``fixing'' means.}
 
 The approach used by the authors of \cite{cryptoeprint:2010/313, cryptoeprint:2013/436} was therefore to select $w$ polynomials, fixing $k$ variables and producing $2^k$ smaller systems of $w$ polynomials which are searched using the recursive procedure described in \cref{sec:prereq:fes:exh_g_code}. Any common zero of these systems is then checked against the remaining $m-w$ polynomials. This approach achieves the proclaimed complexity of $2d\cdot\log_2 n \cdot 2^n$, as proved in \cite{cryptoeprint:2010/313}, which consequently is the one Dinur requires for his polynomial-method algorithm of \cite{cryptoeprint:2021/578}.
 
