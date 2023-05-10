@@ -5,8 +5,9 @@ import re
 import ctypes
 import subprocess
 import os
+import csv
 
-from src.sage.c_config import TEST_BIN_AVAILABLE
+from src.sage.c_config import TEST_BIN_AVAILABLE, C_BENCHMARK_VARS
 
 _REGEX_FIELD = r"Galois Field : GF\(2\)"
 _REGEX_NUM_VARS = r"Number of variables \(n\) : (\d+)"
@@ -55,6 +56,15 @@ def fetch_c_func(func_name, args=None, res=None, test=False):
     if args: c_func.argtypes = args
     if res: c_func.restype = res
     return c_func
+
+def fetch_global(name):
+    if TEST_BIN_AVAILABLE:
+        print("Cannot fetch from test executable.")
+        return
+    sage_dir = os.path.dirname(__file__)
+    libc = ctypes.CDLL(os.path.join(sage_dir, "../../bin/mq.so"))
+    global_var = ctypes.c_size_t.in_dll(libc, name)
+    return global_var.value
 
 def run_bin_test(input_data):
     file_test = os.path.join(os.path.dirname(__file__), "../../bin/test")
@@ -145,15 +155,15 @@ def read_contents(contents):
         print(f"{WARNING}Beware: Loaded system was not stored with a known solution.{CLEAR}")
     return system
 
-def parse_fukuoka(file_path, print_system=False):
-    print("This functionality assumes graded reverse lex order as the monomial order for all polynomials in the system.", end="\n\n")
+def parse_fukuoka(file_path, suppress_print=False):
+    if not suppress_print: print("This functionality assumes graded reverse lex order as the monomial order for all polynomials in the system.", end="\n\n")
     with open(file_path, "r") as file:
         contents = file.read()
         system = read_contents(contents)
         if system == None:
             print("Please run parser again after the input file has been fixed")
             return
-    if print_system:
+    if not suppress_print:
         print(f"System consists of {system[1]} polynomials in {system[0]} variables.")
         print("Polynomials:")
         for poly in system[2]:
@@ -194,10 +204,10 @@ def random_systems_with_sol(m_low, m_high, n_low, n_high, amount):
     print("Finished generating systems")
     return systems
 
-def read_system(fname):
+def read_system(fname, suppress_print=False):
     sol = None
-    sys_tuple = parse_fukuoka(fname)
-    print(fname)
+    sys_tuple = parse_fukuoka(fname, suppress_print)
+    if not suppress_print: print(fname)
     n, m, system = sys_tuple[0], sys_tuple[1], sys_tuple[2]
     if len(sys_tuple) == 4:
         sol = sys_tuple[3]
@@ -230,11 +240,25 @@ def fix_variables(sys_tuple, fixed_vars):
         new_tuple.append((system_i, new_n, m, new_ring, sol))
     return new_tuple
 
+def append_csv(abs_path, new_data):
+    data = []
+    if os.path.exists(abs_path):
+        with open(abs_path, "r") as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                data.append(row)
+    else:
+        data = [["Compile_config"] + C_BENCHMARK_VARS]
+    data.append(new_data)
+    with open(abs_path, "w") as file:
+        csv_writer = csv.writer(file)
+        csv_writer.writerows(data[:])
+
 
 if __name__ == "__main__":
-    n, m, system = parse_fukuoka("fukuoka_test.txt", True)
+    n, m, system = parse_fukuoka("fukuoka_test.txt", False)
     write_fukuoka("write_fukuoka_test.txt", system, n, m, GF(2)[", ".join(["x" + str(i) for i in range(n)])])
-    n_1, m_1, system_1 = parse_fukuoka("write_fukuoka_test.txt", True)
+    n_1, m_1, system_1 = parse_fukuoka("write_fukuoka_test.txt", False)
     print(n == n_1, m == m_1, system == system_1)
     write_fukuoka("write_fukuokaFAIL_test.txt", system, n, m, GF(2)[", ".join(["x" + str(i) for i in range(n)])], "bad solution")
 

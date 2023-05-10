@@ -13,6 +13,22 @@ MAX_HISTORY = 30
 
 TEST_BIN_AVAILABLE = os.path.exists(os.path.join(os.path.dirname(__file__), "../../bin/test"))
 
+C_BENCHMARK_VARS = [
+    "g_solve_time",
+    "g_recover_time",
+    "g_recover_eval_time",
+    "g_recover_interp_time",
+    "g_fes_time",
+    "g_ek_time",
+    "g_matrix_time",
+    "g_eval_time",
+    "g_hist_time",
+    # "g_recover_eval",
+    # "g_recover_interp",
+]
+
+C_COMPILE_CONFIG = 32
+
 C_POLY_T = None
 C_VARS_T = None
 
@@ -48,6 +64,7 @@ try:
     with open(os.path.join(os.path.dirname(__file__), ".compile_config"), "r") as f:
         bits_str = f.readline().split(" ")
         bits = int(bits_str[0])
+        C_COMPILE_CONFIG = bits
         if bits >= 128:
             C_VECTORIZED = True
             C_VECTOR_SIZE = bits//int(bits_str[1])

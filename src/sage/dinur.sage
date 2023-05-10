@@ -7,8 +7,8 @@ from collections import defaultdict
 
 from src.sage.mob_new import mob_transform
 from src.sage.fes import bruteforce
-from src.sage.utils import index_of, convert, random_systems, fetch_systems_interactive, CLEAR, WARNING, FAIL, SUCCESS, ITER
-from src.sage.c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY, C_VECTORIZED, C_VECTOR_SIZE, C_FIXED_VARS
+from src.sage.utils import index_of, convert, random_systems, fetch_systems_interactive, CLEAR, WARNING, FAIL, SUCCESS, ITER, fetch_global
+from src.sage.c_config import Type, srand, rand, RSEED, C_POLY_T, C_VARS_T, MAX_HISTORY, C_VECTORIZED, C_VECTOR_SIZE, C_FIXED_VARS, C_BENCHMARK_VARS
 from src.sage.fes_rec import fes_recover
 from src.sage.utils import bitslice, fetch_c_func, write_fukuoka, run_bin_test
 

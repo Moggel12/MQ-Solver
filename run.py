@@ -7,9 +7,12 @@ import os
 import hashlib
 import multiprocessing
 import math as m
+import numpy as np
+import re
+import csv
 
-from src.sage.utils import fetch_systems_interactive, read_system, SUCCESS, CLEAR, FAIL, bitslice, random_systems_with_sol, fix_variables
-from src.sage.c_config import TEST_BIN_AVAILABLE
+from src.sage.utils import fetch_systems_interactive, read_system, SUCCESS, CLEAR, FAIL, bitslice, random_systems_with_sol, fix_variables, fetch_global, append_csv
+from src.sage.c_config import TEST_BIN_AVAILABLE, C_BENCHMARK_VARS, C_COMPILE_CONFIG
 from src.sage.fes_rec import *
 from src.sage.dinur import *
 from src.sage.fes import *
@@ -22,6 +25,8 @@ _availability_filter = lambda f_name : ("_SAN" in f_name) if TEST_BIN_AVAILABLE 
 _available_tests = {key: val for key, val in _test_functions.items() if _availability_filter(key)}
 _unavailable_tests = {key: val for key, val in _test_functions.items() if key not in _available_tests}
 _default_test = list(_test_functions.items())[0]
+
+_BENCH_PREFIX = "bench_"
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Run certain tests via the commandline (C or Sage/Python). Beware, this tool will not sanitize any dirty inputs.")
@@ -107,6 +112,33 @@ def gen_files(amount, n_low, n_high, m_low, m_high):
         m.update(bytes(str(sys_tuple), "utf-8"))
         write_fukuoka(f"{gen_dir}/system_{sys_tuple[1]}_{sys_tuple[2]}_{m.hexdigest()}.txt", *sys_tuple)
 
+def bench(arg):
+    directory = os.path.join(os.getcwd(), arg)
+    if os.path.exists(directory) and arg.startswith(_BENCH_PREFIX):
+        all_tuples = []
+        for fname in os.listdir(directory):
+            if fname == "bench.csv": continue
+            all_tuples += read_system(os.path.join(directory, fname), True)
+    elif re.search(r"(\d+),(\d+),(\d+)", arg):
+        amnt, n, m = [int(str_num) for str_num in arg.split(",")[:3]]
+        all_tuples = random_systems_with_sol(m, m, n, n, amnt)
+        t = time.ctime(time.time()).replace(" ", "_")
+        directory = f"{_BENCH_PREFIX}{t}"
+        if not os.path.exists(directory):
+            os.mkdir(directory)
+        for sys_tuple in all_tuples:
+            m = hashlib.sha256()
+            m.update(bytes(str(sys_tuple), "utf-8"))
+            write_fukuoka(f"{directory}/system_{sys_tuple[1]}_{sys_tuple[2]}_{m.hexdigest()}.txt", *sys_tuple)
+    else:
+        print(f"{FAIL}Invalid argument!{CLEAR}")
+        return
+    c_benchmark(all_tuples)
+    new_data = [C_COMPILE_CONFIG]
+    for bench_var in C_BENCHMARK_VARS:
+        new_data.append(fetch_global(bench_var) // 1000)
+    append_csv(os.path.join(directory, "bench.csv"), new_data)
+
 def main():
     all_tuples = None
     write_file = True
@@ -118,9 +150,7 @@ def main():
         gen_files(*[int(str_num) for str_num in args.gen.split(",")[:5]])
         return
     elif args.bench:
-        amnt, n, m = [int(str_num) for str_num in args.bench.split(",")[:3]]
-        system_tuples = random_systems_with_sol(m, m, n, n, amnt)
-        c_benchmark(system_tuples)
+        bench(args.bench)
         return
     if not args.file:
         all_tuples = fetch_systems_interactive()
