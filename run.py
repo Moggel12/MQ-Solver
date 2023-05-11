@@ -123,7 +123,7 @@ def bench(arg):
         amnt, n, m = [int(str_num) for str_num in arg.split(",")[:3]]
         all_tuples = random_systems_with_sol(m, m, n, n, amnt)
         t = time.ctime(time.time()).replace(" ", "_")
-        directory = f"{_BENCH_PREFIX}{t}"
+        directory = f"{_BENCH_PREFIX}_{n}_{m}_{t}"
         if not os.path.exists(directory):
             os.mkdir(directory)
         for sys_tuple in all_tuples:
