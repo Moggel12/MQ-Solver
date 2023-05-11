@@ -370,6 +370,6 @@ static inline uint32_t _avx128_extract_32(__m128i reg, int idx)
 #define _avx_or(a, b) _mm_or_si128(a, b)
 #define _avx_blend(a, b, mask) _mm_blendv_epi8(a, b, mask)
 #define _avx_testz(a, b) _mm_testz_si128(a, b)
-#define _avx_zero() _mm_setzero_si128()
+#define _avx_zero _mm_setzero_si128()
 
 #endif  // !VEC128_CONFIG_H

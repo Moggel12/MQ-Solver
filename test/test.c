@@ -528,5 +528,6 @@ int main(void)
     default:
       printf("Invalid function chosen: %u\n", choice);
   }
+
   return 1;
 }

@@ -34,8 +34,6 @@ def test_c_output_solutions(sys_tuple):
     system, n, m, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4))) # Quadratic systems are assumed here, see page 19 of full dinur paper for explanation
     w = sum(f.degree() for f in system) - n1
-    print(system)
-    print(n, n1, w)
     sl_system = bitslice(system, ring.gens())
     c_solutions = c_output_potentials(sl_system, n, n1, w)
     if c_solutions == None:

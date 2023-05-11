@@ -74,17 +74,12 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
             fes_time_eval -= time.time()
 
             k = bits(si)[:degree]
-            # if (si ^^ (si >> 1)) == int(2438): print(k)
+
             for j in reversed(range(0, len(k))):
-                # if (si ^^ (si >> 1)) == int(2912): print(j)
-                # if (si ^^ (si >> 1)) == int(2912): print("IDX:", sum([2^i for i in k[:j]]), sum([2^i for i in k[:j+1]]))
-                # print(j, d[sum([2^i for i in k[:j]])], d[sum([2^i for i in k[:j+1]])])
+
                 d[sum([2^i for i in k[:j]])] = int(d[sum([2^i for i in k[:j]])]) ^^ int(d[sum([2^i for i in k[:j+1]])])
 
-            # if (si ^^ (si >> 1)) == int(2912): print("TEST")
             fes_time_eval += time.time()
-            # print("===")
-
         else:
             # We need to interpolate derivatives.
             fes_time_inter -= time.time()
@@ -101,26 +96,20 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
 
             prev = d[0]
             d[0] = new_parities
-            # if (si ^^ (si >> 1)) == int(2912): print("Parity", new_parities)
-            # print(new_parities)
+
+
             for j in range(1, len(k)+1):
 
                 if j < len(k):
                     tmp = d[sum([2^i for i in k[:j]])]
-                # if (sum([2^i for i in k[:j]]) == int(31)): 
-                #     print(new_parities)
-                #     print(d[sum([2^i for i in k[:j-1]])])
-                #     print(prev)
-                #     print("===")
-                # print(j, int(d[sum([2^i for i in k[:j-1]])]), prev)
+
                 d[sum([2^i for i in k[:j]])] = int(d[sum([2^i for i in k[:j-1]])]) ^^ int(prev)
 
                 if j < len(k):
                     prev = tmp
-            # print("===")
 
             fes_time_eval += time.time()
-        # if (si ^^ (si >> 1)) == int(2438): print(d[0])
+
         res[si ^^ (si >> 1)] = d[0]
 
     return res

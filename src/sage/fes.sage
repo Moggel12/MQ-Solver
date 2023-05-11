@@ -133,7 +133,6 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
     if s.y == 0:
         if compute_parity:
             parities ^^= 2^(n1 + 1) - 1
-            # if pre_x == int(209): print(parities)
         else:
             res.append(((s.i ^^ (s.i >> 1)) << (n-n1)) | pre_x)
 
@@ -143,12 +142,10 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
         if s.y == 0:
             if compute_parity:
                 parities ^^= 1
-                # if pre_x == int(209): print(parities)
                 z = (s.i ^^ (s.i >> 1))
                 for pos in range(n1):
                     if z & (1 << pos) == 0:
                         parities ^^= (1 << (pos + 1))
-                        # if pre_x == int(209): print(parities)
             else:
                 res.append(((s.i ^^ (s.i >> 1)) << (n-n1)) | pre_x)
     # reset s.i to initial state
@@ -156,7 +153,7 @@ def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
     for i in range(n1-1):
         s.d1[i] ^^= s.d2[n1-1][i]
     s.y ^^= s.d1[n1-1] ^^ s.d2[n1-1][n1-2]
-    # if pre_x == int(209): print("--")
+
     if compute_parity:
         return parities 
     return res

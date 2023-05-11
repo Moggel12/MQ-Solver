@@ -29,7 +29,7 @@
  *                          instructions).
  * _avx_testz(a, b) : Test whether the bitwise and of a and b returns zero or
  *                    not (see testz in AVX).
- * _avx_zero() : A vector register of all zeroes.
+ * _avx_zero : A vector register of all zeroes.
  * _avx_broadcast(a) : Broadcast The lower four elements onto an entire vector.
  */
 
@@ -43,7 +43,7 @@
 #define VEC_AND(a, b) _mm_and_si128(a, b)
 
 #define VEC_BLEND(a, b, mask) _mm_blendv_epi8(a, b, mask)
-#define VEC_0 _mm_setzero_si128()
+#define VEC_0 _mm_setzero_si128()  // TODO
 
 #elif defined( \
     REG256)  ////////////// 256 bits, split register into multiple systems
@@ -54,7 +54,7 @@
 #define VEC_GF2_MUL(a, b) _mm256_and_si256(a, b)
 #define VEC_AND(a, b) _mm256_and_si256(a, b)
 
-#define VEC_0 _mm256_setzero_si256()
+#define VEC_0 _mm256_setzero_si256()  // TODO
 #define VEC_BLEND(a, b, mask) _mm256_blendv_epi8(a, b, mask)
 
 #endif

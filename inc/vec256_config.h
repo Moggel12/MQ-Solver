@@ -8,7 +8,7 @@
 
 #define _avx_xor(a, b) _mm256_xor_si256(a, b)
 #define _avx_and(a, b) _mm256_and_si256(a, b)
-#define _avx_or(a, b) _mm256_or_si256()
+#define _avx_or(a, b) _mm256_or_si256(a, b)
 #define _avx_blend(a, b, mask) _mm256_blendv_epi8(a, b, mask)
 #define _avx_testz(a, b) _mm256_testz_si256(a, b)
 #define _avx_zero _mm256_setzero_si256()
@@ -39,7 +39,7 @@
 #define _avx_add _mm256_add_epi8
 #define _avx_sub _mm256_sub_epi8
 #define _avx_rotate(a, w) _avx_rotate(a, w)
-#define _avx_broadcast(a) _mm256_broadcastd_epi32(a)
+#define _avx_broadcast(a) _mm256_broadcastd_epi32(_mm256_castsi256_si128(a))
 
 static inline __m256i _avx256_insert_8(__m256i reg, uint8_t val, int index)
 {
@@ -187,77 +187,45 @@ static inline uint8_t _avx256_extract_8(__m256i reg, int idx)
   }
 }
 
-static inline __m256i _avx_rotate(__m256i reg, int width)
+static inline __m128i _avx_alignr(__m128i reg1, __m128i reg2, int width)
 {
-  width = width % 32;
+  width = width % 16;  // 128 bit integers
   switch (width)
   {
     case 0:
-      return _mm256_alignr_epi8(reg, reg, 0);
+      return reg1;
     case 1:
-      return _mm256_alignr_epi8(reg, reg, 1);
+      return _mm_alignr_epi8(reg1, reg2, 1);
     case 2:
-      return _mm256_alignr_epi8(reg, reg, 2);
+      return _mm_alignr_epi8(reg1, reg2, 2);
     case 3:
-      return _mm256_alignr_epi8(reg, reg, 3);
+      return _mm_alignr_epi8(reg1, reg2, 3);
     case 4:
-      return _mm256_alignr_epi8(reg, reg, 4);
+      return _mm_alignr_epi8(reg1, reg2, 4);
     case 5:
-      return _mm256_alignr_epi8(reg, reg, 5);
+      return _mm_alignr_epi8(reg1, reg2, 5);
     case 6:
-      return _mm256_alignr_epi8(reg, reg, 6);
+      return _mm_alignr_epi8(reg1, reg2, 6);
     case 7:
-      return _mm256_alignr_epi8(reg, reg, 7);
+      return _mm_alignr_epi8(reg1, reg2, 7);
     case 8:
-      return _mm256_alignr_epi8(reg, reg, 8);
+      return _mm_alignr_epi8(reg1, reg2, 8);
     case 9:
-      return _mm256_alignr_epi8(reg, reg, 9);
+      return _mm_alignr_epi8(reg1, reg2, 9);
     case 10:
-      return _mm256_alignr_epi8(reg, reg, 10);
+      return _mm_alignr_epi8(reg1, reg2, 10);
     case 11:
-      return _mm256_alignr_epi8(reg, reg, 11);
+      return _mm_alignr_epi8(reg1, reg2, 11);
     case 12:
-      return _mm256_alignr_epi8(reg, reg, 12);
+      return _mm_alignr_epi8(reg1, reg2, 12);
     case 13:
-      return _mm256_alignr_epi8(reg, reg, 13);
+      return _mm_alignr_epi8(reg1, reg2, 13);
     case 14:
-      return _mm256_alignr_epi8(reg, reg, 14);
+      return _mm_alignr_epi8(reg1, reg2, 14);
     case 15:
-      return _mm256_alignr_epi8(reg, reg, 15);
-    case 16:
-      return _mm256_alignr_epi8(reg, reg, 16);
-    case 17:
-      return _mm256_alignr_epi8(reg, reg, 17);
-    case 18:
-      return _mm256_alignr_epi8(reg, reg, 18);
-    case 19:
-      return _mm256_alignr_epi8(reg, reg, 19);
-    case 20:
-      return _mm256_alignr_epi8(reg, reg, 20);
-    case 21:
-      return _mm256_alignr_epi8(reg, reg, 21);
-    case 22:
-      return _mm256_alignr_epi8(reg, reg, 22);
-    case 23:
-      return _mm256_alignr_epi8(reg, reg, 23);
-    case 24:
-      return _mm256_alignr_epi8(reg, reg, 24);
-    case 25:
-      return _mm256_alignr_epi8(reg, reg, 25);
-    case 26:
-      return _mm256_alignr_epi8(reg, reg, 26);
-    case 27:
-      return _mm256_alignr_epi8(reg, reg, 27);
-    case 28:
-      return _mm256_alignr_epi8(reg, reg, 28);
-    case 29:
-      return _mm256_alignr_epi8(reg, reg, 29);
-    case 30:
-      return _mm256_alignr_epi8(reg, reg, 30);
-    case 31:
-      return _mm256_alignr_epi8(reg, reg, 31);
+      return _mm_alignr_epi8(reg1, reg2, 15);
   }
-  return reg;
+  return _mm_setzero_si128();
 }
 
 static inline __m256i _avx256_sll_8(__m256i reg, int w)
@@ -273,9 +241,9 @@ static inline __m256i _avx256_sll_8(__m256i reg, int w)
   {
     __m256i mask = _mm256_set1_epi16((1 << bits) - 1);
     return _mm256_xor_si256(
-        _mm256_sll_epi16(hi, _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w)),
+        _mm256_sll_epi16(hi, _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, w)),
         _mm256_sll_epi16(_mm256_and_si256(lo, mask),
-                         _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w)));
+                         _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, w)));
   }
 }
 
@@ -290,33 +258,50 @@ static inline __m256i _avx256_srl_8(__m256i reg, int w)
   }
   else
   {
-    __m256i mask =
-        _mm256_sll_epi16(_mm256_set1_epi16((1 << bits) - 1),
-                         _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w + 8));
+    __m256i mask = _mm256_sll_epi16(_mm256_set1_epi16((1 << bits) - 1),
+                                    _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, w + 8));
 
     return _mm256_xor_si256(
         _mm256_srl_epi16(_mm256_and_si256(hi, mask),
-                         _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w)),
-        _mm256_srl_epi16(lo, _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w)));
+                         _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, w)),
+        _mm256_srl_epi16(lo, _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, w)));
   }
+}
+
+static inline __m256i _avx_rotate(__m256i a, int w)
+{
+  w = w % 32;
+  if (w == 0) return a;
+
+  __m128i hi = _mm256_extractf128_si256(a, 1);
+  __m128i lo = _mm256_extractf128_si256(a, 0);
+
+  __m128i rot1 = _avx_alignr(hi, lo, w);
+  __m128i rot2 = _avx_alignr(lo, hi, w);
+
+  if (w <= 16)
+  {
+    return _mm256_set_m128i(rot2, rot1);
+  }
+  return _mm256_set_m128i(rot1, rot2);
 }
 
 #elif defined(INT16)  ////////////////////////////////////// EPI16
 
 #define VECTOR_SIZE 16
 
-#define SUB_POLY_TYPE uint16_t
-
 #define FIXED_VARS 2
+
+#define SUB_POLY_TYPE uint16_t
 
 #if defined(_DEBUG)
 #define _DEBUG_READ_SUB(p) scanf("%" SCNu16, &p)
 #endif
 
 #define _avx_sll(i, w) \
-  _mm256_sll_epi16(i, _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w))
+  _mm256_sll_epi16(i, _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, w))
 #define _avx_srl(i, w) \
-  _mm256_srl_epi16(i, _mm256_set_epi16(0, 0, 0, 0, 0, 0, 0, w))
+  _mm256_srl_epi16(i, _mm_set_epi16(0, 0, 0, 0, 0, 0, 0, w))
 #define _avx_eq _mm256_cmpeq_epi16
 #define _avx_lt _mm256_cmplt_epi16
 #define _avx_gt _mm256_cmpgt_epi16
@@ -327,9 +312,9 @@ static inline __m256i _avx256_srl_8(__m256i reg, int w)
 #define _avx_add _mm256_add_epi16
 #define _avx_sub _mm256_sub_epi16
 #define _avx_rotate(a, w) _avx_rotate(a, w)
-#define _avx_broadcast(a) _mm256_broadcastq_epi64(a)
+#define _avx_broadcast(a) _mm256_broadcastq_epi64(_mm256_castsi256_si128(a))
 
-static inline __m256i _avx256_insert_16(__m256i reg, uint32_t val, int index)
+static inline __m256i _avx256_insert_16(__m256i reg, uint16_t val, int index)
 {
   switch (index)
   {
@@ -350,13 +335,13 @@ static inline __m256i _avx256_insert_16(__m256i reg, uint32_t val, int index)
     case 7:
       return _mm256_insert_epi16(reg, val, 7);
     case 8:
-      return _mm256_insert_epi32(reg, val, 8);
+      return _mm256_insert_epi16(reg, val, 8);
     case 9:
-      return _mm256_insert_epi32(reg, val, 9);
+      return _mm256_insert_epi16(reg, val, 9);
     case 10:
-      return _mm256_insert_epi32(reg, val, 10);
+      return _mm256_insert_epi16(reg, val, 10);
     case 11:
-      return _mm256_insert_epi32(reg, val, 11);
+      return _mm256_insert_epi16(reg, val, 11);
     case 12:
       return _mm256_insert_epi16(reg, val, 12);
     case 13:
@@ -411,48 +396,32 @@ static inline uint16_t _avx256_extract_16(__m256i reg, int idx)
   }
 }
 
-static inline __m256i _avx_rotate(__m256i reg, int width)
+static inline __m128i _avx_alignr(__m128i reg1, __m128i reg2, int width)
 {
-  width = width % 16;
+  width = width % 8;  // 128 bit integers
   switch (width)
   {
     case 0:
-      return reg;
+      return reg1;
     case 1:
-      return _mm256_alignr_epi8(reg, reg, 2);
+      return _mm_alignr_epi8(reg1, reg2, 2 * 1);
     case 2:
-      return _mm256_alignr_epi8(reg, reg, 2 * 2);
+      return _mm_alignr_epi8(reg1, reg2, 2 * 2);
     case 3:
-      return _mm256_alignr_epi8(reg, reg, 2 * 3);
+      return _mm_alignr_epi8(reg1, reg2, 2 * 3);
     case 4:
-      return _mm256_alignr_epi8(reg, reg, 2 * 4);
+      return _mm_alignr_epi8(reg1, reg2, 2 * 4);
     case 5:
-      return _mm256_alignr_epi8(reg, reg, 2 * 5);
+      return _mm_alignr_epi8(reg1, reg2, 2 * 5);
     case 6:
-      return _mm256_alignr_epi8(reg, reg, 2 * 6);
+      return _mm_alignr_epi8(reg1, reg2, 2 * 6);
     case 7:
-      return _mm256_alignr_epi8(reg, reg, 2 * 7);
-    case 8:
-      return _mm256_alignr_epi8(reg, reg, 2 * 8);
-    case 9:
-      return _mm256_alignr_epi8(reg, reg, 2 * 9);
-    case 10:
-      return _mm256_alignr_epi8(reg, reg, 2 * 10);
-    case 11:
-      return _mm256_alignr_epi8(reg, reg, 2 * 11);
-    case 12:
-      return _mm256_alignr_epi8(reg, reg, 2 * 12);
-    case 13:
-      return _mm256_alignr_epi8(reg, reg, 2 * 13);
-    case 14:
-      return _mm256_alignr_epi8(reg, reg, 2 * 14);
-    case 15:
-      return _mm256_alignr_epi8(reg, reg, 2 * 15);
+      return _mm_alignr_epi8(reg1, reg2, 2 * 7);
   }
-  return reg;
+  return _mm_setzero_si128();
 }
 
-static inline static inline int _avx256_movemask_16(__m256i reg)
+static inline int _avx256_movemask_16(__m256i reg)
 {
   int mask = _mm256_movemask_epi8(reg);
   int mask16 = 0;
@@ -461,6 +430,25 @@ static inline static inline int _avx256_movemask_16(__m256i reg)
     if ((mask >> (i + 1)) & 1) mask16 ^= (1 << (i / 2));
   }
   return mask16;
+}
+
+static inline __m256i _avx_rotate(__m256i a, int w)
+{
+  w = w % 16;
+  if (w == 0) return a;
+
+  __m128i hi = _mm256_extractf128_si256(a, 1);
+  __m128i lo = _mm256_extractf128_si256(a, 0);
+
+  __m128i rot1 = _avx_alignr(hi, lo, w);
+  __m128i rot2 = _avx_alignr(lo, hi, w);
+
+  if (w <= 8)
+  {
+    return _mm256_set_m128i(rot2, rot1);
+  }
+
+  return _mm256_set_m128i(rot1, rot2);
 }
 
 #elif defined(INT32)  ////////////////////////////////////// EPI32

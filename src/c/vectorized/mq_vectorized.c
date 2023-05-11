@@ -14,7 +14,7 @@
 
 poly_vec_t compute_e_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
                        size_t sys_len, int l, int n)
-{  
+{
   poly_vec_t deg = VEC_0;
   sub_poly_t mon = 0;
   sub_poly_t lin_deg = 0, quad_deg = 0;
@@ -72,7 +72,7 @@ poly_vec_t compute_e_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
     deg = VEC_INSERT(deg, v_sys_deg, v);
   }
 
-  return deg;  // TODO: Add degree computation
+  return deg;
 }
 
 void fix_poly(poly_t *system, poly_t *fixed_system, poly_t *assignment,
@@ -121,7 +121,6 @@ void fix_poly(poly_t *system, poly_t *fixed_system, poly_t *assignment,
 
 uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 {
-
   BEGIN_BENCH(g_solve_time)
 
   srand(RSEED);  // Seeding rand
@@ -163,9 +162,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
     for (int i = 0; i < (1 << FIXED_VARS) * 4; i++)
     {
-      exit_code =
-          gen_matrix(rand_mat + i * l, l,
-                     m);  // TODO: Change to generate non vectorized matrices.
+      exit_code = gen_matrix(rand_mat + i * l, l, m);
       if (exit_code == 1)
       {
         free(rand_sys);
@@ -180,24 +177,22 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
     poly_t curr_potentials = 0;
 
-
     BEGIN_BENCH(g_ek_time)
 
     poly_vec_t w = VEC_SUB(
         compute_e_k(rand_mat, rand_sys, fixed_system, sys_len, l, new_n),
         VEC_ASSIGN_ONE(n1));  // TODO: Change to take in arrays and compute
                               // vector (do not vectorize parities).
-    
+
     END_BENCH(g_ek_time)
 
-
-    BEGIN_BENCH(g_recover_time); 
+    BEGIN_BENCH(g_recover_time);
 
     exit_code = fes_recover_vectorized(system, rand_sys, new_n, n1,
                                        VEC_ADD(w, VEC_1), &curr_potentials);
-    
+
     END_BENCH(g_recover_time);
-    
+
     switch (exit_code)
     {
       case 0:

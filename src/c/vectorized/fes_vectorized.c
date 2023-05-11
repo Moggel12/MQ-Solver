@@ -9,7 +9,7 @@
 
 state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
 {
-  state *s = malloc(sizeof(state));
+  state *s = aligned_alloc(ALIGNMENT, sizeof(state));
   if (!s) return NULL;
 
   s->d1 = aligned_alloc(ALIGNMENT, n1 * sizeof(poly_vec_t));
@@ -47,7 +47,6 @@ state *init_state(unsigned int n, unsigned int n1, uint8_t *prefix)
 
     return NULL;
   }
-
   memset(s->d1, 0, n1 * sizeof(poly_vec_t));
   memset(s->d2, 0, n1 * n1 * sizeof(poly_vec_t));
 
@@ -521,7 +520,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
         prefix[pos] = (1 & (gray_si >> pos));
       }
 
-      BEGIN_BENCH(g_fes_time) 
+      BEGIN_BENCH(g_fes_time)
 
       s = part_eval(e_k_systems, prefix, n, n1, &parities, s);
 

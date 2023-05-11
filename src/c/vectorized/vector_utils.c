@@ -9,27 +9,27 @@
 #include "benchmark.h"
 #include "utils.h"
 
-sub_poly_t parity(poly_t bits)
-{
-  return __builtin_parity(bits);
-}  // TODO: common
+sub_poly_t parity(poly_t bits) { return __builtin_parity(bits); }
 
 int _avx_sol_overlap(poly_vec_t reg)
 {
   for (int i = 0; i < (1 << FIXED_VARS); i++)
   {
     poly_vec_t reg_alt = _avx_broadcast(_avx_rotate(reg, 4 * i));
-    poly_vec_t perm = reg_alt, mask = _avx_zero();
+    poly_vec_t perm = reg_alt, mask = _avx_zero;
 
     for (int j = 0; j < (VECTORIZED_ROUNDS - 1); j++)
     {
-      perm = _mm_alignr_epi8(perm, perm, 2);
+      perm = _avx_rotate(perm, 1);
       mask = _avx_or(mask, _avx_eq(reg_alt, perm));
     }
     mask =
         _avx_and(mask, _avx_eq(_avx_and(reg_alt, _avx_set1(1)), _avx_set1(1)));
 
-    if (!_avx_testz(mask, mask)) return 1;
+    if (!_avx_testz(mask, mask))
+    {
+      return 1;
+    }
   }
 
   return 0;
@@ -43,14 +43,14 @@ int _avx_extract_sol(poly_vec_t reg, PotentialSolution *solutions)
   {
     poly_vec_t reg_alt = _avx_broadcast(_avx_rotate(reg, 4 * i));
     poly_vec_t perm = reg_alt;
-    poly_vec_t mask_eq = _avx_zero();
+    poly_vec_t mask_eq = _avx_zero;
     poly_vec_t mask_zbit =
         _avx_eq(_avx_and(reg_alt, _avx_set1(1)), _avx_set1(1));
 
     for (int j = 0; j < (VECTORIZED_ROUNDS - 1); j++)
     {
-      perm = _mm_alignr_epi8(perm, perm, 2);
-      mask_eq = _avx_and(mask_zbit, _mm_cmpeq_epi16(reg_alt, perm));
+      perm = _avx_rotate(perm, 1);
+      mask_eq = _avx_and(mask_zbit, _avx_eq(reg_alt, perm));
 
       if (!_avx_testz(mask_eq, mask_eq))
       {
@@ -106,5 +106,3 @@ sub_poly_t _avx_max(poly_vec_t a)
 
   return _avx_extract(tmp, 0);
 }
-
-// TOOD: Add _avx_max here
