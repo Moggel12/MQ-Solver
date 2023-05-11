@@ -3,7 +3,7 @@ The accompanying git repository contains more than one implementation, or \texti
 
 For alternative implementations of some of the procedures described in \cref{sec:prereq}, see \cite{cryptoeprint:2010/313}, \cite{cryptoeprint:2013/436}, and \cite{cryptoeprint:2022/214}.
 
-\subsection{SageMath code}
+\subsection{SageMath code} \label{sec:impl:sage}
 As was implied earlier, the SageMath implementation of Dinur's algorithm works mostly as a prototype or testing ground for the \texttt{C} implementation. Some optimizations have been tested in this version of the code, prior to it being implemented in \texttt{C}, however, these optimizations worked on an algorithmic level more than on a machine level. This prototype allowed for approximating the bottleneck areas of the algorithm while essentially also working as a proof-of-concept for using Dinur's algorithm in practice. These approximations of course were rougher in some areas than others, due to the overhead imposed by \texttt{Sagemath} and \texttt{Python}.
 
 The prototype implements the three procedures described by Dinur in \cite{cryptoeprint:2021/578}, more or less described as the pseudo-code is presented. The three main procedures described by Dinur can be found in \texttt{sage/dinur.sage} with some accompanying convenience and test functions. A bit-sliced version of the FES procedure, described in \cite{cryptoeprint:2010/313} and \cref{sec:prereq:fes}, for quadratic polynomials can be found in \texttt{sage/fes.sage}. This implementation is not as heavily optimized as those in \cite{cryptoeprint:2010/313} and \cite{cryptoeprint:2013/436}, simply due to the SageMath-induced overhead counteracting fine-adjusted optimizations. The prototype code further introduces a prototype of an FES-based recovery, acting as an alternative to the Möbius Transform originally described by Dinur. The Möbius Transform was implemented in \texttt{mob.sage} and allows for a \textit{sparse}-transform used for interpolating the $U$-polynomials. This implementation is rather naive as it interpolates these polynomials \textit{symbolically} using the polynomial classes from \texttt{Sagemath}. The choice of switching between FES-based interpolation and using the Möbius transform is a simple boolean switch in the \texttt{solve} and \texttt{output\_potentials} functions in \texttt{src/dinur.sage}. \td{IF MOB IS ALTERED IN SAGE; CHANGE THIS} 
@@ -258,14 +258,134 @@ This approach of combining the two may help further mitigate memory problems by 
 %    \subitem FES-recover implementation
 %    \item Partial evaluation for FES, and why we reuse state
 %    \item Dinurs algorithm
-%    \item Möbius transforms and using the Möbius transform for full evaluation
 %    \item Representation of polynomials in \texttt{C}-code
 %    \item Bitslicing
 %    \item Getting interpolation points for FES recover
 %\end{enumerate}
 
-\subsection{Optimizations}
+In many areas, the standard C implementation takes a similar approach to program design as the SageMath counterpart (see \cref{sec:impl:sage}). However, unlike the SageMath intent with the SageMath prototype, the purpose of the C code was to try and push the algorithm and see what kinds of optimizations are beneficial for it. This subsection seeks to describe the general idea behind the C implementation, drawing parallels to the similar parts in the SageMath code and describing the difference alongside their design choices. Evaluating the usefulness of these optimizations is postponed to \cref{sec:eval}. This section focuses on the \textit{shared library} target (see \cref{sec:impl:compile}) as well as the \textit{standardized} implementation, plus any utilities that overlap between codebases.
 
+\subsubsection{Solve, and other top-level procedures} 
+
+The main entry point into the library is the \texttt{solve()} procedure, residing in \texttt{src/c/standard/mq.c}. This procedure for the most part acts like its SageMath counterpart. However, the \texttt{solve()} procedure expects a bit-sliced system of polynomials in its \texttt{poly\_t *system} parameter. Further, the procedure expects that the monomial ordering is graded lexicographic ordering and that the polynomials in the system have been \textit{linearized}, i.e. the system consists solely of multilinear polynomials. Examining the function declaration, the other parameters should be somewhat self-explanatory:
+\begin{lstlisting}[language=c,style=mystyle]
+uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
+\end{lstlisting}
+The latter parameter, \texttt{sol}, is an out-parameter containing the solution found, if any.
+
+Now, due to the unrestricted nature of C, the initial part of the procedure allocates memory for the elements like the \textit{sub}-system $\Tilde{\mathcal{P}_k}$, the matrix $A$ and the solution history:
+\begin{lstlisting}[language=C,style=mystyle]
+SolutionsStruct *potential_solutions[MAX_HISTORY] = {0};
+size_t hist_progress[MAX_HISTORY] = {0};
+
+poly_t *rand_sys = malloc(amnt_sys_vars * sizeof(poly_t));
+
+poly_t *rand_mat = malloc(l * sizeof(poly_t));    
+\end{lstlisting}
+$\Tilde{\mathcal{P}_k}$ and $A$ are both stored in the \texttt{rand\_mat} and \texttt{rand\_sys} variables simply as integer arrays, and reused in each round. The solution history is saved as an array of pointers, called \texttt{potential\_solutions} and its size is defined by the \texttt{MAX\_HISTORY} macro. This macro defines an upper limit on how many rounds the solver may use to search for a solution and can be modified in \texttt{inc/mq\_config.h}. The types of these three variables are not as such default types in C.
+
+One prominent type in both the vectorized and standard implementation is the \texttt{poly\_t} type. This type is simply a type definition reusing different integer types in C:
+\begin{lstlisting}[language=C,style=mystyle]
+typedef POLY_TYPE poly_t;
+\end{lstlisting}
+The \texttt{POLY\_TYPE} macro is defined as a uint\{8, 16, 32, 64\}\_t for the \textit{standard} implementation, depending on the compile-flags (see \cref{sec:impl:compile}). The definitions of both the \texttt{POLY\_TYPE} macro and \texttt{poly\_t} reside in \texttt{inc/mq\_config.h}.
+
+The other important type is \texttt{PotentialSolutions}. From the naming, some may recognize this as a struct, which would be correct. The definition of this struct can be found in \texttt{inc/fes.h} and is defined as the following:
+\begin{lstlisting}[language=C,style=mystyle]
+typedef struct PotentialSolution
+{
+    poly_t y_idx;
+    poly_t z_bits;
+} PotentialSolution;    
+\end{lstlisting}
+The reasoning behind defining this struct in \texttt{inc/fes.h}, and why it is used in the first place, is explained later in the section.
+
+Once sufficient memory has been allocated and relevant parameters computed (such as $n_1$ and $\ell$) the main loop of the algorithm starts. In the SageMath version, the matrix generation and subsequent generation of the subsystem $\Tilde{\mathcal{P}_k}$ could be handled by the polynomial and matrix representation built-in. In the C code, these procedures have to be handled manually. 
+
+Generating the $A$ matrices of \cref{alg:solve} is done through a call to \texttt{gen\_matrix()} in \texttt{src/c/utils.c}. The procedure takes as argument an array of \texttt{poly\_t} to fill and the number of rows, \texttt{n\_rows}, and columns, \texttt{n\_columns}, for the matrix. Since the matrix is supposed to consist of elements from $\eff_2$, each row is an integer sampled in the \texttt{gen\_row()} procedure. These integers are masked so that only the bottom \texttt{n\_cloumns} bits are left. The \texttt{gen\_matrix()} procedure then simply generates the full $\ell \times m$ matrix and computes the rank, by computing the row echelon form of the matrix and counting independent rows in the meantime. The procedure continues to generate matrices until one of rank $\ell$ is obtained.
+
+Given the matrix generated consists of $m$ bits inside a \texttt{poly\_t}, the procedure for generating $\Tilde{\mathcal{P}_k}$ is quite straightforward. Recall that the new system is generated by
+\begin{equation} \label{eq:tilde_p_k}
+    \Tilde{\mathcal{P}_k} = \left\{\sum_{j = 0}^{m - 1} A_{i,j} \cdot p_j(\mathbf{x})\right\}_{i=0}^{\ell - 1}
+\end{equation}
+The \texttt{compute\_e\_k()} procedure (named after $\Tilde{E}_k$ from \cite{cryptoeprint:2021/578} which in this thesis is named $\Tilde{\mathcal{P}_k}$ for consistency with other parts) generates the new system polynomial-by-polynomial, term-by-term. Now, this procedure generates a system of multilinear polynomials, keeping it consistent with the rest of the codebase. As the polynomials are saved bit-sliced, the summation and multiplication in \cref{eq:tilde_p_k} is merely a matter of:
+\begin{lstlisting}[language=C,style=mystyle]
+new_sys[0] = GF2_ADD(new_sys[0], parity(GF2_MUL(old_sys[0], mat[s])) << s);
+\end{lstlisting}
+Here, \texttt{GF2\_ADD} is a macro for bitwise \textit{xor} and \texttt{GF2\_MUL} is a macro for bitwise \textit{and}, these and other macros are described in \cref{sec:impl:c_abstr}. The variable \texttt{s} above is equivalent to the $i$ in \cref{eq:tilde_p_k}. The snippet above is the computation for the constant terms of $\Tilde{\mathcal{P}_k}$, however, by sufficient indexing into \texttt{old\_sys} and \texttt{new\_sys} the same approach may be taken to compute other terms as well. At last, the procedure also computes the degrees of these polynomials meanwhile.
+
+Once a new system of polynomials has been computed, the procedure goes on to compute the potential solutions for the current iteration. This is where one of the larger deviations from the SageMath code and \cref{alg:solve} takes place. First, the C solver solely makes use of FES-based recovery (see \cref{sec:ext:fes_interp}) and the Möbius transform was not implemented. Second, the \texttt{solve()} procedure calls the \texttt{fes\_recover()} procedure directly:
+\begin{lstlisting}[language=c,style=mystyle]
+error = fes_recover(rand_sys, n, n1, w + 1, curr_potentials, &len_out);
+\end{lstlisting}
+
+Since the procedure of \cref{alg:output} primarily combines interpolation, evaluation, and "translating" evaluations into potential solutions, the benefit of actually implementing it in combination with the \texttt{fes\_recover()} procedure was not clear. With the structure of \texttt{fes\_recover()}, the evaluations can be translated and stored directly in the array of solutions as they are computed, instead of going through $2^{n - n_1}$ iterations to (in \texttt{fes\_recover()}) to compute all evaluations to then followingly iterate through all $2^{n - n_1}$ evaluations once more in order to translate them into potential solutions (\cref{alg:output:recover} in \cref{alg:output}). If a Möbius transform procedure would have been implemented, the necessity for an implementation of \cref{alg:output} may have been larger. The actual implementation of \texttt{fes\_recover()} is discussed in \cref{sec:impl:c:fes} and \cref{sec:impl:opt}.
+
+Since the FES-based recovery of \cref{sec:ext:fes_interp} is equivalent to the Möbius transforms (interpolation \textit{and} evaluation) of \cref{alg:output}, breaking the theory is not a risk. Now, the reasoning behind not including a Möbius transform implementation was the \textit{implementability}, so to say. Taking into account that the implementation is in C, while also taking into account the modifications needed for Möbius transforms on sparse data (\cref{sec:prereq:poly_interp}), the \texttt{fes\_recover()} was the more desirable choice. This, however, does not mean the Möbius transform cannot be implemented nor that \texttt{fes\_recover()} should be the sole choice for any other implementations of Dinur's polynomial method solver.
+
+The potential solutions computed in \texttt{fes\_recover()} are stored in the struct \texttt{PotentialSolution}. In this representation, the $\mathbf{y}$- and $\mathbf{z}$-bits of the potential solution are stored in their separate integers. Further, the $\mathbf{y}$-bits are \textit{not} stored as gray codes.
+
+With the \textit{solution checking} phase of the C implementation, the code once again diverges from the SageMath and reference (\cref{alg:solve}) material. Instead of storing the solutions in a dictionary or full $2^{n - n_1} \times (n_1 + 1)$ size array, only potential solutions with $U_0(\mathbf{y}) = 1$ are stored sequentially in an array. The storage of these lists of potential solutions is done through the struct:
+\begin{lstlisting}[language=C,style=mystyle]
+typedef struct SolutionsStruct
+{
+  PotentialSolution *solutions;
+  size_t amount;
+} SolutionsStruct;
+\end{lstlisting}
+Since the code cannot simply make a lookup into a dictionary or array using the $\mathbf{y}$-bits, checking the history must of course differ from \cref{alg:solve}. 
+
+Due to the way \texttt{fes\_recover()} is implemented, the \texttt{PotentialSolution}s are stored in with the \texttt{y\_idx} values in increasing order. Since the conversion to and from Gray code ordering essentially acts like a bijective mapping, two \texttt{y\_idx} values that are equal correspondingly mean that their Gray code values are equal. Knowing this, the procedure may simply loop through all previous lists of potential solutions:
+\begin{lstlisting}[language=C,style=mystyle]
+for (unsigned int k1 = 0; k1 < k; k1++)
+\end{lstlisting}
+Here, each iteration then goes through the \texttt{PotentialSolution}s stored in the list:
+\begin{lstlisting}[language=C,style=mystyle]
+for (; hist_progress[k1] < potential_solutions[k1]->amount; hist_progress[k1]++)    
+\end{lstlisting}
+until it encounters a historic solution with a larger \texttt{y\_idx} value:
+\begin{lstlisting}[language=C,style=mystyle]
+if (k1_solution.y_idx > idx_solution.y_idx)
+{
+    break;
+}
+\end{lstlisting}
+This ensures that the procedure checks only the strictly necessary historic solutions linearly. Alternatively, a dictionary could of course be implemented, however, it is unclear whether or not this would prove a dramatic benefit. Another alternative would be to allocate all $2^{n - n_1} \times (n_1 + 1)$ entries in a table as originally proposed in \cite{cryptoeprint:2021/578}. Of course, choosing to allocate room for all evaluations of the $U$ polynomials will drastically limit the problem sizes that the algorithm may handle in practice (on machines without unlimited memory).
+
+\td{CHECK THAT GRAY CODE ORDERING IS MENTIONED IN SAGEMATH FES\_RECOVER}
+
+Finally, should the procedure encounter identical \texttt{y\_idx} and \texttt{z\_bits} values across two potential solutions, the code acts more or less as expected:
+\begin{lstlisting}[language=C,style=mystyle]
+poly_t gray_y = GRAY(idx_solution.y_idx);
+poly_t solution = GF2_ADD(gray_y, INT_LSHIFT(idx_solution.z_bits, (n - n1)));
+if (!eval(system, n, solution))
+{
+    *sol = solution;
+    for (unsigned int i = 0; i <= k; i++)
+    {
+        free(potential_solutions[i]->solutions);
+        free(potential_solutions[i]);
+    }
+    free(rand_sys);
+    free(rand_mat);
+    END_BENCH(g_solve_time)
+#if defined(_DEBUG)
+    solver_rounds = k + 1;
+#endif
+    return 0;
+}
+\end{lstlisting}
+In this snippet, the code ensures to convert the \texttt{y\_idx} value into its Gray code value, before combining the $\mathbf{y}$- and $\mathbf{z}$-bits into one integer (or \textit{potential solution}). The potential solution is then evaluated on the system to check if it an actual solution to the system $\mathcal{P}$. If so, the procedure cleans up and returns with the solution stored in the out-parameter \texttt{poly\_t *sol}.
+
+If no solution was found, or an error occurred along the way, the procedure returns $1$. Therefore, if a $1$ is returned the value in the \texttt{sol} pointer is an invalid solution. Returning a zero conversely means success and that \texttt{sol} contains a valid solution.
+
+\subsubsection{FES} \label{sec:impl:c:fes}
+Examining the \texttt{src/c/standard/fes.c} file many of the procedures have a corresponding implementation in the SageMath code. Procedures like \texttt{init()}, \texttt{update()}, \texttt{step()}, and the various bit-indexing functions are implemented by the same principles with slight 
+
+
+\subsubsection{Utilities and benchmarking}
+
+\subsection{Optimizations} \label{sec:impl:opt}
 % \begin{enumerate}
 %     \item Tight integration of U-value computation with polynomial interpolation and full evaluation
 %     \item Sparse Möbius transform
@@ -276,20 +396,22 @@ This approach of combining the two may help further mitigate memory problems by 
 %     \item Concurrency
 % \end{enumerate}
 
-\subsubsection{Vectorization}
+\subsubsection{Removing output\_potentials}
 
-\subsubsection{Fast Exhaustive Search}
+\subsubsection{FES-based recovery}
 
-\subsubsection{Dinur's solver}
+\subsubsection{Vectorization and parallelization}
+
+\subsection{C abstractions} \label{sec:impl:c_abstr}
 
 \subsection{Testing the code}
-The following subsection contains some brief notes on the testing methodology and how it was executed. For more on how to run and test different areas of the code-base, see the \texttt{README.md} file in the accompanying repository.
+The following subsection contains some brief notes on the testing methodology and how it was executed. For more on how to run and test different areas of the codebase, see the \texttt{README.md} file in the accompanying repository.
 
 \subsubsection{SageMath}
 
 For each of the procedures implemented in Python or SageMath, the accompanying test functions can be found in the same file as the procedure being tested. I.e. tests related to \texttt{bruteforce()} and \texttt{fes\_eval()} can be found in \texttt{src/sage/fes.sage}, while tests related to \texttt{solve()}, \texttt{output\_potentials} and \texttt{compute\_u\_values()} are found in \texttt{src/sage/dinur.sage}.
 
-Since this SageMath prototype would eventually act as a reference point for the C implementation, the testing approach was to essentially create unit tests for select parts of the code base. For procedures such as \texttt{output\_potentials}, the testing methodology was to evaluate the $U$ polynomials in their entirety. I.e.
+Since this SageMath prototype would eventually act as a reference point for the C implementation, the testing approach was to essentially create unit tests for select parts of the codebase. For procedures such as \texttt{output\_potentials}, the testing methodology was to evaluate the $U$ polynomials in their entirety. I.e.
 \begin{lstlisting}[language=Python,style=mystyle]
 si = sum(F_tilde(*convert(y, n - n1), *convert(z_hat, n1 - 1)[:i - 1], 0, *convert(z_hat, n1 - 1)[i - 1:]) for z_hat in range(2^(n1 - 1)))
 \end{lstlisting}
