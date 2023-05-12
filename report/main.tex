@@ -29,9 +29,11 @@
 \usepackage[capitalise]{cleveref}
 \usepackage{cleveref}
 \usepackage[style=numeric-comp]{biblatex}
+\usepackage[hyphenbreaks]{breakurl}
 
 % Bibliography settings
 \addbibresource{bibliography.bib}
+\addbibresource{iacr.bib}
 \setlength{\columnsep}{4cm} %adjust base on your name length
 
 % My commands and environments
@@ -95,7 +97,7 @@
 
 % Feedback
 \usepackage{ifthen}
-\usepackage{ulem}
+\usepackage[normalem]{ulem}
 \newcommand{\phrase}[2][]{\textcolor{blue}{\textbf{\ifthenelse{\equal{#1}{}}{}{(#1)}} \uline{#2}}} % needs rephrase
 \newcommand{\comment}[1]{\textcolor{red}{\textbf{(#1)}}}
 
@@ -135,6 +137,7 @@
 
 % Bibliography
 \newpage
+\emergencystretch 1.5em
 \printbibliography
 
 % Appendix
