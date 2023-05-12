@@ -108,7 +108,7 @@ _time_fetch_sol += time.time()
 \end{lstlisting}
 The most notable difference between the two approaches is the combination of interpolation and evaluation into one. Due to the fact that both the $U_0$ and the $U_i$ polynomials are interpolated in the same procedure, the \textit{weight} or \texttt{w} parameter is set to \texttt{w + 1} to accommodate for interpolation of both the $U_i$s and $U_0$.
 
-\paragraph{Computing $U$-polynomial interpolation points.} Computing the interpolation points, used for the $U$-polynomials, takes place in much the same way as Dinur described it in \cite{cryptoeprint:2021/578}. The procedure \texttt{compute\_u\_values()} in \texttt{src/sage/dinur.sage} handles this, and is more or less the same setup as \cref{alg:uvalue}. One difference that affects performance is the use of dictionaries (\texttt{defaultdict} specifically), instead of lists, as the storage solution for the interpolation points. 
+\paragraph{Computing $U$-polynomial interpolation points.} Computing the interpolation points, used for the $U$-polynomials, takes place in much the same way as Dinur described it in \cite{eurocrypt-2021-30841}. The procedure \texttt{compute\_u\_values()} in \texttt{src/sage/dinur.sage} handles this, and is more or less the same setup as \cref{alg:uvalue}. One difference that affects performance is the use of dictionaries (\texttt{defaultdict} specifically), instead of lists, as the storage solution for the interpolation points. 
 \begin{lstlisting}[language=Python,style=mystyle]
 V = defaultdict(lambda: GF(2)(0))
 ZV = [defaultdict(lambda: GF(2)(0)) for _ in range(n1)]
@@ -119,7 +119,7 @@ Although the \texttt{bruteforce()} procedure is a product of Dinur's use case fo
 
 \subsubsection{FES procedures} \label{sec:impl:fes}
 
-\paragraph{Bruteforce and FES as we know it:} One aspect of the \texttt{compute\_u\_values()} process that is different from \cite{cryptoeprint:2021/578} is the \texttt{bruteforce()} procedure described. The description in \cite{cryptoeprint:2021/578} leaves much to the imagination as it is only really stated that the FES procedure of \cite{cryptoeprint:2013/436} and \cite{ches-2010-23990} would be used to evaluate the sparse set of inputs, $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$. However, Dinur does make arguments for two general approaches and their performance penalties/impacts. These alternatives are described as either simply iterating through the set $W^{n - n_1}_{w + 1}$ while going through all $\{0,1\}^{n_1}$ values at each such iteration, or alternatively the use of \textit{monotonic gray codes}. The structure of monotonic gray codes was briefly mentioned in \cref{sec:prereq:fes:gray_codes}. Due to simplicity and the negligible performance penalty, the choice here was to use the former approach. 
+\paragraph{Bruteforce and FES as we know it:} One aspect of the \texttt{compute\_u\_values()} process that is different from \cite{eurocrypt-2021-30841} is the \texttt{bruteforce()} procedure described. The description in \cite{eurocrypt-2021-30841} leaves much to the imagination as it is only really stated that the FES procedure of \cite{cryptoeprint:2013/436} and \cite{ches-2010-23990} would be used to evaluate the sparse set of inputs, $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$. However, Dinur does make arguments for two general approaches and their performance penalties/impacts. These alternatives are described as either simply iterating through the set $W^{n - n_1}_{w + 1}$ while going through all $\{0,1\}^{n_1}$ values at each such iteration, or alternatively the use of \textit{monotonic gray codes}. The structure of monotonic gray codes was briefly mentioned in \cref{sec:prereq:fes:gray_codes}. Due to simplicity and the negligible performance penalty, the choice here was to use the former approach. 
 \td{Add monotonic gray code description in the section on gray codes}
 The \texttt{bruteforce()} procedure can be found in \texttt{src/sage/fes.sage} and is in essence rather simple. The function simply slices the polynomial system into $1 + n + \binom{n}{2}$ integers and uses the bit-sliced representation to actually run the FES procedure on the entire system at once. The procedure loops through a sequence of integers $i = 0, \dots 2^{n - n_1} - 1$ skipping any value of $i$ where the $hw(i) > d$ for a parameter $d = w + 1$. For each value of $i$ where $hw(i) \leq w + 1$, a \textit{prefix} is computed and stored as a list of indices for the $1$-bits in $i$.
 \begin{lstlisting}[language=python,style=mystyle]
@@ -160,7 +160,7 @@ which internally works much like the pseudo-code described in \cref{sec:prereq:f
 \begin{lstlisting}[language=Python,style=mystyle]
 def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
 \end{lstlisting}
-where the \texttt{compute\_parity} parameter is set to false when called from \texttt{bruteforce()}, as this then ensures that the procedure returns solutions, like traditionally done in FES. The parameters of \texttt{f}, \texttt{n} and \texttt{n1}, should be clear to anyone that read \cref{sec:prereq}, or \cite{cryptoeprint:2021/578} and \cite{cryptoeprint:2013/436}. the parameters of \texttt{prefix} and \texttt{s} then relate to the state processing described just now.
+where the \texttt{compute\_parity} parameter is set to false when called from \texttt{bruteforce()}, as this then ensures that the procedure returns solutions, like traditionally done in FES. The parameters of \texttt{f}, \texttt{n} and \texttt{n1}, should be clear to anyone that read \cref{sec:prereq}, or \cite{eurocrypt-2021-30841} and \cite{cryptoeprint:2013/436}. the parameters of \texttt{prefix} and \texttt{s} then relate to the state processing described just now.
 
 Whenever the \texttt{fes\_eval()} function is called with \texttt{s = None}, the code has to initiate a new state \texttt{s}. In the same vein as the \texttt{update()} function, the \texttt{init()} function (in \texttt{src/sage/fes.sage}) ensures to initiate the first and second derivatives according to the prefix that the system is being partially evaluated on. This leads to computations like
 \begin{lstlisting}[language=Python,style=mystyle]
@@ -308,7 +308,7 @@ Given the matrix generated consists of $m$ bits inside a \texttt{poly\_t}, the p
 \begin{equation} \label{eq:tilde_p_k}
     \Tilde{\mathcal{P}_k} = \left\{\sum_{j = 0}^{m - 1} A_{i,j} \cdot p_j(\mathbf{x})\right\}_{i=0}^{\ell - 1}
 \end{equation}
-The \texttt{compute\_e\_k()} procedure (named after $\Tilde{E}_k$ from \cite{cryptoeprint:2021/578} which in this thesis is named $\Tilde{\mathcal{P}_k}$ for consistency with other parts) generates the new system polynomial-by-polynomial, term-by-term. Now, this procedure generates a system of multilinear polynomials, keeping it consistent with the rest of the codebase. As the polynomials are saved bit-sliced, the summation and multiplication in \cref{eq:tilde_p_k} is merely a matter of:
+The \texttt{compute\_e\_k()} procedure (named after $\Tilde{E}_k$ from \cite{eurocrypt-2021-30841} which in this thesis is named $\Tilde{\mathcal{P}_k}$ for consistency with other parts) generates the new system polynomial-by-polynomial, term-by-term. Now, this procedure generates a system of multilinear polynomials, keeping it consistent with the rest of the codebase. As the polynomials are saved bit-sliced, the summation and multiplication in \cref{eq:tilde_p_k} is merely a matter of:
 \begin{lstlisting}[language=C,style=mystyle]
 new_sys[0] = GF2_ADD(new_sys[0], parity(GF2_MUL(old_sys[0], mat[s])) << s);
 \end{lstlisting}
@@ -350,7 +350,7 @@ if (k1_solution.y_idx > idx_solution.y_idx)
     break;
 }
 \end{lstlisting}
-This ensures that the procedure checks only the strictly necessary historic solutions linearly. Alternatively, a dictionary could of course be implemented, however, it is unclear whether or not this would prove a dramatic benefit. Another alternative would be to allocate all $2^{n - n_1} \times (n_1 + 1)$ entries in a table as originally proposed in \cite{cryptoeprint:2021/578}. Of course, choosing to allocate room for all evaluations of the $U$ polynomials will drastically limit the problem sizes that the algorithm may handle in practice (on machines without unlimited memory).
+This ensures that the procedure checks only the strictly necessary historic solutions linearly. Alternatively, a dictionary could of course be implemented, however, it is unclear whether or not this would prove a dramatic benefit. Another alternative would be to allocate all $2^{n - n_1} \times (n_1 + 1)$ entries in a table as originally proposed in \cite{eurocrypt-2021-30841}. Of course, choosing to allocate room for all evaluations of the $U$ polynomials will drastically limit the problem sizes that the algorithm may handle in practice (on machines without unlimited memory).
 
 \td{CHECK THAT GRAY CODE ORDERING IS MENTIONED IN SAGEMATH FES\_RECOVER}
 
