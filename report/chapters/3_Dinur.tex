@@ -1,0 +1,167 @@
+\section{Dinur's polynomial-method solver}
+
+A specific instance of the polynomial-method type algorithms for solving multivariate quadratic polynomial systems (see \cref{sec:prereq:polymethod}) is the algorithm of \cite{eurocrypt-2021-30841}, due to Dinur. As the title of the thesis states, this will be the algorithm in focus.
+
+\subsection{Notation} \label{sec:dinur:notation}
+% Describe the set W
+% Describe the funky down-arrow binomial thingy
+% Describe z_i \leftarrow 0
+
+For the following sub-section to make sense, some notation is due, all of which is borrowed from \cite{eurocrypt-2021-30841}.
+\begin{itemize}
+    \item Let $W^n_w$ be the set $\{x \in \{0, 1\}^n \mid HW(x) \leq w \}$, where $HW(x)$ is the hamming weight of a vector $x$. 
+    \item Let $\binom{n}{\downarrow w} = \sum^w_{i = 0} \binom{n}{i}$. This is also the size of the set $W^n_w$.
+    \item The subscript $z_i \leftarrow 0$ implies that a polynomial $p_{z_i \leftarrow 0}(y,z)$ has it's $i$th $z$-bit set to zero.
+\end{itemize}
+
+\subsection{Complexities}
+
+With the concrete complexities of the algorithms in \cite{doi:10.1137/1.9781611974782.143, Williams2014ThePM} being larger than $2^n$, a concretely efficient algorithm for cryptographic purposes was yet to be seen before \cite{eurocrypt-2021-30841}. In 2021, Dinur formulated a polynomial-method algorithm to be applicable in cryptography in general, and specifically for cryptanalytic purposes. This meant that the non-asymptotic complexities ought to be good even for very large problem sizes, due to the natural parameter sizes in cryptology. The asymptotic complexities of the formerly mentioned algorithms of \cite{doi:10.1137/1.9781611974782.143, Williams2014ThePM} may therefore be better, while in a non-asymptotic context not yielding the exponential speedup over exhaustive search as advertised. The algorithm provided in \cite{eurocrypt-2021-30841} therefore has the interesting property of yielding exponential speedup over exhaustive search, even for very large problem sizes. In this vein, the algorithms of \cite{doi:10.1137/1.9781611974782.143, Williams2014ThePM} have been revealed to have a concrete complexity larger than $2^n$ for cryptography-relevant parameters.
+
+From analysis, the algorithm in \cite{eurocrypt-2021-30841} is bound to 
+$$
+    n^2 \cdot 2^{0.815n}
+$$ 
+bit operations for systems of quadratic polynomials, and 
+$$
+    n^2 \cdot 2^{(1 - \frac{1}{2.7d})}n
+$$ 
+for systems with degree $d > 2$ polynomials. This thesis will focus on the quadratic case, as this is the most relevant variant for cryptography. As a cryptanalytic tool, the algorithm was estimated to reduce the security margins of cryptographic schemes like HFE and UOV, however, some MQ-based schemes have resisted attacks using this algorithm. One downside to polynomial-method algorithms in general is memory usage. The spatial complexity of this algorithm is therefore also quite vast and was shown to be reducible to around 
+$$
+    n^2 \cdot 2^{0.63n}
+$$ 
+bits for quadratic polynomials systems. These complexities were proven in \cite{eurocrypt-2021-30841} as well.
+
+\subsection{The algorithm} \label{sec:dinur:dinur_alg}
+\begin{defn}[Isolated Solutions] \label{def:isolated_sol}
+    Let $\hat{x} = (\hat{y}, \hat{z})$ be a solution to the polynomial system $\mathcal{P}$, where $\hat{x}$ is split into two parts via the variable partition $(\hat{y}, \hat{z})$. The solution, $\hat{x}$, is called \textit{isolated} if for any $\hat{z}' = \hat{z}$, $(\hat{y}, \hat{z}')$ is not a solution to $\mathcal{P}$.
+\end{defn}
+
+At its core, the algorithm from \cite{eurocrypt-2021-30841} is quite simple. The essential idea is to use smaller systems of polynomials to look for solutions. These smaller systems, of course, need a certain structure to provide the most relevant solutions for the remainder of the algorithm. To avoid brute-forcing these smaller systems, the idea is to divide any input $\mathbf{x} = \{x_0, \dots x_{n - 1}\}$ into two parts, allowing for obtaining and iterating \textit{isolated solutions} (\cref{def:isolated_sol}). The isolated solutions are then later used to obtain actual solutions for the system $\mathcal{P}$. The details of Dinur's polynomial-method solver can be seen in \cref{alg:solve}, with sub-procedures in \cref{alg:output} and \cref{alg:uvalue}.
+
+\paragraph{Solving systems using the polynomial-method.} Looking at \cref{alg:solve}, one of the first things to done is preprocessing. This step is rather simple, as it essentially involves linearizing any quadratic terms in the polynomials $p_i \in \mathcal{P}$. This linearization removes any quadratic term, and adds to the polynomial a corresponding linear term in the same variable. This way, the FES procedure (\cref{alg:uvalues:bruteforce} in \cref{alg:uvalue}) is fed a system in the correct format. This part can of course be mitigated by feeding \cref{alg:solve} a system $\mathcal{P}$ in the correct format to begin with, however, to be thorough it was added as part of the procedure here. This is a less interesting step, but an explanation can be found in \cref{sec:prereq:fes}. Originally, in \cite{eurocrypt-2021-30841}, this step is not present, however, with the more practical approach taken here it seems reasonable to include it.
+
+After preprocessing, and initializing $\ell$ and the $PotentialSolutions$ list, \cref{alg:solve} goes on to the vital part: Computing and checking potential solutions. The main loop of the algorithm starts out by generating a \textit{uniformly random full rank (rank $\ell$) binary matrix}, $A$, for computing the new system $\Tilde{\mathcal{P}}_k$. Requiring the matrix $A$ to be full rank was merely done in \cite{eurocrypt-2021-30841} for ease of analysis. Given the large degrees of identifying polynomials for larger polynomial systems (see \cref{sec:prereq:polymethod}), the approach in polynomial-methods is typically to obtain a \textit{probabilistic polynomial}, $\Tilde{F}$, of a similar system. Creating the system $\Tilde{\mathcal{P}}_k$ in the way described in \cref{alg:solve} ensures that its identifying polynomial, $\Tilde{F}$, and the identifying polynomial of the original system, $F$, agree on all solutions to the system $\mathcal{P}$. Even though $F$ and $\Tilde{F}$ agree on solutions to $\mathcal{P}$, the case where $F(\hat{\mathbf{x}}) = 0$ imposes $P[\Tilde{F}(\hat{\mathbf{x}}) = 0] \geq 1 - 2^{-\ell}$ for some $\hat{\mathbf{x}} \in \{0,1\}^{n - n_1}$, as proven in \cite{eurocrypt-2021-30841}. Then $F$ is of degree $d \cdot m$ and $\Tilde{F}$ is of degree $d \cdot \ell$, where $\ell < m$.
+
+The solutions with the potential of being a common zero for the system $\mathcal{P}$ are output by the subprocedure \texttt{OUTPUT\_POTENTIALS} from \cref{alg:output} in \cref{alg:solve:output}. Once a set of the solutions to $\Tilde{\mathcal{P}}_k$ have been obtained, the history of previously obtained solutions (previous $\Tilde{E}_i$ for $i = 0, \dots k - 1$) is checked for overlaps with the freshly found solutions. The historic solutions are checked at \cref{alg:solve:check_history} and on. To avoid enumerating the whole search space (defeating the point of this algorithm) of $n$-bit solutions, the algorithm uses the parameter $n_1 < n$ to split solutions, $\mathbf{x}$, into $\mathbf{x} = (\mathbf{y}, \mathbf{z})$ where the $n - n_1$ initial bits are the $\mathbf{y}$-bits, and the $n_1$ latter bits are $\mathbf{z}$-bits. Splitting solutions for the system $\Tilde{\mathcal{P}}_k$ into two parts allows searching for \textit{isolated solutions} (\cref{def:isolated_sol}). Searching for isolated solutions compresses the space that needs to be searched with quite a large amount, assuming isolated solutions exist for the parameter $n_1$. It should be noted that some other literature describes algorithms similar in vein, however, these typically search isolated solutions over the identifying polynomial $F$ of the original system. The algorithm from \cite{eurocrypt-2021-30841} enumerates the isolated solutions of $\Tilde{F}$ and hence those of the randomly generated systems $\Tilde{E}_i$ for $i = 0, \dots k$. Due to the relationship of solution for $F$ and $\Tilde{F}$, any isolated solution found for $\Tilde{F}$ is not guaranteed to one for $F$. For $n_1 = \ell - 1$, an isolated solution $\hat{\mathbf{x}}$ for $F$ partitioned on $n_1$ is also an isolated solution for $\Tilde{F}$ with probability $\geq 1 - 2^{n_1 - \ell} = \frac{1}{2}$, as proven in \cite{eurocrypt-2021-30841}. Doing this will inherently make the interpolation and summation processes of \cref{alg:output} more efficient, as the polynomial being interpolated is reduced from degree $d \cdot m$ (for $F$) to $d \cdot \ell$ (for $\Tilde{F}$).
+
+Because the isolated solutions obtained in the \textit{CurrPotentialSolutions} list (and the historic solutions; \textit{PotentialSolutions}) are not guaranteed to be isolated in $F$ (and hence not guaranteed to be a common zero of $\mathcal{P}$), the algorithm makes use of the history to minimize complexity. Ideally, every isolated solution could be tested on $\mathcal{P}$, however, considering that testing a single solution requires $\binom{n}{\downarrow d}$ bit operations this may end up quite expensive. Therefore, \cref{alg:solve:test_sol} is only ever executed once a candidate solution has appeared twice throughout the algorithm's run-time. In \cite{eurocrypt-2021-30841}, it is further argued that it is unlikely for an \textit{incorrect} candidate solution to appear more than once during solve-time. This limitation on testing solutions further improves the concrete complexity of the algorithm, when compared to the like-minded polynomial-method algorithms of the time.
+\begin{figure}[ht]
+    \centering
+    \begin{alg}
+        \caption{SOLVE($\mathcal{P}$, $m$, $n$, $n_1$)}
+        \label{alg:solve}
+        \KwIn{$\mathcal{P}$: $\{p_j(\mathbf{x})\}_{i = 0}^{m-1}$, $m$: Integer, $n$: Integer, $n_1$: Integer}
+        \KwResult{A solution to the system $\mathcal{P}$} \label{alg:solve:matrix}
+        PREPROCESS($\mathcal{P}$)\; \label{alg:solve:preprocess}
+        $\ell \gets n_1 + 1$\;
+        $PotentialSolutions \gets []$\;
+        \ForEach{$k = 0,\dots$}{
+            $A \gets \text{MATRIX($l$, $m$)}$\;
+            $\Tilde{\mathcal{P}}_k \gets \{\sum_{j = 0}^{m-1}A_{i,j} \cdot p_j(\mathbf{x})\}^{\ell - 1}_{i = 0}$\; \label{alg:solve:e_k}
+            $w \gets (\sum_{i=0}^{\ell - 1}\Tilde{\mathcal{P}}_k\text{.degrees()[}i\text{])} - n_1$\; \label{alg:solve:w}
+            $CurrPotentialSolutions \gets$ OUTPUT\_POTENTIALS($\Tilde{\mathcal{P}}_k$, $n$, $n1$, $w$)\; \label{alg:solve:output}
+            $PotentialSolutions[k] \gets CurrPotentialSolutions$\;
+            \ForEach{$\hat{y} \in \{0,1\}^{n - n1}$}{ \label{alg:solve:check_history}
+                \If{$CurrPotentialSolutions[\hat{y}][0] = 1$}{
+                    \ForEach{$k_1 = 0, \dots k - 1$}{
+                        \If{$CurrPotentialSolutions[\hat{y}] = PotentialSolutions[k_1][\hat{y}]$}{
+                            $sol \gets \hat{y}\parallel CurrPotentialSolutions[\hat{y}]$\;
+                            \If{TEST\_SOLUTION($\mathcal{P}$, $sol$)}{ \label{alg:solve:test_sol}
+                                \Return $sol$\;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    \end{alg}
+    \caption{The top-level procedure of Dinur's polynomial-method algorithm.}
+\end{figure}
+
+\paragraph{Outputting potential solutions.} As already mentioned, the algorithm seeks \textit{candidate} solutions obtained from smaller systems $\Tilde{\mathcal{P}}_k$ (for some $k = 0, 1,\dots $). In any iteration of the main loop of \cref{alg:solve}, the \texttt{OUTPUT\_POTENTIALS} function computes candidate solutions through the polynomials $U_i$, for $i = 0, \dots n_1$. These polynomials are constructed as such: 
+$$
+U_0(\mathbf{y}) = \sum_{\hat{\mathbf{z}} \in \{0,1\}^{n_1}} \Tilde{F}(\mathbf{y}, \hat{\mathbf{z}}),
+$$
+and
+$$
+U_i(\mathbf{y}) = \sum_{\hat{\mathbf{z}} \in \{0,1\}^{n_1 - 1}} \Tilde{F}_{z_i \leftarrow 0}(\mathbf{y}, \hat{\mathbf{z}})
+$$
+for $i = 1, \dots n_1$. As is described in \cite{eurocrypt-2021-30841}, constructing polynomials this way, allows for enumerating the isolated solutions, partitioned by $(\mathbf{y},\mathbf{z})$ and in this case $n_1$. That is, for each input $\hat{\mathbf{y}}$ we may compute the remaining $n_1$ bits of a solution using these sums, assuming $\hat{\mathbf{y}}$ belongs to an isolated solution. In his paper, Dinur proves that if $(\hat{\mathbf{y}}, \hat{\mathbf{z}})$ is an isolated solution to $\Tilde{\mathcal{P}}$, then $U_0(\hat{\mathbf{y}}) = 1$ and $U_i(\hat{\mathbf{y}}) = z_i + 1$, for $i = 1, \dots, n_1$. Therefore, by computing the sums (or parities) $U_i$ for $i = 0, \dots n_1$ we may easily retrieve the latter $n_1$ bits of an isolated solution, assuming $U_0(\hat{\mathbf{y}}) = 1$. Going through solutions and recovering the $z_i$ bits occurs in the latter loop of \cref{alg:output} (\cref{alg:output:recover}).
+
+Looking at how these polynomials/sums are constructed we see that they require quite a large amount of computation, should they be searched exhaustively, as they each require an exponential amount of evaluations of the polynomial $\Tilde{F}$. To avoid this, the algorithm instead uses the \texttt{COMPUTE\_U\_VALUES} procedure to compute interpolation points. The procedure stores these interpolation points in the $V$ and $ZV$ arrays, in \cref{alg:output:uvalues}, with $V$ being the values used for interpolating $U_0$ and $ZV$ being the values used for interpolating $U_i$ for $i = 1, \dots, n_1$. Now, as discussed in \cref{sec:prereq:poly_interp} a boolean polynomial can be interpolated from its evaluations (\textit{truth-table}, essentially) using the Möbius transform. Instead of \texttt{COMPUTE\_U\_VALUES} having to compute entire truth-tables, we may modify the Möbius transform to enable, what we denote, \textit{sparse interpolation} of a polynomial. This modification is described in \cite{fse-2011-23547}. In order to minimize the cost of sparsely computing $U$ evaluations, Dinur proved (in \cite{eurocrypt-2021-30841}) that we may do the interpolations in \cref{alg:output:mob_0} and \cref{alg:output:mob_1} using solutions to $\Tilde{\mathcal{P}}$ in the set and $W^{n - n_1}_{w + 1} \times \{0, 1\}^{n_1}$. These solutions evaluations are stored in variables $V$ and $ZV$.
+
+Once the $U_i$ polynomials have been interpolated in \cref{alg:output:mob_0} and \cref{alg:output:mob_1} they may be used for an exhaustive search. At this point, instead of evaluating these polynomials directly, we use the fact that the Möbius transform is its inverse (\cref{sec:prereq:poly_interp}) by giving the $U$ polynomials as inputs to the transform procedure. For this to work, we of course need a way of storing the polynomial in an array structured similarly to the truth tables. This brute force approach can be seen in \cref{alg:output:mob_2}.
+
+
+\begin{figure}[ht]
+    \centering
+    \begin{alg}
+        \caption{OUTPUT\_POTENTIALS($\Tilde{\mathcal{P}}$, $n$, $n_1$, $w$)}
+        \label{alg:output}
+        \KwIn{$\Tilde{\mathcal{P}}$: $\{r_i(\mathbf{x})\}_{i = 0}^{\ell - 1}$, $n$: Integer, $n_1$: Integer, $w$: Integer}
+        \KwResult{A two-dimensional list of size $2^{n - n_1} \times (n_1 + 1)$ containing the $z_i$ bits, $y$ bits and $U_0(y)$ bit.}
+        $(V, ZV[0,\dots(n_1 - 1)]) \gets $ COMPUTE\_U\_VALUES($\Tilde{\mathcal{P}}$, $n$, $n_1$, $w$)\; \label{alg:output:uvalues}
+        $U_0 \gets$ MOB\_TRANSFORM($V$[$0\dots |W^{n - n_1}_{w}| - 1$], $n - n_1$)\; \label{alg:output:mob_0}
+        \ForEach{$i = 1\dots n_1$}{
+            $U_i \gets$ MOB\_TRANSFORM($ZV$[$i$][$0, \dots, |W^{n - n1}_{w + 1}| - 1$], $n - n_1$)\; \label{alg:output:mob_1}
+        }
+        $Evals[0\dots n_1][0\dots 2^{n - n1} - 1] \gets \{0\}$\;
+        \ForEach{$i = 0\dots n_1$}{
+            $Evals[i][0\dots 2^{n - n1} - 1] \gets$ MOB\_TRANSFORM($U_i$.as\_array(), $n - n_1$)\; \label{alg:output:mob_2}
+        }
+        $Out[0\dots 2^{n - n1} - 1][0\dots n_1] \gets \{0\}$\;
+        \ForEach{$\hat{y} \in \{0,1\}^{n - n_1}$}{ \label{alg:output:recover}
+            \If{$Evals[0][\hat{y}] = 1$}{
+                $Out[\hat{y}][0] \gets 1$\;
+                \ForEach{$i = 1\dots n_1$}{
+                    $Out[\hat{y}][i] \gets Evals[i][\hat{y}] + 1$\;
+                }
+            }
+        }
+        \Return $Out$\;
+    \end{alg}
+    \caption{The subprocedure for retrieving candidate solutions.}
+\end{figure}
+
+\paragraph{Computing interpolation points for the $U$ polynomials.} The points needed for sparsely interpolating the $U$ polynomials may not be chosen freely. According to the proof due to Dinur in \cite{eurocrypt-2021-30841}, the necessary points depend on the hamming weight of the initial $n - n_1$ bits of the solution to $\Tilde{\mathcal{P}}$. Dinur essentially states that in order to interpolate $U_0$ for some system $\Tilde{\mathcal{P}}$, we need all solutions $(\hat{\mathbf{y}}, \hat{\mathbf{z}})$ where the hamming weight of the $\hat{\mathbf{y}}$ vector is less than $w = d_{\Tilde{F}} - n_1$ (\cref{alg:solve:w} in \cref{alg:solve}). Likewise, to interpolate $U_i$, for $i = 1, \dots, n_1$, we need all solutions where the hamming weight of the $\hat{\mathbf{y}}$-bits is less than $w + 1$.
+
+To obtain solutions for $\Tilde{\mathcal{P}}$, usable for the interpolation in \texttt{OUTPUT\_POTENTIALS}, Dinur specifies using the FES procedure (\cref{sec:prereq:fes}), denoted \texttt{BRUTEFORCE} at \cref{alg:uvalues:bruteforce} in \cref{alg:uvalues}. The idea behind using this procedure is that we may obtain the interpolation points with complexity 
+$$
+    2d \cdot \log n \cdot 2^{n_1} \cdot \binom{n - n_1}{\downarrow w}.
+$$
+However, as the FES procedure itself is not designed to iterate through sparse sets of inputs, such as $W^{n - n_1}_w \times \{0, 1\}^{n_1}$, an overhead is incurred. The $n_1$ latter bits can be iterated using the normal gray code traversal of FES, meaning a penalty is incurred for each $2^{n_1}$ iteration. A conservative estimate by Dinur confines this to an amortized penalty of $2^{- n_1} \cdot n$ over the FES procedure. As the complexities derived for Dinur's polynomial-method algorithm assume cryptographically relevant parameter sizes, $2^{n_1} \gg n$ means the overhead is negligible.
+
+Once the relevant solutions for $\Tilde{\mathcal{P}}$ have been computed by, the procedure goes on to compute the actual interpolation points for the $U$ polynomials. The loop at \cref{alg:uvalues:sum} (\cref{alg:uvalues}) computes the evaluations for the $U$ polynomials by iterating through all solutions and filtering depending on the values of the $\Hat{y}$ and $\Hat{z}$ bits. As the $U_0$ polynomial can be interpolated from its values in $W^{n - n_1}_w \times \{0, 1\}^{n - n_1}$, \cref{alg:uvalues} simply checks whether or not the current $\Hat{y}$ bits have a hamming weight $\leq w$, before summing and storing. Likewise, to filter out solutions for some $U_i$, the procedure inspects the $\Hat{z}$-bits and checks whether or not $z_i = 0$ (as is necessary by the construction of $U_i$s).
+
+It should be noted that the gray code traversal of the FES sub-procedure could also be reimplemented using monotone gray codes instead of traditional binary reflected gray codes, as noted by Dinur in \cite{eurocrypt-2021-30841}. This way, the gray code traversal is done in an \textit{almost} increasing order according to the hamming weight.
+
+\begin{figure}[ht]
+    \centering
+    \begin{alg}
+        \caption{COMPUTE\_U\_VALUES($\Tilde{\mathcal{P}}$, $n$, $n_1$, $w$)} \label{alg:uvalue}
+        \label{alg:uvalues}
+        \KwIn{$\Tilde{\mathcal{P}}$: $\{r_i(\mathbf{x})\}_{i = 0}^{\ell - 1}$, $n_1$: Integer, $w$: Integer}
+        \KwResult{Lists $V$ and $ZV$ containing evaluations of $U_i(y), \forall i \in \{0, \dots n_1\}, \forall y \in \{y \mid y \in \{0,1\}^{n - n_1}, hw(y) \leq w\}$}
+        $Sols[0\dots L - 1] \gets$ BRUTEFORCE($\Tilde{\mathcal{P}}$, $n$, $n1$, $w + 1$)\; \label{alg:uvalues:bruteforce}
+        $V[0\dots |W^{n - n1}_w| - 1] \gets \{0\}$\;
+        $ZV[0\dots n_1][0\dots |W^{n - n_1}_{w + 1}| - 1] \gets \{0\}$\;
+        \ForEach{$s \in Sols$}{ \label{alg:uvalues:sum}
+            $\hat{y}, \hat{z} \gets s[0\dots n - n_1 - 1], s[n - n_1 \dots n - 1]$\;
+            \If{$\text{HAMMING\_WEIGHT(} \hat{y} \text{)} \leq w$}{
+                $idx \gets$ INDEX\_OF($\hat{y}$, $n - n_1$, $w$)\;
+                $V[idx]\pp$\;
+            }
+            \ForEach{$i = 1\dots n_1 $}{
+                \If{$z_i = 0$}{
+                    $idx \gets$ INDEX\_OF($\hat{y}$, $n - n_1$, $w + 1$)\;
+                    $ZV[i][idx]\pp$\;
+                }
+            }
+        }
+        \Return $V, ZV[1\dots n_1]$\;
+    \end{alg}
+    \caption{The subprocedure for computing interpolation points.}
+\end{figure}
+
+\newpage

@@ -1,0 +1,152 @@
+\section{Extensions to the original scheme (approx. 5-10 pages)} \label{sec:ext}
+The spatial complexity of Dinur's polynomial-method algorithm is one of the greatest hindrances to an implementation of the solver being viable in practice. This problem was also acknowledged by Dinur in \cite{eurocrypt-2021-30841} and mitigation was introduced as the \textit{memory efficient Möbius transform}. Although this alternative version of the Möbius transform was not implemented in practice in this project, it is described for the sake of completeness in \cref{sec:ext:mem_mob}. Other than describing mitigations for the memory bottlenecks in the algorithm, this section also introduces a FES (see \cref{sec:prereq:fes}) based interpolation procedure as a complete alternative to the use of the Möbius transform for polynomial interpolation, this is described in \cref{sec:ext:fes_interp}.
+ 
+% \subsection{Memory efficient Möbius transform} \label{sec:ext:mem_mob}
+% The proposal by Dinur that should mitigate the memory problems with the algorithm focuses on how the $U$ polynomials are evaluated using the Möbius transform. The standard approach described is to have \cref{alg:output} interpolate the $U$ polynomials in each round independently, then evaluate them, and then store their solutions. The alternative approach interpolates multiple sets of $U$ polynomials first, in order to then interleave the evaluation and solution testing on these multiple sets of $U$ polynomials in parallel. The evaluation process is specifically also altered to use the \textit{memory-efficient Möbius transform}.
+
+% Typically, the approach for using the Möbius transform for evaluation is to feed the it a full array of size $2^n$ bits representing the polynomial, however, for the memory-efficient approach we may assume the polynomial is represented by a bit array of size $\binom{n}{\downarrow d}$ (see \cref{sec:dinur:notation} for notation). 
+
+% The idea behind this approach is to use the recursive formula 
+% $$
+%     F(x_0, \dots x_{n - 1}) = x_0 \cdot F_1(x_1,\dots x_{n - 1}) + F_2(x_1,\dots x_{n - 1})
+% $$
+% by evaluating
+% $$
+%     F_2(x_1, \dots x_{n - 1}) = F(0, x_1, \dots x_{n - 1})
+% $$ 
+% first, followed by 
+% $$
+%     F_1(x_1, \dots x_{n - 1}) = F(0,\dots x_{n-1}) + F(1, \dots x_{n - 1})$$
+% for the first $k \approx n - \log \binom{n}{\downarrow d}$ recursive levels and then switching to the in-place approach afterward. These top $k$ levels are performed independently by allocating two arrays, set to be an \textit{input} and an \textit{output} array for the current level.
+% \td{PROBABLY JUST DELETE}
+ 
+\subsection{Polynomial interpolation using FES} \label{sec:ext:fes_interp}
+As an alternative to the Möbius transforms used in \cref{alg:output}, interpolation based on the same principles as the FES procedure of \cite{ches-2010-23990} may be used. In order to introduce this procedure, a generalized FES approach should also be introduced. The generalized approach is described in detail in \cite{tungchoumasters} but for the sake of completeness will be shortly described in \cref{sec:ext:fes_interp:g_fes}. The reason behind this, is that the Möbius transform of \cref{alg:output} handles general degree $d$ polynomials, whereas the FES procedure described up to this point has exclusively been for quadratic polynomials.
+
+\subsubsection{Generalized FES} \label{sec:ext:fes_interp:g_fes}
+The ideas behind a generalized FES approach are mostly similar to what has already been described. The idea behind the procedure is still to use derivatives in order to minimize the operations needed to compute new evaluations of the polynomial(s). However, since input polynomials may now be of degree $d > 2$, the procedure has to use the appropriate high-order derivatives.
+
+Consider the polynomial
+$$
+    p(x_0, x_1, x_2) = 1 + x_0 + x_0 x_1 + x_0 x_1 x_2
+$$
+using the FES approach detailed in \cref{sec:prereq:fes}, it is clear that 
+$$
+    \frac{\partial^2 p}{\partial x_0 \partial x_1} = 1 + x_2.
+$$
+Second-order partial derivatives are no longer constants, instead the procedure must use third-order partial derivatives for polynomials like $p$ above, or $d$-order partial derivatives for degree $d$ polynomials in general. Therefore, the derivatives must now be stored in more and/or larger tables, as the procedure has to store up to $d$-order partial derivatives. These $d$-order partial derivatives act like constants, just like second-order partial derivatives did for quadratic polynomials. All other partial derivatives of order $< d$ are to be computed similarly to the first-order partial derivatives of \cref{alg:fes_step}. 
+
+Consider \cref{alg:generalized_fes}; the algorithm is an extension of \cref{alg:fes_eval}, that now computes the zeros of any polynomial of degree $d$, using the ideas discussed above. The dictionary $D$ stores the derivative values of monomials just like $s.d'$ and $s.d''$ did in \cref{alg:fes_step} and \cref{alg:fes_init}. However, in this approach the algorithm stores all derivatives in a single dictionary. For the sake of simplicity, any lookup on an entry in $D$ that has not been initialized is defaulted to return $0$. Further, monomials are essentially represented as lists of the indices of 1-bits in an $n$-length bitstring, representing which of the $n$ variables are \textit{active} in the degree $\leq d$ monomial. An example could be the monomial $x_0x_2x_3$ that may be represented by the bitstring (or bit-vector) $1101_2$. The key zero, $D[0]$, corresponds to $s.y$ in \cref{alg:fes_eval}.
+
+\td{CHECK GRAY CODE NOTATION AND DESCRIPTION OF INITIALIZATION VALUES}
+
+The \texttt{DERIVATIVE\_INIT()} procedure in the pseudo-code initializes the derivative table entries to their initial values. For the quadratic case (\cref{alg:fes_init}), this was a rather simple task of initializing the second-order derivative table simply as appropriate coefficients, followed by initializing the first-order derivative table to 
+$$
+    \frac{\partial p}{\partial x_k}(g_{2^k}) = \frac{\partial^2 p}{\partial x_{k} \partial x_{k - 1}} + c_k
+$$
+where $c_k$ is the coefficient to the monomial $x_k$. Notice, the notation from \cref{sec:prereq:fes:exh_g_code}, $g_{2^k}$, is used to denote the gray code value of $2^k$. In the general case, the goal is the same, however, for a potentially larger degree. This means that the general approach is to initialize entries to 
+$$
+    \frac{\partial^j p}{\partial x_{\alpha_1} \dots \partial x_{\alpha_j}}(g_{2^{\alpha_1} + \dots + 2^{\alpha_j}})
+$$
+with $\alpha_1 \dots, \alpha_j$ being the contents of the monomial representation described earlier. Again, formal proofs for why these initializations are used can be found in \cite{tungchoumasters}.
+
+The early parts of the for-loop at \cref{alg:generalized_fes:step} is the generalized version of the stepping procedure, \cref{alg:fes_step}. Instead of only computing the positions of the least significant one bits, of counter value $i$, the procedure instead computes the positions of the least $d$ 1-bits. The amount of bit positions stored depends on whether or not the counter value $i$ has $\leq d$ bits, if more the procedure only chooses the first $d$ bits. The $Depth$ variable in the pseudo-code represents the amount of bits chosen, or how \textit{deep} the "recursion" should go. Inspecting \cref{alg:generalized_fes:step:compute}, it should be clear that new derivative values are computed in a recursive manner, where low-order derivatives are computed by adding the high-order derivatives, i.e.
+\begin{equation} \label{eq:fes_recurse}
+    \frac{\partial^{j - 1} p}{\partial x_{Bits_0} \dots \partial x_{Bits_{j - 2}}}(g_i) = Q_{x_{Bits_0} \dots x_{Bits_{j - 1}}} + \frac{\partial^j p}{\partial x_{Bits_0} \dots \partial x_{Bits_{j - 1}}}(g_i).
+\end{equation}
+Here, $q$ is the previous evaluation of $\frac{\partial^{j - 1} p}{\partial x_{Bits_0} \dots \partial x_{Bits_{j - 2}}}$, i.e. the entry stored in the derivative table. It should be noted here that recursively applying the equation above will result in a case with $\partial^0 p = p$ being the polynomial $p$ itself.
+
+\td{CONSIDER BOLD FONT FOR VECTORS OF GRAY CODES}
+
+Now, since the procedure stores the evaluation of $p(g_i)$ in $D[0]$, the only missing part is to check if the evaluation is a common zero. This takes places at \cref{alg:alg:generalized_fes:check} and onwards.
+
+\begin{figure}[ht]
+    \begin{alg}
+        \KwIn{A polynomial $p$ alongside its number of variables $n$ and degree $d$.}
+        \KwResult{All zeros of the polynomial $p$.}
+        $Solutions \gets []$\;
+        $k \gets 0$\;
+        $D \gets \text{DICT(default: 0)}$\;
+        $D[0] \gets p.\text{constant\_coefficient()}$\;
+        \ForEach{$Mon$ in $p$.monomials()}{
+            $D[Mon] \gets \text{DERIVATIVE\_INIT}(Mon)$\; \label{alg:generalized_fes:init}
+        }
+        \ForEach{$i = 0, \dots 2^n - 1$}{ \label{alg:generalized_fes:step}
+            $Depth \gets \min(\text{HAMMING\_WEIGHT}(i), d)$\;
+            $Bits \gets \text{BITS}(i, Depth)$\;
+            \ForEach{$j = Depth \dots, 1$}{
+                $Mon_1 \gets Bits[0:j - 1]$\;
+                $Mon_2 \gets Bits[0:j]$\;
+                $D[Mon_1] \gets D[Mon_1] \oplus D[Mon_2]$\; \label{alg:generalized_fes:step:compute}
+            }
+            \If{$D[0] = 0$}{ \label{alg:alg:generalized_fes:check}
+                $Solutions[k] \gets \text{GRAY}(i)$\;
+                $k\pp$\;
+            }
+        }
+        \Return{Solutions}
+        \caption{GENERALIZED\_FES($p$, $n$, $d$)} \label{alg:generalized_fes}
+    \end{alg}
+    \caption{A generalized FES procedure for degree $d$ polynomials.}
+\end{figure}
+
+\subsubsection{FES-based interpolation and recovery.} \label{sec:ext:fes_interp:interp_recover}
+\td{MAY I CALL THIS NOVEL?}
+
+At last comes an introduction to more \textit{novel} ideas; the FES-based interpolation and \textit{recovery} of solutions. In the context of Dinur's polynomial-method solver, the most interesting of the two would be recovering solutions. For this reason, most of the focus will be on how to recover solutions of a degree $d$ polynomial.
+
+\paragraph{Interpolation using FES.} Observe how derivative table entries are updated using the principles of \cref{eq:fes_recurse}. Using these principles in a reverse order allows for backtracking, i.e. computing 
+\begin{equation} \label{eq:reverse_fes}    
+\frac{\partial^j p}{\partial x_{Bits_0} \dots \partial x_{Bits_{j - 1}}}(g_i) = \frac{\partial^{j - 1} p}{\partial x_{Bits_0} \dots \partial x_{Bits_{j - 2}}}(g_i) - q
+\end{equation}
+meaning that the high-order derivatives may be computed from the values of low-order deriatives. By unpkacing or unrolling the equation above by recursively applying the equality, it becomes clear that once more $\partial^0 p = p$. Clearly, a procedure where the input is the full truth-table of the polynomial $p$ could compute the derivative table entries in a reverse order of what is done in \cref{alg:generalized_fes}, using \cref{eq:reverse_fes}. Going through all evaluations and using the reversed equation above will result in the same state (of the derivative table) as just after the initialization phase of \cref{alg:generalized_fes}. This idea is important, however, inverting the initialization phase is not useful for the purpose of this thesis, and so it will not be discussed further. Just note that if one were to invert this, they would be able to obtain the coefficients of the polynomial directly, hence interpolating it.
+
+\paragraph{Recovery of all solutions using interpolation.} Going back to the algorithm of \cref{alg:output}, the idea was to introduce an alternative way of recovering solutions using separate runs of the Möbius transform algorithm. Using the ideas discussed earlier in this section, this can be done in one pass-through of the input truth-table.
+
+As is the case for \cref{alg:output}, recovering the full truth-table of a boolean polynomial $p$, of degree $d$, can be done using a combination of the the ideas discussed in this section. For the procedure to work, the setup must be the same as for the sparse Möbius transform (see \cref{sec:prereq:poly_interp}). This means that evaluations of inputs with hamming-weight $\leq d$ must be there. Now, a hybrid approach of generalized FES and FES-based interpolation can be used to obtain the full truth-table. 
+
+The hybrid approach is shown in \cref{alg:fes_recover}, in which the \textit{then} part of the outer-most conditional is the evaluation part, while the \textit{else} is the interpolation part. Notice, since the goal was to \textit{only} recover the full truth-table and not fully interpolate $p$, the algorithm may ignore inverting the initialization phase. If the goal was to also fully interpolate $p$, this could be added after looping through all $2^n - 1$ inputs. Also, it should be noted that since the procedure both interpolates derivative entries \textit{and} evaluates, there is no need of the original setup phase of FES, like \cref{alg:fes_init} or \cref{alg:generalized_fes:init} in \cref{alg:generalized_fes}. 
+
+\td{ENOUGH?}
+
+\begin{figure}[ht]
+    \begin{alg}
+        \KwIn{For some polynomial $p$, the degree $d$, amount of variables $n$, and a sparsely filled truth-table $S$.}
+        \KwResult{The full truth-table of $p$, $R$.}
+        $R[0\dots 2^n - 1] \gets \{0\}$\;
+        $D \gets \text{DICT(default: 0)}$\;
+        $R[0] \gets S[0]$\;
+        $D[0] \gets S[0]$\;
+        \ForEach{$i = 1 \dots, 2^n - 1$}{
+            $Depth \gets \min(\text{HAMMING\_WEIGHT}(i), d)$\;
+            $Bits \gets \text{BITS}(i, Depth)$\;
+            \eIf{$\text{HAMMING\_WEIGHT}(i) > d$}{
+                \ForEach{$j = Depth \dots, 1$}{
+                    $Mon_1 \gets Bits[0:j - 1]$\;
+                    $Mon_2 \gets Bits[0:j]$\;
+                    $D[Mon_1] \gets D[Mon_1] \oplus D[Mon_2]$\;
+                }
+            }{
+                $Q = D[0]$\;
+                $D[0] \gets S[i]$\;
+                \ForEach{$j = 1 \dots, Depth$}{
+                    $Mon_1 \gets Bits[0:j]$\;
+                    $Mon_2 \gets Bits[0:j-1]$\;
+                    \If{$j < Depth$}{
+                        $Tmp \gets Mon_1$\;
+                    }
+                    $D[Mon_1] \gets D[Mon_2] \oplus Q$\;
+                    \If{$j < Depth$}{
+                        $Q \gets Tmp$\;
+                    }
+                }
+            }
+            $R[\text{GRAY}(i)] = D[0]$\;
+        }
+        \Return $R$\;
+        \caption{FES\_RECOVER($d$, $n$, $S$)} \label{alg:fes_recover}
+    \end{alg}
+\end{figure}
+
+
+\newpage

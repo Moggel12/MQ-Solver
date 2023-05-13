@@ -427,6 +427,8 @@ Running tests with the \texttt{bin/test} executable file memory sanitizers, and 
 
 The alternative is to test different functions using the \texttt{bin/mq.so} shared library. Other than testing for correctness, these tests also help test the bridge between shared library and Python/SageMath. Like the tests for the SageMath code itself, these tests may be found in the related \texttt{.sage} files; tests for \texttt{fes()} and \texttt{bruteforce()} may be found in \texttt{fes.sage}, \texttt{fes\_recover()} in \texttt{src/sage/fes\_rec.sage}, etc.
 
+It could be argued here that more tests should exist, especially for the C codebase. Many new procedures were introduced in both the \textit{standard} and \textit{vectorized} codebases, implying that further testing of these individual parts could have taken place on a more granular level.
+
 \subsection{Interface for running the C code} \label{sec:impl:interface}
 
 
