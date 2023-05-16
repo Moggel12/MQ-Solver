@@ -3,6 +3,12 @@
 ## TODO
 [Todo-list](https://github.com/Moggel12/MQ-Solver/blob/main/TODO.md)
 
+## Compiling the report
+
+The report PDF can be compiled by running `make pdf`, and can be cleaned up by running `make pdfclean`. 
+
+Note: The LaTeX code for the report uses the `minted` package, which expects `pygments` package (or `python-pygments`) to be installed on the system.
+
 ## Compiling code
 
 Two targets are available via the root-directory makefile. The *default target* is `bin/mq.so` which is a shared library compiled for performance.

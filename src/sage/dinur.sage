@@ -340,16 +340,15 @@ def solve(system, ring, fes_recovery=True, c_debugging=False):
 
         _time_solve_trials -= time.time()
         for y_hat, potential_sol in curr_potential_sol.items(): # Iterate through solutions instead of all possible inputs
-            if potential_sol[0] == 1:
-                for k1 in range(k):
-                    if all(potential_sol == potential_solutions[k1][y_hat]):
-                        sol = convert(y_hat, n - n1) + list(potential_sol[1:])
-                        if eval_system(system, sol):
-                            _time_solve_trials += time.time()
-                            if c_debugging:
-                                return sol, (k + 1)
-                            return sol
-                        break
+            for k1 in range(k):
+                if all(potential_sol == potential_solutions[k1][y_hat]):
+                    sol = convert(y_hat, n - n1) + list(potential_sol[1:])
+                    if eval_system(system, sol):
+                        _time_solve_trials += time.time()
+                        if c_debugging:
+                            return sol, (k + 1)
+                        return sol
+                    break
         _time_solve_trials += time.time()
         k += 1
     if c_debugging:

@@ -3,7 +3,6 @@ SHELL = /bin/sh
 REPORT = report/main.tex
 REGSIZE = 32
 
-
 # C build setup
 CC = gcc
 SRCDIR = src
@@ -76,11 +75,11 @@ sage:
 	make -C src/sage 
 
 pdf:
-	latexmk -pdf -silent -cd $(REPORT)
+	latexmk -pdf -shell-escape -silent -cd $(REPORT)
 
 pdfclean:
 	latexmk -C -cd $(REPORT)
-	rm *.bbl *.xml
+	rm -f *.bbl *.xml
 
 clean:
 	$(RM) -rf $(BUILD_DIR) $(BIN_DIR)

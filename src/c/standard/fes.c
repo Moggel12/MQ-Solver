@@ -461,7 +461,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
   {
     d_size += lk_binom[(n - n1) * BINOM_DIM2 + i];
   }
-  poly_t *d = calloc(d_size, sizeof(poly_t));
+  poly_t *d = calloc(d_size, sizeof(poly_t)); // %\phantomsection\label{src:c:d_alloc}%
   if (!d) return 1;
 
   unsigned int *k = calloc(deg, sizeof(unsigned int));

@@ -119,7 +119,7 @@ The hybrid approach is shown in \cref{alg:fes_recover}, in which the \textit{the
         $D[0] \gets S[0]$\;
         \ForEach{$i = 1 \dots, 2^n - 1$}{
             $Depth \gets \min(\text{HAMMING\_WEIGHT}(i), d)$\;
-            $Bits \gets \text{BITS}(i, Depth)$\;
+            $Bits \gets \text{BITS}(i, Depth)$\; \label{alg:fes_recover:bits}
             \eIf{$\text{HAMMING\_WEIGHT}(i) > d$}{
                 \ForEach{$j = Depth \dots, 1$}{
                     $Mon_1 \gets Bits[0:j - 1]$\;
