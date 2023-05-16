@@ -243,7 +243,7 @@ Once all tables and values have been setup, the procedure starts computing the \
 
 Once parities have been computed and returned to the \texttt{fes\_recover()} procedure, it directly checks the parities for a potential solution and does relevant conversions if needed. Recall that the C codebase mitigates having a procedure like \cref{alg:output}, and therefore instead requires solution checking and conversion somewhere else, being directly in \texttt{fes\_recover()} in this case. The code for checking solutions is 
 \clisting[label={lst:c:solution_check}]{src/c/standard/fes.c}{482}{487}
-Above snippet shows how parities are handled for $\hat{y} = 0$, whereas a similar snippet can be found for $0 < \hat{y} \leq 2^{n - n_1}$. Beware, the macros used in the conditional check are explained in \cref{sec:impl:c_abstr}. The conditional checks for the case where $U_0$ evaluates to one (recall \cref{sec:dinur:dinur_alg}), as the parities and $\mathbf{y}$-bits then form a potential solution to the system $\mathcal{P}$. If so, the \texttt{PotentialSolution} struct is used to store the \textit{counter} value as is (not its Gray code value) and inverts the evaluations of the $U_i$s before storing them as \texttt{z\_bits}.
+The above snippet shows how parities are handled for $\hat{y} = 0$, whereas a similar snippet can be found for $0 < \hat{y} \leq 2^{n - n_1}$. Beware, the macros used in the conditional check are explained in \cref{sec:impl:c_abstr}. The conditional checks for the case where $U_0$ evaluates to one (recall \cref{sec:dinur:dinur_alg}), as the parities and $\mathbf{y}$-bits then form a potential solution to the system $\mathcal{P}$. If so, the \texttt{PotentialSolution} struct is used to store the \textit{counter} value as is (not its Gray code value) and inverts the evaluations of the $U_i$s before storing them as \texttt{z\_bits}.
 
 As already mentioned, much of the procedure functions like \cref{alg:fes_recover} and the SageMath counterpart. Therefore, the hybrid approach is mostly the same. Computing the bit-positions required (as \cref{alg:fes_recover:bits} from \cref{alg:fes_recover}) is done through the \texttt{bits()} function, als located in \texttt{src/c/standard/fes.c}. The positions are stored in an array \texttt{k}, like the SageMath counterpart does it 
 \clisting{src/c/standard/fes.c}{500}{500}
@@ -253,15 +253,30 @@ which may then be used to compute indices using \texttt{monomial\_to\_index()} (
 In the interpolation phase, the $\mathbf{y}$-bits are represented by an array of the bit-positions for each 1-bit in the counter-value (limited to the first $n - n_1$ bits). The storage solution for this prefix agrees with the \texttt{state} struct (see \cref{lst:c:state}) as it is used for this purpose. Computing the prefix, the Gray code value of the counter \texttt{si} is used:
 \clisting{src/c/standard/fes.c}{520}{523}
 
-Now, the rest of the interpolation phase is setup much like \cref{lst:sage:ifes_interp}, and will therefore not be explained in-depth. Due to the nuances of C, when compared to SageMath, there are certain less interesting differences. See \cref{sec:impl:fes} for an explanation of the SageMath code, \cref{alg:fes_recover} for general approach, and \texttt{src/c/standard/fes.c} for the source code.
+Now, the rest of the interpolation phase is setup much like \cref{lst:sage:ifes_interp}, and will therefore not be explained in-depth. Due to the nuances of C, when compared to SageMath, there are certain less interesting differences. See \cref{sec:impl:fes} for an explanation of the SageMath code, \cref{alg:fes_recover} for the general approach, and \texttt{src/c/standard/fes.c} for the source code.
 
 In each iteration of the outer-most loop of \texttt{fes\_recover()}, having either evaluated or interpolated, the procedure checks \texttt{d[0]} for a potential solution. Recall that \texttt{d[0]} stores the evaluations of all the $U$ polynomials in a bit-sliced configuration. Checking and the following processing of the potential solution is more-or-less the same as \cref{lst:c:solution_check}, however, this time the \texttt{y\_idx} entry stores the value of the counter \texttt{si}. Also, instead of checking directly against the \texttt{parities} variable, it checks \texttt{d[0]} as both the interpolation and evaluation cases will store evaluations of the $U$ polynomials in $d[0]$.
 
 Should an error occur during execution of \texttt{fes\_recover()}, the procedure cleans up its memory and returns 1, much like the error codes in the \texttt{solve()} procedure. In case no error occurred, the procedure returns 0.
 
-\paragraph{FES for the curious.} A simple implementation of the FES approach (for quadratic polynomials) discussed in \cref{sec:prereq:fes} was also implemented. This is mostly for the purpose of comparing against Dinur's solver, however, it may still be used for solving systems. The remaining part of this subsection is dedicated to a brief look into this.
+\paragraph{FES for the curious.} A simple implementation of the FES approach (for quadratic polynomials) discussed in \cref{sec:prereq:fes} was also implemented. This exists mostly for comparison against Dinur's solver, however, it may still be used for solving systems. The remaining part of this subsection is dedicated to a brief look into this.
 
-\subsubsection{Utilities and benchmarking}
+There are two methods for running FES directly in the C code; the \texttt{bruteforce()} procedure and \texttt{fes()} procedure. The \texttt{bruteforce()} procedure is an implementation of the \texttt{BRUTEFORCE()} procedure from \cref{alg:uvalue}. The declaration can be found in \texttt{inc/fes.h} and the implementation in \texttt{src/c/standard/fes.c}. The procedure is declared as 
+\clisting{inc/fes.h}{82}{83}
+which is rather similar to that of \cref{alg:uvalue}. Here, the \texttt{poly\_t *solutions} parameter is an out-parameter for storing solutions. The return value is the number of solutions stored.
+
+If the goal is to run FES more in line with \cite{cryptoeprint:2013/436} or \cite{ches-2010-23990}, the \texttt{fes()} function is defined to be able to handle this:
+\clisting{inc/fes.h}{96}{97}
+This procedure is not as heavily optimized as the GPU version of \cite{ches-2010-23990}, or the FPGA version of \cite{cryptoeprint:2013/436}, but has received the same level of \textit{care} as the procedure \texttt{fes\_eval()} used inside \texttt{fes\_recover()}. The solutions found are stored in the parameter \texttt{poly\_t *solutions} and the return value holds the amount found. An added \textit{bonus} for this procedure is the ability to read benchmarks directly, if needed. More on benchmarking in \cref{sec:impl:c:util_bench}
+
+\subsubsection{Utilities and benchmarking} \label{sec:impl:c:util_bench}
+Besides the C procedure discussed up to this point, a few more can be found in \texttt{src/c/standard/utils.c} and \texttt{src/c/standard/benchmark.c}. The most notable utility procedures are the \texttt{gen\_matrix()} procedure and the \texttt{eval()} procedure. These were briefly described in \cref{sec:impl:c:solve}. Declarations for these procedures can be found in \texttt{inc/utils.h}, if needed for extending or reusing the codebase.
+
+When the shared library is compiled, a few benchmarking tools are also available. First off, if the goal is to solely benchmark the solving procedure, the procedure 
+\clisting{inc/benchmark.h}{33}{33}
+takes as input a list of bit-sliced systems that will then be run through the \texttt{solve()} function. The procedure computes both the time of different points of interest in the codebase, but also computes the balance of interpolation versus evaluation in \texttt{fes\_recover()}. All of the computed values are averaged according to how many calls to \texttt{solve()} that finished successfully, i.e. returned a valid solution. The stored timings and iteration counts can be accessed through the global variables declared in \texttt{inc/benchmark.h}, prefixed with a \texttt{g\_}. 
+
+Benchmark timings are computed using the \texttt{BEGIN\_BENCH()} and \texttt{END\_BENCH()} function like macros, as well as \texttt{READ\_BENCH()}. The names should make the macros somewhat self-explanatory. Should there be interest in adding more benchmarks, declaring an extern variable in \texttt{inc/benchmark.h} for storing timings (or another type of benchmark value), initializing it to a suitable value in a user-chosen position, and then adding appropriate macro-calls at the points of interest.
 
 \subsection{Optimizations} \label{sec:impl:opt}
 % \begin{enumerate}
@@ -273,12 +288,101 @@ Should an error occur during execution of \texttt{fes\_recover()}, the procedure
 %     \item Handling memory
 %     \item Concurrency
 % \end{enumerate}
-
-\subsubsection{Removing output\_potentials}
+Different kinds of optimizations were implemented either directly in the codebase described in \cref{sec:impl:c} or in the alternative codebase in \texttt{src/c/vectorized/}. This subsection seeks to go through the most prominent optimizations and why they are used.
 
 \subsubsection{FES-based recovery} \label{sec:impl:opt:fes_rec}
+\paragraph{Internal optimizations to FES-recover.} For the C codebases, the choice of procedures for interpolating and evaluating the $U$ polynomials was \texttt{fes\_recover()}. One benefit of going with \texttt{fes\_recover()} is that interpolation and evaluation of these polynomials could be done in \textit{one} pass-through of their $2^{n - n_1}$ possible inputs, instead of two separate calls to the Möbius transform.
 
-\subsubsection{Vectorization and parallelization}
+Another effect of using the \texttt{fes\_recover()} approach was the ability to more easily store only the potential solutions. Alternatively, as is described in \cref{sec:dinur:dinur_alg}, the procedure would have to store all 
+$$
+    2^{n - n_1}
+$$ 
+evaluations. In \cite{eurocrypt-2021-30841} it was shown that the number of suggested solutions in a round was about 
+$$
+    2^{n - 2n_1},
+$$
+and so the saved memory could yield beneficial for larger values of $n_1$. Although the current implementation does allocate a large chunk of memory at once, simply adding some memory reallocation code. Other alternatives for benefitting from compactly storing potential solutions also exist, depending on what the end-goal is.
+
+Another memory-saving element used in \texttt{fes\_recover()} is the alternative indexing scheme used in the C code, compared to that of the SageMath code. This alternative indexing was described in \cref{sec:impl:c:fes}. Reusing the SageMath code, the derivative table $d$ would have to be exponential in size, as monomial representations would be sparsely scattered depending on their bit-string representation. As already mentioned, the approach taken instead yields a memory consumption of 
+$$
+    \sum_{i = 0 }^{d} \binom{n - n_1}{i} < \left(\frac{(n - n_1)e}{d}\right)^d
+$$
+where $d$ is the degree passed to \texttt{fes\_recover()} as \texttt{deg}. Comparing the \textit{polynomial} memory usage to an exponential one where entries are sparsely scattered, the benefits should be quite clear. Of course, the disadvantage of this approach is the additional computational overhead used to compute the different indices, compared to the more \textit{naive} approach chosen in the SageMath prototype (\cref{sec:impl:fes}).
+
+In total, the memory consumption of \texttt{fes\_recover()} is lowered, and in expectation, it is rather competitive with using in-place Möbius transforms like \cref{alg:mob}. Using the memory-efficient Möbius transform suggested in \cite{eurocrypt-2021-30841}, could pose a strong alternative to this approach.
+\td{CACHE?}
+
+\paragraph*{Removing \texttt{output\_potentials}} Although the SageMath prototype kept \texttt{output\_potentials()}, the choice was to leave it out in the C code. Due to the choice of using the evaluation and interpolation process of \cref{sec:ext:fes_interp}, integrating solution "filtering" and processing directly into the procedure was more intuitive.
+
+Since each iteration of the outer-most loop of \cref{alg:fes_recover} (and thereby its implementations) discretely either evaluate or interpolate, the process of filtering and processing potential solutions directly in this loop was easily integrated. Other than allowing for a tighter compacting of potential solutions in the returned array, this process also removes the need for the processing at \cref{alg:output:recover} in \cref{alg:output}. Therefore, the time taken to go through all solutions once more, in order to \textit{post-process}, is no longer affecting the total solve time. Of course, as already mentioned, this comes at the cost of potentially having more computational load at each iteration of \texttt{fes\_recover()}.
+
+\subsubsection{Vectorization and parallelization} \label{sec:impl:opt:parallel}
+Various methods of parallelizing the procedure were used, including the use of SIMD instructions and multicore CPUs. Of course, the shared library is compiled with GCCs \texttt{-O3} flag, which implies quite a few optimizations occur at compile-time. However, some optimizations can be hard to determine statically and so active care must be taken when developing. 
+
+A smaller method of optimizing storage is the use of the different compile flags available. The compile flags can currently tell the solver what size of integer the input systems and their solutions should be stored in. This can help reduce the overall memory footprint. Currently, the SIMD implementation divides $\mathcal{P}$ and $\Tilde{\mathcal{P}_k}$ into separate integer sizes, which is not readily available in the non-SIMD version. Using smaller integer sizes for the smaller system $\Tilde{\mathcal{P}}$ allows for storing more polynomial terms in a cacheline, boosting performance on smaller levels. As these terms are accessed quite frequently, and in an almost sequential manner, this can boost performance on a low level.
+
+Although it is possible to vary integer sizes for both the standard and vectorized implementations, both are limited to input systems of 64 polynomials and 64 variables (maximally). This may be extended, see \cref{sec:impl:c_abstr}.
+
+\paragraph{Bit-slicing.} As bit-slicing is a simple method of obtaining linear speedups, especially when used in the context of systems of boolean functions, it was a safe choice in this case. Since Dinur's polynomial-method algorithm works with multiple polynomials at once in almost every area, many of the procedures and sub-procedures benefit from this.
+
+In both the non-SIMD builds and the vectorized builds, the input system to \texttt{solve()} should be bit-sliced (mentioned in \cref{sec:impl:c:solve}). The "sub"-system $\Tilde{\mathcal{P}}$ is generated in \texttt{compute\_e\_k()} (both the version in \texttt{src/c/standard/mq.c} and \texttt{src/c/vectorized/mq.c}) with this in mind. The multiplication of individual matrix indices, recall \cref{eq:tilde_p_k}, with terms of the polynomials of $\mathcal{P}$ is quite easily implemented with bit-wise operations. This later part of course assumes that both $\mathcal{P}$ and the matrix $A$ are bit-sliced, which they would be in this case. Then the summation part is simply a matter of computing the parity of the integer representing said multiplication. 
+
+Also in \texttt{fes\_recover()}, bit-slicing benefits the internal calls to \texttt{fes\_eval\_parity()} as well as the evaluations of the $n_1 + 1$ polynomials; $U$. The evaluations of these polynomials, i.e. the parities computed in \texttt{fes\_eval\_parity()} and in the evaluation phase of \cref{alg:fes_recover}, are stored bit-sliced as well. Processing and checking for candidates is then merely a matter of bit-masking. 
+
+At last, evaluating candidate solutions on the system $P$ also benefits from this. By computing term-by-term the evaluation of said term against the relevant variable assignments, this process may be parallelized by representing a zero-assignment as an integer of $m$ 0s, and a one-assignment as an integer of $m$ 1s.
+\td{ADD PARTIAL EVAL AND BITSLICING SECTION}
+
+\paragraph{Multicore.} Another optimization strategy is the use of multicore CPUs. In order to solve larger systems, a good solver would make use of many of the resources available. Through the \texttt{run.py} script, the solver can be spawned in a multicore context, wherein each core runs a separate \textit{instance} of the input system.
+
+Say the CPU(s) of the system has (have) a combined $q$ cores available. Running 
+$$
+    n_{partial} = \lfloor \log_2 q \rfloor
+$$ 
+solvers in parallel is possible by \textit{partially evaluating} the input system $\mathcal{P}$. With $n_{partial}$ variables, $2^{n_{partial}}$ variable assignments are possible. Therefore, by fixing $n_{partial}$ variables, each of the $q$ cores (assuming $q$ is a power of two of course) can get its own partially evaluated system, i.e. an independent input system. As no state is shared between these $2^{n_{partial}}$ partially evaluated systems, they are ideal candidates for a multi-core system. Once a core found a solution, the variable assignment of the fixed variables would then be appropriately added to the solution.
+
+Currently, the multicore operation is implemented directly in the \texttt{run.py} script, using Pythons built-in \texttt{multiprocess} library. Using this library for concurrency ensures that no problem with Python's infamous Global Interpreter Lock is met. However, the variables for the input system are fixed in Python, handing each fixed system to its own process that then internally calls the \texttt{solve()} function from the shared library (either vectorized or standard, depending on what was compiled).
+
+\td{MAKE NICE FIGURE}
+
+\paragraph{SIMD instructions.} As the optimization target is x86-based CPUs, the use of SIMD instructions is possible. In \cite{eurocrypt-2021-30841}, the optimization strategy used alongside the memory-efficient Möbius transform was to pre-compute multiple $\Tilde{\mathcal{P}_k}$ systems and interleave their respective evaluations of the $U$ polynomials with solution testing. This approach is mimicked with the use of SIMD instructions and \texttt{fes\_recover()}.
+
+Using appropriate compile-flags (see \cref{sec:impl:compile}) the \texttt{mq.so} library may either include AVX or AVX2-based instructions (specifically, C intrinsics). Now, using the vector register available in modern x86 CPUs, either 128 bits or 256 bits are available in a single register. Since the \texttt{solve()} function internally sets 
+$$
+    n_1 = \lceil \frac{n}{5.4}\rceil,
+$$
+and the $\Tilde{\mathcal{P}_k}$ systems consist of $\ell = n_1 + 1$ polynomials, an input system of $m \leq 37$ would yield that $\Tilde{\mathcal{P}_k}$ fits into a single byte. For systems $\mathcal{P}$ with $m \leq 37$, it is possible to pack either $\frac{128}{8} = 16$, or $ \frac{256}{8} = 32$, byte-sized systems $\Tilde{\mathcal{P}_k}$ into a single AVX register. Likewise, for $\mathcal{P}$ with $37 < m \leq 64$, an AVX register can hold either $\frac{128}{16} = 8$ or $\frac{256}{16} = 16$ systems $\Tilde{\mathcal{P}_k}$ in separate 16-bit integers. 
+
+Given that the expected number of rounds to find a solution is 4 (shown in \cite{eurocrypt-2021-30841}), the vectorized version of the \texttt{solve()} function uses the AVX registers as follows: Say an AVX register can hold up to $j$ systems $\Tilde{\mathcal{P}_k}$. By fixing 
+$$
+    \log_2 \frac{j}{4}
+$$ 
+variables of $\mathcal{P}$, each partially evaluated version of $\mathcal{P}$ gets its own four vector elements, for the $\Tilde{\mathcal{P}_k}$ systems. Then, each round of \texttt{solve()} computes four $\Tilde{\mathcal{P}_k}$ systems for each fixed version of $\mathcal{P}$ and stores them all in one AVX register. This way the procedure is allowed to operate in a lock-step manner on multiple systems at once, without having to synchronize between threads or processes. 
+
+For the most part, the procedure follows the likes of the \textit{standard} approach described in \cref{sec:impl:c}, however, some parts may need explanation. In the setup of \texttt{solve()} in \texttt{src/c/vectorized/mq\_vectorized.c}, the procedure fixes the input system $\mathcal{P}$ and stores the fixed systems in new and smaller integer arrays
+\clisting{src/c/vectorized/mq_vectorized.c}{134}{139}
+which can be seen in the snippet above. The variable macro \texttt{FIXED\_VARS} is set depending on the compilation flags (see \cref{sec:impl:compile}), but represents the number of variables fixed for the current setup. The variable \texttt{new\_n} is set to be 
+\clisting{src/c/vectorized/mq_vectorized.c}{128}{128}
+which then is used internally instead of the original \texttt{n} variable for most computations.
+
+The procedure \texttt{gen\_matrix()} is kept the same (\texttt{src/c/utils.c}), primarily to comply with the testing framework. However, instead of computing only one matrix in each round of \texttt{solve()}, the procedure computes one for each index in the vector register. The \texttt{rand\_sys} variable, traditionally representing $\Tilde{\mathcal{P}_k}$, is a bit different though. Instead of \texttt{poly\_t *rand\_sys}, the generated systems are stored as \texttt{poly\_vec\_t *}:
+\clisting{src/c/vectorized/mq_vectorized.c}{145}{145}
+Also noticed the \texttt{aligned\_alloc} call. An effect of using AVX registers is that in any memory location storing vector values, the memory should be correctly aligned. This could be mitigated by using explicit using instructions for unaligned memory but will serve a performance penalty.
+
+The \texttt{fes\_recover()} is also different for the vectorized versions. The function declaration can still be found in \texttt{inc/fes.h}, but it looks a bit different:
+\clisting{inc/fes.h}{44}{46} 
+The procedure takes both the original system \texttt{poly\_t *system} (non-fixed) as well as the vector of $\Tilde{\mathcal{P}_k}$ systems. Also, instead of expecting a sufficiently sized array in \texttt{poly\_t *result}, the procedure uses the parameter to return an actual solution.
+
+Going into \texttt{src/c/vectorized/fes.c}, much of the code may seem similar to that explained in \cref{sec:impl:c}. Much of the logic is on an abstract level the same, but instead of using \texttt{poly\_t *} to represent systems, most procedures instead use \texttt{poly\_vec\_t *}. The various function-like macros prepended with \texttt{VEC\_} represent an abstraction layer over the AVX intrinsics used to work with AVX registers. Recall that each AVX register contains four rounds worth of systems, for evaluations of $\mathcal{P}$ on some fixture. Therefore, lines like 
+\clisting[label={lst:c:vector_parity}]{src/c/vectorized/fes_vectorized.c}{364}{370}
+display how the aforementioned lock-stepping works in practice. The non-vectorized version of the above snippet is
+\clisting{src/c/standard/fes.c}{353}{357}
+for which the differences between the vectorized and non-vectorized versions show. Both snippets are from \texttt{fes\_eval\_parity()} in the vectorized and non-vectorized versions, respectively. Since the vectorized version runs multiple systems in parallel during the execution, conditionals have to be handled differently. E.g. for each system in the vector \texttt{s->y}, in \cref{lst:c:vector_parity}, a combination of AVX masks and blends are used to mimic multiple parallel conditional checks at once. These principles are the same throughout \texttt{src/c/vectorized/fes\_vectorized.c}.
+
+At last, having shown how much of the vectorized codebase is similar to the standard codebase, the biggest difference between the two codebases is how solutions, checking and processing, are handled. The snippet 
+\clisting{src/c/vectorized/fes_vectorized.c}{448}{477}
+shows how the vectorized codebase handles evaluations of $U$ polynomials. As an AVX register contains multiple $\Tilde{\mathcal{P}_k}$ systems it computes the evaluations of the $U$ polynomials in lock-step as well. Therefore, for each evaluation of the $U$ polynomials, the system may simply check if overlapping values exist in the groups of four vector elements in the register. If an overlap is found, the procedure may extract all overlapping solutions directly from the register, construct the solution and evaluate on $\mathcal{P}$ directly. If a solution is found, the procedure may return. If no full evaluation on $\mathcal{P}$ succeeds, the procedure returns an error and starts over in a new iteration in \texttt{solve()}.
+
+Therefore, because evaluations of $U$ the polynomials are computed and checked simultaneously, no large lists of solutions are stored. This will drastically affect memory consumption and entirely mitigates the need for storing solutions. The cost of this is that the procedure potentially skips somre solutions as each round of \texttt{solve()} in \texttt{src/c/vectorized/mq\_vectorized.c} logically corresponds to computing four rounds in the \textit{standard} version and throwing away all potential solutions found if none was found in the last four rounds. 
 
 \subsection{C abstractions} \label{sec:impl:c_abstr}
 
@@ -301,23 +405,23 @@ For the C implementation, there are different levels of tests. Either one may co
 
 Running tests with the \texttt{bin/test} executable file memory sanitizers, and debugging information are enabled. These tests are used for testing procedures like the computation of the $\Tilde{P}_k$ \textit{sub}-systems and comparing it against the SageMath version. In general, these tests are fed relevant inputs via the SageMath code as well as the desired result(s) and checks against them internally. All these tests may be found in \texttt{src/sage/dinur.sage} and contain a postfix of \texttt{\_SAN} in their function name.
 
-The alternative is to test different functions using the \texttt{bin/mq.so} shared library. Other than testing for correctness, these tests also help test the bridge between shared library and Python/SageMath. Like the tests for the SageMath code itself, these tests may be found in the related \texttt{.sage} files; tests for \texttt{fes()} and \texttt{bruteforce()} may be found in \texttt{fes.sage}, \texttt{fes\_recover()} in \texttt{src/sage/fes\_rec.sage}, etc.
+The alternative is to test different functions using the \texttt{bin/mq.so} shared library. Other than testing for correctness, these tests also help test the bridge between the shared library and Python/SageMath. Like the tests for the SageMath code itself, these tests may be found in the related \texttt{.sage} files; tests for \texttt{fes()} and \texttt{bruteforce()} may be found in \texttt{fes.sage}, \texttt{fes\_recover()} in \texttt{src/sage/fes\_rec.sage}, etc.
 
 It could be argued here that more tests should exist, especially for the C codebase. Many new procedures were introduced in both the \textit{standard} and \textit{vectorized} codebases, implying that further testing of these individual parts could have taken place on a more granular level.
 
 \subsection{Interface for running the C code} \label{sec:impl:interface}
 The C code was developed to be usable via multiple means. Once a compiled shared library, \texttt{bin/mq.so}, is available the code can either be loaded into other projects that support \texttt{.so} files, or it can be run as a complete solution via \texttt{run.py}. 
 
-Running the solver as a script, an invocation without any flags results in a non-parallelized solve routine using the version of the build that was specified at compile time (in essence; \textit{standard} or \textit{vectorized}). The invocation will either ask for a path to an MQ-challenge\footnote{\url{https://www.mqchallenge.org/}} style text file from which the system may be loaded, or for relevant parameters in order to generate the systems before solving. Giving the \texttt{-p} or \texttt{--parallelize} flag when invoking \texttt{run.py} allows the script to parellelize the solver by fixing variables according to how many CPU cores are present on the system. This last part was also described in \cref{sec:impl:opt}.
+Running the solver as a script, an invocation without any flags results in a non-parallelized solve routine using the version of the build that was specified at compile time (in essence; \textit{standard} or \textit{vectorized}). The invocation will either ask for a path to an MQ-challenge\footnote{\url{https://www.mqchallenge.org/}} style text file from which the system may be loaded, or for relevant parameters in order to generate the systems before solving. Giving the \texttt{-p} or \texttt{--parallelize} flag when invoking \texttt{run.py} allows the script to parallelize the solver by fixing variables according to how many CPU cores are present on the system. This last part was also described in \cref{sec:impl:opt}.
 
-Using the shared library on its own in an independent project is also quite straightforward. Although quite a few header files are present in the \texttt{inc/} folder, the most important one is \texttt{inc/mq.h}. If instead the goal is to use other parts of the codebase one may include \texttt{inc/fes.h} for FES-related declarations, \texttt{inc/utils.h} for different utilities like evaluating polynomials, generating matrices or simply computing indices for the bitsliced representation, or \texttt{inc/vector\_utils.h} for utilities for the vectorized implementations. Definitions and macros used throughout the codebase may be included via the \texttt{inc/mq\_config.h} file. At last, the benchmarking code can also be called on the shared library file. This provides the ability to hook in and read benchmarks directly in C code, and of course call the benchmark procedure as a whole. Relevant benchmark declarations are stored in \texttt{inc/benchmark.h}. As the the benchmark values are simply stored as global variables, it is not recommended to do much more than reading the variables. 
+Using the shared library on its own in an independent project is also quite straightforward. Although quite a few header files are present in the \texttt{inc/} folder, the most important one is \texttt{inc/mq.h}. If instead the goal is to use other parts of the codebase one may include \texttt{inc/fes.h} for FES-related declarations, \texttt{inc/utils.h} for different utilities like evaluating polynomials, generating matrices or simply computing indices for the bit-sliced representation, or \texttt{inc/vector\_utils.h} for utilities for the vectorized implementations. Definitions and macros used throughout the codebase may be included via the \texttt{inc/mq\_config.h} file. At last, the benchmarking code can also be called on the shared library file. This provides the ability to hook in and read benchmarks directly in C code, and of course, call the benchmark procedure as a whole. Relevant benchmark declarations are stored in \texttt{inc/benchmark.h}. As the benchmark values are simply stored as global variables, it is not recommended to do much more than read the variables. 
 
-Note, common for any function that takes a \texttt{poly\_t} array (or pointer) as input is that the stored system is expected to be bitsliced, linearized, and (monomials) stored in \textit{graded lexicographic order}.
+Note, common for any function that takes a \texttt{poly\_t} array (or pointer) as input is that the stored system is expected to be bit-sliced, linearized, and (monomials) stored in \textit{graded lexicographic order}.
 
-The C code can of course also be executed via the \texttt{bin/test} executable, that may be compiled with the accompanying Makefile. However, this executable is made to primarily work in tandem with tests in the SageMath code, therefore it may not be of great interest to execute the solver this way.
+The C code can of course also be executed via the \texttt{bin/test} executable, which may be compiled with the accompanying Makefile. However, this executable is made to primarily work in tandem with tests in the SageMath code, therefore it may not be of great interest to execute the solver this way.
 
 \subsection{Compilation and compile-time parameters} \label{sec:impl:compile}
-The accompanying Makefile has the ability to conform to multiple platforms using either vectorized instructions or building for machines with different register sizes. Building any of these different targets requires altering the \texttt{BTIS} flag when calling the \texttt{make}. Setting \texttt{BITS} to 8, 16, 32, or 64 means building the non-AVX optimized version, but regulates the integer sizes used to store the polynomials and solutions to the given width. Specifying 128 or 256 means that the build uses 128-bit or 256-bit registers, respectively. 
+The accompanying Makefile can conform to multiple platforms using either vectorized instructions or building for machines with different register sizes. Building any of these different targets requires altering the \texttt{BTIS} flag when calling the \texttt{make}. Setting \texttt{BITS} to 8, 16, 32, or 64 means building the non-AVX optimized version, but regulates the integer sizes used to store the polynomials and solutions to the given width. Specifying 128 or 256 means that the build uses 128-bit or 256-bit registers, respectively. 
 
 The default target creates the file \texttt{bin/mq.so}, ready for dynamic linking into other projects, with \texttt{-O3} optimization. This shared object is described further in \cref{sec:impl:c}. Running \texttt{make tests} will create an executable \texttt{bin/test} with memory sanitizers and debug flags enabled. 
 \td{128 AND 256 NOT SUPPORTED IN TEST FILE YET}
