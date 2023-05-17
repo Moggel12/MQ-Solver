@@ -1,4 +1,4 @@
-\section{Implementation (approx. 15-20 pages)} \label{sec:impl}
+\section{Implementation} \label{sec:impl}
 The accompanying git repository contains more than one implementation, or \textit{variant}, of Dinur's original algorithm. These variants are divided into a faster C implementation and a prototype SageMath implementation. C function declarations can be found in the \texttt{inc/} folder, other code can be found under \texttt{src/}.
 
 For alternative implementations of some of the procedures described in \cref{sec:prereq}, see \cite{ches-2010-23990}, \cite{cryptoeprint:2013/436}, and \cite{crypto-2022-32130}.
@@ -43,7 +43,7 @@ using the appropriate parameters ($w$ for $U_0$ and $w + 1$ for the other $U_i$s
 Although the traditional Möbius transform takes in either an array representing a polynomial to be evaluated or the full set of evaluations in order to interpolate a polynomial, the code called in the snippet above works as discussed originally intended by Dinur. The transform takes in sparse sets of evaluations in order to interpolate the $U_0$ and $U_i$ polynomials, with the weight values defining the recursion depth for the Möbius transform. \td{Finish paragraph}
 
 Note, the way that the procedure is implemented using the Möbius transform for interpolation and evaluation is not the most efficient, however, it does resemble the pseudo-code to quite a large degree. Should one be interested in implementing the Möbius transform in Python or SageMath and running the code with that instead, the code may be extended via the \texttt{src/sage/mob\_new.sage} file. Also, the symbolic method of creating an array representing the polynomial, then evaluating and then converting the output to an array of evaluations (seen in the snippet below)
-\pylisting{src/sage/dinur.sage}{228}{251}
+\pylisting[label={lst:sage:output_mob}]{src/sage/dinur.sage}{228}{251}
 should also see a revision if the Möbius transform is more "properly" implemented in \texttt{src/sage/mob\_new.sage}.
 
 \td{DEFINE THE RECURSION SOMEWHERE}
@@ -138,6 +138,9 @@ Given that this approach is a variant of FES, the evaluations stored in \texttt{
 This approach of combining the two may help further mitigate memory problems by possibly adding some computational needs, though nothing theory-breaking, while still conforming to the intent of the Möbius transform in \cref{alg:output}. Evaluations and thoughts on this approach can be found in the \cref{sec:impl:c} section as well as \cref{sec:eval}.
 
 \subsubsection{Möbius Transform and utilities}
+\paragraph{Brief note on the Möbius transform.} As mentioned earlier, the Möbius transform implementation(s) can be found in \texttt{src/sage/mob\_new.sage}. The procedure \texttt{mob\_transform()} represents the Möbius transform, however, instead of using lists as described in \cref{sec:prereq:poly_interp} the representation uses the built-in SageMath representation of boolean polynomials. This oddity is the reason that \cref{lst:sage:output_mob} is as comprehensive. Implementing the Möbius transform as described in \cref{sec:prereq:poly_interp}, alongside the \textit{sparse} Möbius transform also described, will make much of the code in \cref{lst:sage:output_mob} redundant and more readable. Understanding the \texttt{mob\_transform()} procedure in \texttt{mob\_new.sage} for this reason requires understanding the recursive formula shown in \cref{sec:prereq:poly_interp} as well. In combination with \texttt{\_f\_expand()} in \texttt{mob\_new.sage}, the similarities between the implementation and theory are strong. Implementing the sparse interpolation could then be done by filtering out high-degree monomials after fully interpolating the polynomial from its sparse set of solutions. For any implementations more focused on the original variant of Dinur's solver, implementations like that in \cite{cryptoeprint:2022/1412} should be followed.
+
+\paragraph{Utilities.} The SageMath codebase in \texttt{src/sage/} provide quite a few extra utility functions, depending on the goal. The \texttt{src/sage/utils.sage} file provides procedures for reading and writing Fukuoka MQ-challenge style files\footnote{\url{https://www.mqchallenge.org/}}, bitslicing multilinear quadratic polynomials, generating polynomial systems, fetching C functions from the shared library, and more. These utilities are used throughout the SageMath codebase and also in the \texttt{run.py} script, in order to handle smaller tasks that would not require a dedicated SageMath file. When extending parts of the SageMath code or the \texttt{run.py} script this file should be kept in mind.
 
 \subsection{Core algorithms in C} \label{sec:impl:c}
 %\begin{enumerate}
@@ -209,7 +212,7 @@ This ensures that the procedure checks only the strictly necessary historic solu
 \td{CHECK THAT GRAY CODE ORDERING IS MENTIONED IN SAGEMATH FES\_RECOVER}
 
 Finally, should the procedure encounter identical \texttt{y\_idx} and \texttt{z\_bits} values across two potential solutions, the code acts more or less as expected:
-\clisting{src/c/standard/mq.c}{166}{190}
+\clisting[label={lst:c:history_check}]{src/c/standard/mq.c}{166}{190}
 In this snippet, the code ensures to convert the \texttt{y\_idx} value into its Gray code value, before combining the $\mathbf{y}$- and $\mathbf{z}$-bits into one integer (or \textit{potential solution}). The potential solution is then evaluated on the system to check if it is an actual solution to the system $\mathcal{P}$. If so, the procedure cleans up and returns with the solution stored in the out-parameter \texttt{poly\_t *sol}.
 
 If no solution was found, or an error occurred along the way, the procedure returns $1$. Therefore, if a $1$ is returned the value in the \texttt{sol} pointer is an invalid solution. Returning a zero conversely means success and that \texttt{sol} contains a valid solution.
@@ -345,7 +348,7 @@ Currently, the multicore operation is implemented directly in the \texttt{run.py
 \td{MAKE NICE FIGURE}
 
 \paragraph{SIMD instructions.} As the optimization target is x86-based CPUs, the use of SIMD instructions is possible. In \cite{eurocrypt-2021-30841}, the optimization strategy used alongside the memory-efficient Möbius transform was to pre-compute multiple $\Tilde{\mathcal{P}_k}$ systems and interleave their respective evaluations of the $U$ polynomials with solution testing. This approach is mimicked with the use of SIMD instructions and \texttt{fes\_recover()}.
-
+\td{DEFINITELY NEEDS A REVISION}
 Using appropriate compile-flags (see \cref{sec:impl:compile}) the \texttt{mq.so} library may either include AVX or AVX2-based instructions (specifically, C intrinsics). Now, using the vector register available in modern x86 CPUs, either 128 bits or 256 bits are available in a single register. Since the \texttt{solve()} function internally sets 
 $$
     n_1 = \lceil \frac{n}{5.4}\rceil,
@@ -385,6 +388,13 @@ shows how the vectorized codebase handles evaluations of $U$ polynomials. As an 
 Therefore, because evaluations of $U$ the polynomials are computed and checked simultaneously, no large lists of solutions are stored. This will drastically affect memory consumption and entirely mitigates the need for storing solutions. The cost of this is that the procedure potentially skips somre solutions as each round of \texttt{solve()} in \texttt{src/c/vectorized/mq\_vectorized.c} logically corresponds to computing four rounds in the \textit{standard} version and throwing away all potential solutions found if none was found in the last four rounds. 
 
 \subsection{C abstractions} \label{sec:impl:c_abstr}
+The C codebases contain certain levels of abstractions, in order to be more extendable. One example of this is the use of macros in the \textit{standard} codebase. Recall from previous subsections that many places in the C code, macro-like functions such as \texttt{INT\_IS\_ZERO}, \texttt{INT\_IDX}, or \texttt{GF2\_MUL} are called (\cref{lst:c:index}, \cref{lst:c:history_check} to give some example listings). These macros are used as an abstractional layer in order to hide the structure of the underlying \texttt{poly\_t} type. If the goal is to extend the codebase to support wider integer types, allowing for larger systems bit-sliced into an integer, these macros help hide the operands used. This could be used in case the wider integer type does not support certain operations. E.g., GCC has support for 128-bit integers on target machines with wide enough integer modes, however, these do have limitations in certain areas and may therefore require workarounds that can be hidden using aforementioned macros. The macros defined for integers can be found in \texttt{inc/mq\_uni.h}.
+
+Likewise, the vectorized codebase hides many operations behind macros for the same reason. These macros can be found in \texttt{inc/mq\_vec.h} which internally makes use of either \texttt{inc/vec128\_config.h} or \texttt{inc/vec256\_config.h}. The latter two header-files also include relevant macros for stating how many variables to fix given the provided compile flags, the amount of elements in a vector register (given the integer sizes stored in it), etc. Say the goal is to extend the codebase to use AVX512 as well, or future AVX (maybe even Intels AMX instructions). The process is a matter of creating a file similar to \texttt{inc/vec128\_config.h} or \texttt{inc/vec256\_config.h}, adding an appropriate conditional case in \texttt{inc/mq\_vec.h}, and finally running the code. Exactly which macros need to be present in the newly added vector-config header can be read near the top of \texttt{inc/mq\_vec.h}. 
+
+Depending on how exotic the vector instruction set is, it may be necessary to add or change functionality in \texttt{src/c/vectorized/vector\_utils.h} as well. If it is simply a matter of adding support for a newer version of AVX, then the approach just described should be fine.
+
+Ensuring that macros like \texttt{FIXED\_VARS} and \texttt{VECTOR\_ELEMENTS} are set correctly, ensures that the vectorized codebase is automatically set up, at compile time, for fixing the correct amount of variables and only storing four rounds for each fixed polynomial.
 
 \subsection{Testing the code}
 The following subsection contains some brief notes on the testing methodology and how it was executed. For more on how to run and test different areas of the codebase, see the \texttt{README.md} file in the accompanying repository.

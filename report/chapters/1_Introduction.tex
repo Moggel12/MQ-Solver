@@ -1,4 +1,4 @@
-\section{Introduction (approx. 3 pages)} \label{sec:intro}
+\section{Introduction} \label{sec:intro}
 \subsection{Motivation}
 With the rise of modern-day technology, privacy and data security are more critical than ever. Cryptographic schemes based on conjectured hard mathematical problems \phrase{lie} as a key building block for enabling such properties on modern technologies. \phrase[You can make this sentence active very easily: ``Peter Shor proposed an algorothm...'']{In 1994, an algorithm, due to Peter Shor \cite{Shor_1997}, was proposed} that would enable computationally efficient attacks on many currently in-use cryptographic schemes using sufficiently large quantum computers. Although Shor's algorithm posed a threat to cryptographic schemes based on number theoretic problems, like RSA and DSA, an actual sufficiently-sized quantum computer was yet to be seen. 
 
@@ -34,5 +34,14 @@ Other examples of algebraic cryptanalysis are general attacks like \textit{cube 
 \td{Possibly reformulate this and "ordinary ciphers".}
 
 \subsection{Alternative methods for solving multivariate systems over $\eff_2$}
+This subsection seeks to introduce alternatives to the algorithm focused on in this thesis. Therefore, do \textit{not} read this subsection with the hope of fully understanding each algorithm by the end of the section, but instead use it as a reference to other interesting solve-methods. The section is neither an exhaustive survey of the related algorithms.
+
+\paragraph{Gröbner basis solvers.} The concept of a Gröbner basis was introduced by Bruno Buchberger and has been at the core of many algorithms for solving multivariate systems over a finite field. Two important solvers based on the idea of Gröbner bases are $F_4$ and $F_5$ by Jean-Charles Faugère in \cite{FAUGERE199961} and \cite{10.1145/780506.780516}. These algorithms has proven quite useful both in practical implementations and in cryptanalysis. One problem with these algorithms is when applied to overdetermined polynomial systems, i.e. $m > n$.
+
+\paragraph{XL, eXtended Linearization.} In response to a method called \textit{relinearization}, the authors of \cite{eurocrypt-2000-2187} introduced XL. Although the procedure was shown to have strong theoretical properties, it primarily works well with rather over-defined systems, where $m \gg n$. The general idea of the method is to combine Gröbner bases with large linear systems of equations generated via the input polynomial system. Implementations related to this method of solving multivariate systems have seen some success in the Fukuoka MQ-challenges\footnote{\url{https://www.mqchallenge.org/}} Type-I and Type-III groups.
+
+\paragraph{Crossbred.} In \cite{cryptoeprint:2017/372}, a hybridized algorithm was introduced by Joux and Vitse which was shown, experimentally, to beat previous solve methods. The method uses a combination of manipulations of the input system via a Macaulay matrix representation alongside an exhaustive search on smaller, related, systems. In practice, the procedure holds a fair share of the top 5 performing algorithms in the Fukuoka MQ-challenges\footnote{\url{https://www.mqchallenge.org/}}. 
+
+\paragraph{Fast Exhaustive Search.} The FES procedure (Fast exhaustive search) is explained in \cref{sec:prereq:fes} and \cref{sec:ext} as it is used internally in Dinur's polynomial-method solver. It was introduced in \cite{ches-2010-23990} and has seen both CPU, GPU, and FPGA implementations. Standalone, this algorithm is a very effective tool for solving systems of multivariate polynomials over $\eff_2$ and has held quite a few records for solving these systems.
 
 \newpage
