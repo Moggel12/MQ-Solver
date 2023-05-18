@@ -1,5 +1,9 @@
 #include "benchmark.h"
 
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "mq.h"
 
 size_t g_solve_time = 0;
@@ -64,4 +68,10 @@ void e2e_benchmark(size_t rounds, poly_t *systems[], size_t n, size_t m)
   g_recover_interp_avg = g_recover_interp / (double)succeeded_r;
 
   readout_benchmarks();
+
+  int pid = getpid();
+  char cmd[100];
+
+  sprintf(cmd, "cat /proc/%d/status | grep Vm > procinfo_%d_%zu_%zu\n", pid, pid, n, m);
+  system(cmd);
 }

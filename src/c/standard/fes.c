@@ -98,8 +98,8 @@ unsigned int monomial_to_index(poly_t mon, unsigned int n,
   int d = 0;
   unsigned int index = 0;
   unsigned int index_d = 0;
-  for (i = 0; i < n; i++)
-    if (!INT_IS_ZERO(INT_IDX(mon, i)) && (i <= boundary))
+  for (i = 0; i <= boundary; i++)
+    if (!INT_IS_ZERO(INT_IDX(mon, i)))
     {
       d++;
 

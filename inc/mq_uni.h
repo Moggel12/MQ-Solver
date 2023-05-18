@@ -15,7 +15,7 @@
 #define INT_1 1
 #define INT_LSB(i) (i & -i)
 #define INT_IS_ZERO(p) (p == 0)
-#define INT_MASK(b) ((1 << b) - 1)
+#define INT_MASK(b) ((1ull << b) - 1)
 #define INT_EQ(a, b) a == b
 
 #endif  // !MQ_UNI_H

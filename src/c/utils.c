@@ -7,6 +7,18 @@
 
 #include "benchmark.h"
 
+unsigned long long llrand(void)
+{
+    unsigned long long r = 0;
+
+    for (int i = 0; i < 5; ++i)
+    {
+        r = (r << 15) | (rand() & 0x7FFF);
+    }
+
+    return r & 0xFFFFFFFFFFFFFFFFULL;
+}
+
 unsigned int hamming_weight(unsigned int x) { return __builtin_popcount(x); }
 
 unsigned int trailing_zeros(unsigned int v)
@@ -51,7 +63,7 @@ int n_choose_k(int n, int k)
   return (int)c;
 }
 
-poly_t gen_row(unsigned int m) { return (rand() & ((1 << m) - 1)); }
+poly_t gen_row(unsigned int m) { return (_RAND() & INT_MASK(m)); }
 
 unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
                         unsigned int n_columns)

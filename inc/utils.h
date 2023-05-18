@@ -16,4 +16,16 @@ poly_t eval(poly_t *system, size_t n, poly_t var_values);
 unsigned int gen_matrix(poly_t *mat, unsigned int n_rows,
                         unsigned int n_columns);
 
+#if defined(REG256) || defined(REG128) || defined(REG64)
+
+unsigned long long llrand(void);
+
+#define _RAND() llrand()
+
+#else 
+
+#define _RAND() rand()
+
+#endif
+
 #endif  // !COMMON_UTILS_H

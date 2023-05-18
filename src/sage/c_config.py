@@ -81,6 +81,11 @@ def srand(seed):
     _libc.srand(seed)
 
 def rand():
+    if C_COMPILE_CONFIG >= 64:
+        r = 0
+        for i in range(5):
+            r = (r << 15) | (_libc.rand() & 0x7FFF)
+        return r & 0xFFFFFFFFFFFFFFFF
     return _libc.rand()
 
 
