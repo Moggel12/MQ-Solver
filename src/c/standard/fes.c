@@ -404,7 +404,7 @@ state *fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
 
   if (s->y == 0)
   {
-    solutions[(*sol_amount)++] = ((s->i ^ (s->i >> 1)) << (n - n1) | pre_x);
+    if (solutions) solutions[(*sol_amount)++] = ((s->i ^ (s->i >> 1)) << (n - n1) | pre_x);
   }
 
   while (s->i < ((((size_t) 1) << n1) - 1))
@@ -413,7 +413,7 @@ state *fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
 
     if (s->y == 0)
     {
-      solutions[(*sol_amount)++] = ((s->i ^ (s->i >> 1)) << (n - n1) | pre_x);
+      if (solutions) solutions[(*sol_amount)++] = ((s->i ^ (s->i >> 1)) << (n - n1) | pre_x);
     }
   }
 

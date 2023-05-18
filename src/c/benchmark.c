@@ -86,13 +86,11 @@ void fes_benchmark(size_t rounds, poly_t *systems[], size_t n, size_t m)
 
   g_solve_time = 0;
 
-  poly_t *solutions = malloc((1 << n) * sizeof(poly_t));
-
   for (size_t r = 0; r < rounds; r++)
   {
     clock_t current_time = clock();
 
-    fes(systems[r], n, solutions);
+    fes(systems[r], n, NULL);
     
     fes_time += (clock() - current_time);
   }
