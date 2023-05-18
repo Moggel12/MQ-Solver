@@ -208,6 +208,21 @@ def c_fes(system, n, m):
 
     return solutions
 
+def c_bench_fes(system_tuples):
+    n = system_tuples[0][1]
+    m = system_tuples[0][2]
+    ring = system_tuples[0][3]
+    size = len(system_tuples)
+
+    c_systems_list = (Type.P(C_POLY_T) * size)()
+    for i in range(size):
+        sl_sys = bitslice(system_tuples[i][0], ring.gens())
+        c_systems_list[i] = (C_POLY_T * int(math.comb(n, 2) + n + 1))(*sl_sys)
+
+    args = [Type.SZ, Type.P(Type.P(C_POLY_T)), Type.SZ, Type.SZ]
+    bench_fun = fetch_c_func("fes_benchmark", args)
+    bench_fun(size, c_systems_list, Type.SZ(n), Type.SZ(m))
+
 def test_c_fes(sys_tuple):
     system, n, m, ring, _ = sys_tuple
 

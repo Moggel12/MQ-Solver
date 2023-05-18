@@ -32,4 +32,10 @@ void readout_benchmarks();
 
 void e2e_benchmark(size_t rounds, poly_t *systems[], size_t n, size_t m);
 
+#if !defined(REG256) || !defined(REG128)
+
+void fes_benchmark(size_t rounds, poly_t *systems[], size_t n, size_t m);
+
+#endif
+
 #endif  // !BENCHMARK_H

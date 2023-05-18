@@ -24,9 +24,11 @@ _availability_filter = lambda f_name : ("_SAN" in f_name) if TEST_BIN_AVAILABLE 
 
 _available_tests = {key: val for key, val in _test_functions.items() if _availability_filter(key)}
 _unavailable_tests = {key: val for key, val in _test_functions.items() if key not in _available_tests}
-_default_test = list(_test_functions.items())[0]
+_default_test = list(_available_tests.items())[0]
 
 _BENCH_PREFIX = "bench_"
+
+_run_fes = False
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Run certain tests via the commandline (C or Sage/Python). Beware, this tool will not sanitize any dirty inputs.")
@@ -34,7 +36,8 @@ def parse_arguments():
     parser.add_argument("-t", "--test", help="Run a test based on the names listed via --list (-l)", type=str)
     parser.add_argument("-l", "--list", help="List all available test functions", default=False, action="store_true")
     parser.add_argument("-g", "--gen", help="Generate MQ-challenge style test files. Expects a comma-separated input: '<amount>,<n_low>,<n_high>,<m_low>,<m_high>'", type=str)
-    parser.add_argument("-b", "--bench", help="Measure how much the C code can bench. Expects a comma-separated input: '<amount>,<n>,<m>'", type=str)
+    parser.add_argument("-b", "--bench", help="Measure how much the C code can bench. Expects a comma-separated input like '<amount>,<n>,<m>', or the directory to pull systems from '<directory>'", type=str)
+    parser.add_argument("-F", "--FES", help="Call C implementations of FES instead of Dinur's solver. This acts like a boolean switch. This flag will not effect the '-t' flag.", default=False, action="store_true")
     parser.add_argument("-p", "--parallelize", help="Spawns parallel processes according to the available threads on the CPU, each with a set of variables fixed. This flag only affects using the script for solving systems.", default=False, action="store_true")
     return parser.parse_args()
 
@@ -47,20 +50,27 @@ def solve(all_tuples):
         print(f"\n{ITER}== {i + 1} =={CLEAR}")
         system, n, m, ring, _ = sys_tuple
         sl_system = bitslice(system, ring.gens())
-        sol = c_solve(sl_system, n, m)
-        if not sol:
-            print("=> C code did not solve the system")
+        if _run_fes:
+            sol = c_fes(sl_system, n, m)
+            prefix = "FES"
         else:
-            print(f"=> Found solution: {sol}")
+            sol = c_solve(sl_system, n, m)
+            prefix = "Dinur"
+        if not sol:
+            print(f"({prefix}) => C code did not solve the system")
+        else:
+            print(f"({prefix}) => Found solution(s): {sol}")
 
 def p_solve(challenge):
     sys_tuple, fixture = challenge
     system, n, m, ring, _ = sys_tuple
     sl_system = bitslice(system, ring.gens())
+    solve_func = c_fes if _run_fes else c_solve
+    prefix = "FES" if _run_fes else "Dinur"
     start_time = time.perf_counter_ns()
-    solution = c_solve(sl_system, n, m)
+    solution = solve_func(sl_system, n, m)
     elapsed_time = time.perf_counter_ns() - start_time
-    print(f"Process found {solution + fixture if solution else None} in {round(elapsed_time / 1000000)}ms")
+    print(f"({prefix}) Process found {solution + fixture if solution else None} in {round(elapsed_time / 1000000)}ms")
 
 def parallelize(all_tuples):
     core_count = multiprocessing.cpu_count()
@@ -133,16 +143,25 @@ def bench(arg):
     else:
         print(f"{FAIL}Invalid argument!{CLEAR}")
         return
-    c_benchmark(all_tuples)
-    new_data = [C_COMPILE_CONFIG]
+    if _run_fes:
+        c_bench_fes(all_tuples)
+        new_data = [f"fes{C_COMPILE_CONFIG}"]
+    else:
+        c_benchmark(all_tuples)
+        new_data = [C_COMPILE_CONFIG]
     for bench_var in C_BENCHMARK_VARS:
         new_data.append(fetch_global(bench_var) // 1000)
     append_csv(os.path.join(directory, "bench.csv"), new_data)
 
 def main():
+    global _run_fes
     all_tuples = None
     write_file = True
     args = parse_arguments()
+    if args.FES and (C_COMPILE_CONFIG > 64):
+        print(f"{FAIL}FES flag is only supported when compiled with REGSIZE=64 or less.{CLEAR}")
+        return
+    _run_fes = args.FES
     if args.list:
         list_tests()
         return

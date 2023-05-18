@@ -618,12 +618,9 @@ unsigned int fes(poly_t *system, unsigned int n, unsigned int m,
 {
   unsigned int sol_amount = 0;
 
-  clock_t fes_time = clock();
   state *s =
       fes_eval_solutions(system, n, n, NULL, NULL, solutions, &sol_amount);
-  size_t msec = (clock() - fes_time) * 1000 / CLOCKS_PER_SEC;
-  printf("FES solve time: %zus, %zums\n", msec / 1000, msec % 1000);
-
+  
   if (!s) return 0;
 
   return sol_amount;
