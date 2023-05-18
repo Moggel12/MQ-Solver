@@ -93,8 +93,7 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
  * The procedure expects there to be enough room for all solutions.
  * @return Returns the amount of solutions found.
  */
-unsigned int fes(poly_t *system, unsigned int n, unsigned int m,
-                 poly_t *solutions);
+unsigned int fes(poly_t *system, unsigned int n, poly_t *solutions);
 
 // TODO: Update documentation of fes_recover
 /*!

@@ -49,11 +49,11 @@ SAN :=\
 			 -fsanitize=address \
 			 -fsanitize=leak \
 			 -fsanitize=undefined
-DEBUG := $(SAN) -Wall -Wextra -O0 -g -D_DEBUG
+DEBUG := $(SAN) -O0 -g -D_DEBUG
 OPT := -O3
 LDFLAGS := -lm
 INC := -Iinc
-CFLAGS += $(INC) -DREG$(REGSIZE) $(LIB)
+CFLAGS += $(INC) -DREG$(REGSIZE) $(LIB) -Wall -Wextra
 
 VPATH = src/c:$(WORKDIR):test
 

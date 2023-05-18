@@ -357,7 +357,7 @@ state *fes_eval_parity(poly_vec_t *systems, unsigned int n, unsigned int n1,
 
   *parities = VEC_BLEND(*parities, added, zero_mask);
 
-  while (s->i < ((1u << n1) - 1))
+  while (s->i < ((((size_t) 1) << n1) - 1))
   {
     step(s, n1);
 
@@ -543,7 +543,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
       {
         mask = ~VEC_GT(VEC_ASSIGN_ONE(j), deg);
 
-        poly_vec_t tmp;
+        poly_vec_t tmp = VEC_0;
 
         if (j < n)
         {

@@ -346,7 +346,7 @@ state *fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
     *parities = GF2_ADD(*parities, INT_MASK((n1 + 1)));
   }
 
-  while (s->i < ((1 << n1) - 1))
+  while (s->i < ((((size_t) 1) << n1) - 1))
   {
     step(s, n1);
 
@@ -407,7 +407,7 @@ state *fes_eval_solutions(poly_t *system, unsigned int n, unsigned int n1,
     solutions[(*sol_amount)++] = ((s->i ^ (s->i >> 1)) << (n - n1) | pre_x);
   }
 
-  while (s->i < ((1 << n1) - 1))
+  while (s->i < ((((size_t) 1) << n1) - 1))
   {
     step(s, n1);
 
@@ -613,8 +613,8 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
   return sol_amount;
 }
 
-unsigned int fes(poly_t *system, unsigned int n, unsigned int m,
-                 poly_t *solutions)
+
+unsigned int fes(poly_t *system, unsigned int n, poly_t *solutions)
 {
   unsigned int sol_amount = 0;
 

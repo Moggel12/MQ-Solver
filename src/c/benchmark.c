@@ -82,27 +82,26 @@ void e2e_benchmark(size_t rounds, poly_t *systems[], size_t n, size_t m)
 
 void fes_benchmark(size_t rounds, poly_t *systems[], size_t n, size_t m)
 {
-  clock_t fes_time;
-  size_t succeeded_r = rounds;
+  clock_t fes_time = 0;
 
   g_solve_time = 0;
 
   poly_t *solutions = malloc((1 << n) * sizeof(poly_t));
 
-  for (int r = 0; r < rounds; r++)
+  for (size_t r = 0; r < rounds; r++)
   {
     clock_t current_time = clock();
 
-    fes(systems[r], n, m, solutions);
-
-    fes_time += (current_time - fes_time);
+    fes(systems[r], n, solutions);
+    
+    fes_time += (clock() - current_time);
   }
 
-  g_solve_time = fes_time / succeeded_r;
+  g_solve_time = fes_time / rounds;
   
   size_t msec = (g_solve_time) * 1000 / CLOCKS_PER_SEC;
   printf("FES solve time: %zus, %zums\n", msec / 1000, msec % 1000);
-
+  
   int pid = getpid();
   char cmd[100];
 

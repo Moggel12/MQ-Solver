@@ -52,6 +52,7 @@ def solve(all_tuples):
         sl_system = bitslice(system, ring.gens())
         if _run_fes:
             sol = c_fes(sl_system, n, m)
+            print([eval_system(system, s) for s in sol])
             prefix = "FES"
         else:
             sol = c_solve(sl_system, n, m)
