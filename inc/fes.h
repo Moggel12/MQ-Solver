@@ -47,12 +47,6 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
 
 #else
 
-typedef struct PotentialSolution
-{
-  poly_t y_idx;
-  poly_t z_bits;
-} PotentialSolution;
-
 /*! A struct identifying the state of of a partial evaluation of a polynomial
  * system. */
 typedef struct state
@@ -110,7 +104,7 @@ bitsliced format.
 of *resuslts* are invalid.
  */
 uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
-                    unsigned int deg, PotentialSolution *results,
+                    unsigned int deg, poly_t *results,
                     size_t *res_size);
 
 #endif

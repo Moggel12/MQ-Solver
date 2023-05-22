@@ -109,33 +109,28 @@ The hybrid approach is shown in \cref{alg:fes_recover}, in which the \textit{the
 
 \td{ENOUGH?}
 
-\begin{figure}[ht]
+\begin{figure}[h!t]
     \begin{alg}
         \KwIn{For some polynomial $p$, the degree $d$, amount of variables $n$, and a sparsely filled truth-table $S$.}
-        \KwResult{The full truth-table of $p$, $R$.}
+        \KwResult{The full truth-table of $p$, stored in $R$.}
         $R[0\dots 2^n - 1] \gets \{0\}$\;
         $D \gets \text{DICT(default: 0)}$\;
-        $R[0] \gets S[0]$\;
-        $D[0] \gets S[0]$\;
+        $R[0], D[0] \gets S[0], S[0]$\;
         \ForEach{$i = 1 \dots, 2^n - 1$}{
             $Depth \gets \min(\text{HAMMING\_WEIGHT}(i), d)$\;
-            $Bits \gets \text{BITS}(i, Depth)$\; \label{alg:fes_recover:bits}
+            $K \gets \text{BITS}(i, Depth)$\; \label{alg:fes_recover:bits}
             \eIf{$\text{HAMMING\_WEIGHT}(i) > d$}{
                 \ForEach{$j = Depth \dots, 1$}{
-                    $Mon_1 \gets Bits[0:j - 1]$\;
-                    $Mon_2 \gets Bits[0:j]$\;
-                    $D[Mon_1] \gets D[Mon_1] \oplus D[Mon_2]$\;
+                    $D[K_{0\dots j - 1}] \gets D[K_{0\dots j - 1}] \oplus D[K_{0...j}]$\;
                 }
             }{
                 $Q \gets D[0]$\;
-                $D[0] \gets S[i]$\;
+                $D[0] \gets S[\text{GRAY}(i)]$\;
                 \ForEach{$j = 1 \dots, Depth$}{
-                    $Mon_1 \gets Bits[0:j]$\;
-                    $Mon_2 \gets Bits[0:j-1]$\;
                     \If{$j < Depth$}{
-                        $Tmp \gets Mon_1$\;
+                        $Tmp \gets D[K_{0\dots j}]$\;
                     }
-                    $D[Mon_1] \gets D[Mon_2] \oplus Q$\;
+                    $D[K_{0\dots j}] \gets D[K_{0\dots j - 1}] \oplus Q$\;
                     \If{$j < Depth$}{
                         $Q \gets Tmp$\;
                     }

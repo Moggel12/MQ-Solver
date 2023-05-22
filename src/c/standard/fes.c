@@ -94,6 +94,8 @@ unsigned int bits(poly_t i, unsigned int *arr, unsigned int arr_len)
 unsigned int monomial_to_index(poly_t mon, unsigned int n,
                                unsigned int boundary)
 {
+  BEGIN_BENCH(g_index_time)
+
   unsigned int i;
   int d = 0;
   unsigned int index = 0;
@@ -108,6 +110,8 @@ unsigned int monomial_to_index(poly_t mon, unsigned int n,
     }
   index = index_d - index;
 
+  END_BENCH(g_index_time)
+  
   return index;
 }
 
@@ -448,7 +452,7 @@ state *part_eval(poly_t *system, uint8_t *prefix, unsigned int n,
 }
 
 uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
-                    unsigned int deg, PotentialSolution *results,
+                    unsigned int deg, poly_t *results,
                     size_t *res_size)
 {
   state *s = NULL;
@@ -481,8 +485,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
   if (!INT_IS_ZERO(INT_IDX(parities, 0)))
   {
-    results[0].y_idx = 0;
-    results[0].z_bits = INT_RSHIFT(GF2_ADD(parities, INT_MASK((n1 + 1))), 1);
+    results[0] = GF2_ADD(0, INT_LSHIFT(INT_RSHIFT(GF2_ADD(parities, INT_MASK((n1 + 1))), 1), (n - n1)));
     (*res_size)++;
   }
   d[0] = parities;
@@ -564,9 +567,9 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
     }
     if (!INT_IS_ZERO(INT_IDX(d[0], 0)))
     {
-      results[*res_size].y_idx = si;
-      results[*res_size].z_bits =
-          INT_RSHIFT(GF2_ADD(d[0], INT_MASK((n1 + 1))), 1);
+      results[*res_size] = GF2_ADD(
+          si, INT_LSHIFT(INT_RSHIFT(GF2_ADD(d[0], INT_MASK((n1 + 1))), 1),
+                         (n - n1)));
       (*res_size)++;
     }
   }

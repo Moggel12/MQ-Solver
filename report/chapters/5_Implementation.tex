@@ -157,7 +157,7 @@ This approach of combining the two may help further mitigate memory problems by 
 In many areas, the standard C implementation takes a similar approach to program design as the SageMath counterpart (see \cref{sec:impl:sage}). However, unlike the SageMath intent with the SageMath prototype, the purpose of the C code was to try and push the algorithm and see what kinds of optimizations are beneficial for it. This subsection seeks to describe the general idea behind the C implementation, drawing parallels to the similar parts in the SageMath code and describing the difference alongside their design choices. Evaluating the usefulness of these optimizations is postponed to \cref{sec:eval}. This section focuses on the \textit{shared library} target (see \cref{sec:impl:compile}) as well as the \textit{standardized} implementation, plus any utilities that overlap between codebases.
 
 \subsubsection{Solve, and other top-level procedures} \label{sec:impl:c:solve}
-
+\td{REWRITE EVERYTHING ABOUT POTENTIALSOLUTION STRUCT}
 The main entry point into the library is the \texttt{solve()} procedure, residing in \texttt{src/c/standard/mq.c}. This procedure for the most part acts like its SageMath counterpart. However, the \texttt{solve()} procedure expects a bit-sliced system of polynomials in its \texttt{poly\_t *system} parameter. Further, the procedure expects that the monomial ordering is graded lexicographic ordering and that the polynomials in the system have been \textit{linearized}, i.e. the system consists solely of multilinear polynomials. Examining the function declaration, the other parameters should be somewhat self-explanatory:
 \clisting{inc/mq.h}{40}{40}
 The latter parameter, \texttt{sol}, is an out-parameter containing the solution found, if any.
@@ -171,7 +171,7 @@ One prominent type in both the vectorized and standard implementation is the \te
 The \texttt{POLY\_TYPE} macro is defined as a uint\{8, 16, 32, 64\}\_t for the \textit{standard} implementation, depending on the compile-flags (see \cref{sec:impl:compile}). The definitions of both the \texttt{POLY\_TYPE} macro and \texttt{poly\_t} reside in \texttt{inc/mq\_config.h}.
 
 The other important type is \texttt{PotentialSolutions}. From the naming, some may recognize this as a struct, which would be correct. The definition of this struct can be found in \texttt{inc/fes.h} and is defined as the following:
-\clisting{inc/fes.h}{50}{54}
+\clisting[label={lst:c:potsol}]{inc/fes.h}{50}{54}
 The reasoning behind defining this struct in \texttt{inc/fes.h}, and why it is used in the first place, is explained later in the section.
 
 Once sufficient memory has been allocated and relevant parameters computed (such as $n_1$ and $\ell$) the main loop of the algorithm starts. In the SageMath version, the matrix generation and subsequent generation of the subsystem $\Tilde{\mathcal{P}_k}$ could be handled by the polynomial and matrix representation built-in. In the C code, these procedures have to be handled manually. 
@@ -200,19 +200,19 @@ With the \textit{solution checking} phase of the C implementation, the code once
 Since the code cannot simply make a lookup into a dictionary or array using the $\mathbf{y}$-bits, the history checking phase differs from \cref{alg:solve} and \cref{lst:sage:history}. 
 
 Due to the way \texttt{fes\_recover()} is implemented, the \texttt{PotentialSolution}s are stored in with the \texttt{y\_idx} values in increasing order. Since the conversion to and from Gray code ordering acts like a bijective mapping, two \texttt{y\_idx} values that are equal correspondingly mean that their Gray code values are equal. Knowing this, the procedure may simply loop through all previous lists of potential solutions, using the sorting of the \texttt{y\_idx} values as and indicator of whether or not a solution could still be found.
-\clisting{src/c/standard/mq.c}{151}{151}
+\clisting{src/c/standard/mq.c}{156}{156}
 Here, each iteration then goes through the \texttt{PotentialSolution}s stored in the history:
-\clisting{src/c/standard/mq.c}{153}{154}
+\clisting{src/c/standard/mq.c}{158}{159}
 until it encounters a historic solution with a larger \texttt{y\_idx} value; 
-\clisting{src/c/standard/mq.c}{159}{162}
+\clisting{src/c/standard/mq.c}{164}{167}
 or one where \texttt{y\_idx} and \texttt{z\_bits} are identical across the historic solution and the current one;
-\clisting{src/c/standard/mq.c}{163}{164}
+\clisting{src/c/standard/mq.c}{168}{169}
 This ensures that the procedure checks only the strictly necessary historic solutions linearly. Alternatively, a dictionary could of course be implemented, however, it is unclear whether or not this would prove a dramatic benefit. Another alternative would be to allocate all $2^{n - n_1} \times (n_1 + 1)$ entries in a table as originally proposed in \cite{eurocrypt-2021-30841}. Of course, choosing to allocate room for all evaluations of the $U$ polynomials will drastically limit the problem sizes that the algorithm may handle in practice (on machines without unlimited memory).
 
 \td{CHECK THAT GRAY CODE ORDERING IS MENTIONED IN SAGEMATH FES\_RECOVER}
 
 Finally, should the procedure encounter identical \texttt{y\_idx} and \texttt{z\_bits} values across two potential solutions, the code acts more or less as expected:
-\clisting[label={lst:c:history_check}]{src/c/standard/mq.c}{166}{190}
+\clisting[label={lst:c:history_check}]{src/c/standard/mq.c}{171}{195}
 In this snippet, the code ensures to convert the \texttt{y\_idx} value into its Gray code value, before combining the $\mathbf{y}$- and $\mathbf{z}$-bits into one integer (or \textit{potential solution}). The potential solution is then evaluated on the system to check if it is an actual solution to the system $\mathcal{P}$. If so, the procedure cleans up and returns with the solution stored in the out-parameter \texttt{poly\_t *sol}.
 
 If no solution was found, or an error occurred along the way, the procedure returns $1$. Therefore, if a $1$ is returned the value in the \texttt{sol} pointer is an invalid solution. Returning a zero conversely means success and that \texttt{sol} contains a valid solution.
@@ -227,7 +227,7 @@ All FES related procedures and declarations can be found in \texttt{inc/fes.h} a
 being the state used by FES to store relevant values like derivatives and the prefix. Similarities to \cref{lst:sage:state} should be rather clear. The \texttt{uint8\_t *prefix} acts as an array in much the same way as the \texttt{prefix} attribute in \cref{lst:sage:state}, although integers are limited to a single byte. This is more than sufficient, given that the solver could not feasibly solve systems with around $256$ variables, and so the positions saved in \texttt{uint8\_t *prefix} would never reach such amounts.
 
 Next is the \texttt{fes\_recover()} declaration. A look into the file would also show declarations for \texttt{fes()} and \texttt{bruteforce()}, however, as mentioned these procedures are explained near the end of this subsection. The \texttt{fes\_recover()} declaration is quite similar to that of its SageMath counterpart
-\clisting{inc/fes.h}{113}{115} % C fes_recover declaration
+\clisting{inc/fes.h}{112}{114} % C fes_recover declaration
 The use of the \texttt{PotentialSolution} struct for storing solutions was already described, and replaces the need for \texttt{res} array used in the SageMath implementation of \texttt{fes\_recover()} (\cref{lst:sage:fes_rec_res}). The return value is made to be an error code, whereas \texttt{PotentialSolution *results} and \texttt{size\_t *res\_size} are out-parameters for the potential solutions found and the amount of these, respectively.
 
 Inside \texttt{src/c/standard/fes.c}, the two top-most functions are \texttt{init\_state()} and \texttt{destroy\_state()}. These act like a constructor and a destructor, respectively, for the \texttt{state} struct shown in \cref{lst:c:state}. The constructor allocates heap memory according to parameters of the problem instance, like $n$ and $n_1$. Consequently, the memory has to be freed to avoid memory leaks, which is handled in \texttt{destroy\_state()}. For anyone seeking to expand the codebase, the \texttt{init\_state()} procedure will not take ownership over any passed pointers but only copy their data.
@@ -269,7 +269,7 @@ There are two methods for running FES directly in the C code; the \texttt{brutef
 which is rather similar to that of \cref{alg:uvalue}. Here, the \texttt{poly\_t *solutions} parameter is an out-parameter for storing solutions. The return value is the number of solutions stored.
 
 If the goal is to run FES more in line with \cite{cryptoeprint:2013/436} or \cite{ches-2010-23990}, the \texttt{fes()} function is defined to be able to handle this:
-\clisting{inc/fes.h}{96}{97}
+\clisting{inc/fes.h}{96}{96}
 This procedure is not as heavily optimized as the GPU version of \cite{ches-2010-23990}, or the FPGA version of \cite{cryptoeprint:2013/436}, but has received the same level of \textit{care} as the procedure \texttt{fes\_eval()} used inside \texttt{fes\_recover()}. The solutions found are stored in the parameter \texttt{poly\_t *solutions} and the return value holds the amount found. An added \textit{bonus} for this procedure is the ability to read benchmarks directly, if needed. More on benchmarking in \cref{sec:impl:c:util_bench}
 
 \subsubsection{Utilities and benchmarking} \label{sec:impl:c:util_bench}
@@ -280,7 +280,7 @@ When the shared library is compiled, a few benchmarking tools are also available
 takes as input a list of bit-sliced systems that will then be run through the \texttt{solve()} function. The procedure computes both the time of different points of interest in the codebase, but also computes the balance of interpolation versus evaluation in \texttt{fes\_recover()}. All of the computed values are averaged according to how many calls to \texttt{solve()} that finished successfully, i.e. returned a valid solution. The stored timings and iteration counts can be accessed through the global variables declared in \texttt{inc/benchmark.h}, prefixed with a \texttt{g\_}. 
 
 Benchmark timings are computed using the \texttt{BEGIN\_BENCH()} and \texttt{END\_BENCH()} function like macros, as well as \texttt{READ\_BENCH()}. The names should make the macros somewhat self-explanatory. Should there be interest in adding more benchmarks, declaring an extern variable in \texttt{inc/benchmark.h} for storing timings (or another type of benchmark value), initializing it to a suitable value in a user-chosen position, and then adding appropriate macro-calls at the points of interest.
-
+\td{ADD NOTE ABOUT FES BENCHMARKING}
 \subsection{Optimizations} \label{sec:impl:opt}
 % \begin{enumerate}
 %     \item Tight integration of U-value computation with polynomial interpolation and full evaluation
@@ -311,13 +311,13 @@ $$
     \sum_{i = 0 }^{d} \binom{n - n_1}{i} < \left(\frac{(n - n_1)e}{d}\right)^d
 $$
 where $d$ is the degree passed to \texttt{fes\_recover()} as \texttt{deg}. Comparing the \textit{polynomial} memory usage to an exponential one where entries are sparsely scattered, the benefits should be quite clear. Of course, the disadvantage of this approach is the additional computational overhead used to compute the different indices, compared to the more \textit{naive} approach chosen in the SageMath prototype (\cref{sec:impl:fes}).
-
+\td{NOT POLYNOMIAL}
 In total, the memory consumption of \texttt{fes\_recover()} is lowered, and in expectation, it is rather competitive with using in-place Möbius transforms like \cref{alg:mob}. Using the memory-efficient Möbius transform suggested in \cite{eurocrypt-2021-30841}, could pose a strong alternative to this approach.
 \td{CACHE?}
 
 \paragraph*{Removing \texttt{output\_potentials}} Although the SageMath prototype kept \texttt{output\_potentials()}, the choice was to leave it out in the C code. Due to the choice of using the evaluation and interpolation process of \cref{sec:ext:fes_interp}, integrating solution "filtering" and processing directly into the procedure was more intuitive.
 
-Since each iteration of the outer-most loop of \cref{alg:fes_recover} (and thereby its implementations) discretely either evaluate or interpolate, the process of filtering and processing potential solutions directly in this loop was easily integrated. Other than allowing for a tighter compacting of potential solutions in the returned array, this process also removes the need for the processing at \cref{alg:output:recover} in \cref{alg:output}. Therefore, the time taken to go through all solutions once more, in order to \textit{post-process}, is no longer affecting the total solve time. Of course, as already mentioned, this comes at the cost of potentially having more computational load at each iteration of \texttt{fes\_recover()}.
+Since each iteration of the outer-most loop of \cref{alg:fes_recover} (and thereby its implementations) discretely either evaluate or interpolate, the process of filtering and processing potential solutions directly in this loop was easily integrated. Other than allowing for a tighter compacting of potential solutions in the returned array, this process also removes the need for the processing at \cref{alg:output:recover} in \cref{alg:output}. Therefore, the time taken to go through all solutions once more, in order to \textit{post-process}, is no longer effecting the total solve time. Of course, as already mentioned, this comes at the cost of potentially having more computational load at each iteration of \texttt{fes\_recover()}.
 
 \subsubsection{Vectorization and parallelization} \label{sec:impl:opt:parallel}
 Various methods of parallelizing the procedure were used, including the use of SIMD instructions and multicore CPUs. Of course, the shared library is compiled with GCCs \texttt{-O3} flag, which implies quite a few optimizations occur at compile-time. However, some optimizations can be hard to determine statically and so active care must be taken when developing. 

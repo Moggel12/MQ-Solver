@@ -1,0 +1,13 @@
+g_solve_time timings: 84s, 685ms
+g_recover_time timings: 75s, 134ms
+g_recover_eval_time timings: 42s, 478ms
+g_recover_interp_time timings: 17s, 649ms
+g_fes_time timings: 8s, 216ms
+g_ek_time timings: 0s, 0ms
+g_matrix_time timings: 0s, 0ms
+g_eval_time timings: 0s, 72ms
+g_hist_time timings: 4s, 924ms
+FES recovery evaluations: 89111028.000000
+FES recovery interpolations: 11552265.000000
+FES recovery ratio (eval/interp): 7.713728
+Average amount of stored solutions per solved system: 31952544

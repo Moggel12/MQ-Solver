@@ -9,6 +9,7 @@
 #include "benchmark.h"
 #include "fes.h"
 #include "mq_config.h"
+#include "mq_uni.h"
 #include "utils.h"
 
 #if defined(_DEBUG)
@@ -17,7 +18,7 @@ size_t solver_rounds = 0;
 
 typedef struct SolutionsStruct
 {
-  PotentialSolution *solutions;
+  poly_t *solutions;
   size_t amount;
 } SolutionsStruct;
 
@@ -96,9 +97,9 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
     END_BENCH(g_matrix_time)
 
-    PotentialSolution *curr_potentials = calloc(
+    poly_t *curr_potentials = calloc(
         1 << (n - n1),
-        sizeof(PotentialSolution));  // TODO: Change this to a suitable size
+        sizeof(poly_t));
     if (error || !curr_potentials)
     {
       k--;
@@ -126,6 +127,11 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
       return 1;
     }
 
+    poly_t *tmp = curr_potentials;
+    curr_potentials =
+        realloc(curr_potentials, len_out * sizeof(poly_t));
+    if (!curr_potentials) curr_potentials = tmp;
+
     SolutionsStruct *s = malloc(sizeof(SolutionsStruct));
     if (!s)
     {
@@ -144,7 +150,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
     for (size_t idx = 0; idx < len_out; idx++)
     {
-      PotentialSolution idx_solution = curr_potentials[idx];
+      poly_t idx_solution = curr_potentials[idx];
 
       BEGIN_BENCH(g_hist_time)
 
@@ -153,19 +159,18 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
         for (; hist_progress[k1] < potential_solutions[k1]->amount;
              hist_progress[k1]++)
         {
-          PotentialSolution k1_solution =
+          poly_t k1_solution =
               potential_solutions[k1]->solutions[hist_progress[k1]];
 
-          if (k1_solution.y_idx > idx_solution.y_idx)
+          if (GF2_MUL(k1_solution, INT_MASK((n - n1))) > GF2_MUL(idx_solution, INT_MASK((n - n1))))
           {
             break;
           }
-          else if (INT_EQ(idx_solution.y_idx, k1_solution.y_idx) &&
-                   INT_EQ(idx_solution.z_bits, k1_solution.z_bits))
+          else if (INT_EQ(k1_solution, idx_solution))
           {
-            poly_t gray_y = GRAY(idx_solution.y_idx);
+            poly_t gray_y = GRAY(GF2_MUL(idx_solution, INT_MASK((n - n1))));
             poly_t solution =
-                GF2_ADD(gray_y, INT_LSHIFT(idx_solution.z_bits, (n - n1)));
+                GF2_ADD(gray_y, GF2_MUL(idx_solution, INT_LSHIFT(INT_MASK(n1), (n - n1))));
 
             if (!eval(system, n, solution))
             {
@@ -173,6 +178,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
               for (unsigned int i = 0; i <= k; i++)
               {
+                g_stored_solutions += potential_solutions[i]->amount;
                 free(potential_solutions[i]->solutions);
                 free(potential_solutions[i]);
               }

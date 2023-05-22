@@ -1,0 +1,4 @@
+Compile_config,g_solve_time,g_recover_time,g_recover_eval_time,g_recover_interp_time,g_fes_time,g_ek_time,g_matrix_time,g_eval_time,g_hist_time
+64,17757,15064,4965,4886,1746,0,0,11,1361
+256,517,517,60,302,101,0,0,20,0
+fes64,256,0,0,0,0,0,0,0,0

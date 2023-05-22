@@ -16,10 +16,10 @@
 #define RSEED 42
 #else
 #define RSEED time(NULL)
-// #define RSEED 42
 #endif
 
-// TODO: Change to function-like macro.
+
+
 //////////////// POLYNOMIAL SIZE DEFINITIONS ////////////////
 #if defined(REG8)  ////////////// <= 8 polynomials
 

@@ -3,16 +3,18 @@
 \usepackage[a4paper, total={6in, 8in}]{geometry}
 \usepackage[T1]{fontenc}
 
-
 % Essential packages
 \usepackage[english,danish]{babel}
 \usepackage[utf8]{inputenc}
 \usepackage{todonotes}
 \usepackage{textcomp}
 \usepackage[skins,minted,breakable]{tcolorbox}
+\usepackage{booktabs}
 
 % Math packages
 \usepackage{amsmath,amsfonts,amssymb,amsthm}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
 
 % Programming packages
 \usepackage{listings,newtxtt}
@@ -33,7 +35,13 @@
 \usepackage[style=numeric-comp,maxbibnames=99]{biblatex}
 \usepackage[hyphenbreaks]{breakurl}
 \usepackage[htt]{hyphenat}
+\usepackage{array}
+\usepackage{colortbl}
 
+\usepgfplotslibrary{groupplots}
+\usepgfplotslibrary[groupplots]
+\usetikzlibrary{pgfplots.groupplots}
+\usetikzlibrary[pgfplots.groupplots]
 
 % Bibliography settings
 \addbibresource{bibliography.bib}
@@ -138,25 +146,6 @@
 
 \SetArgSty{textnormal} % Set text style for guard in algorithms
 
-% \lstdefinestyle{mystyle}{
-%     backgroundcolor=\color{backcolour},   
-%     commentstyle=\color{codegreen},
-%     keywordstyle=\color{magenta},
-%     numberstyle=\tiny\color{codegray},
-%     stringstyle=\color{codepurple},
-%     basicstyle=\ttfamily\footnotesize,
-%     breakatwhitespace=false,         
-%     breaklines=true,                 
-%     captionpos=b,                    
-%     keepspaces=true,                 
-%     numbers=left,                    
-%     numbersep=5pt,                  
-%     showspaces=false,                
-%     showstringspaces=false,
-%     showtabs=false,                  
-%     tabsize=2,
-% }
-
 \setminted{
     fontfamily=tt,
     linenos=true,
@@ -180,11 +169,20 @@
     escapeinside=\%\%,
 }
 
+\pgfplotstableset{
+  my multistyler/.style 2 args={
+    @my multistyler/.style={display columns/##1/.append style={#2}},
+    @my multistyler/.list={#1}
+  }
+}
+
 % Feedback
 \usepackage{ifthen}
 \usepackage[normalem]{ulem}
 \newcommand{\phrase}[2][]{\textcolor{blue}{\textbf{\ifthenelse{\equal{#1}{}}{}{(#1)}} \uline{#2}}} % needs rephrase
 \renewcommand{\comment}[1]{\textcolor{red}{\textbf{(#1)}}}
+
+\pgfplotsset{width=5cm,compat=1.9} 
 
 \begin{document}
 
