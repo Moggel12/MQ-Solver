@@ -1,23 +1,21 @@
 \section{Introduction} \label{sec:intro}
 \subsection{Motivation}
-With the rise of modern-day technology, privacy and data security are more critical than ever. Cryptographic schemes based on conjectured hard mathematical problems \phrase{lie} as a key building block for enabling such properties on modern technologies. \phrase[You can make this sentence active very easily: ``Peter Shor proposed an algorothm...'']{In 1994, an algorithm, due to Peter Shor \cite{Shor_1997}, was proposed} that would enable computationally efficient attacks on many currently in-use cryptographic schemes using sufficiently large quantum computers. Although Shor's algorithm posed a threat to cryptographic schemes based on number theoretic problems, like RSA and DSA, an actual sufficiently-sized quantum computer was yet to be seen. 
+With the rise of modern-day technology, privacy and data security are more critical than ever. Cryptographic schemes based on conjectured hard mathematical problems is a key building block in enabling such properties for modern technologies. In \cite{Shor_1997}, Peter Shor proposed an algorithm that would enable computationally efficient attacks on many currently in-use cryptographic schemes using sufficiently large quantum computers. Although Shor's algorithm posed a threat to cryptographic schemes based on number theoretic problems, like RSA and DSA, an actual sufficiently-sized quantum computer was yet to be seen. 
 
-\phrase[Langauge is a bit `rich' here...]{With an eye on} what a computing device based on quantum mechanics could further provide modern societies \comment{Example?}, researchers worldwide started working on practical implementations of such computing devices. The size of such quantum computers is popularly determined by the amount of \textit{quantum bits}, also denoted \textit{qubits}, present in the system. The amount of qubits present in quantum computer systems has drastically increased over the years, with IBM having tripled the number of qubits from 2021 to 2022 in its Osprey quantum processor \cite{IBM_Osprey}. This indicates rapid growth and a rapidly increasing threat against the trusted number-theoretic cryptosystems Shor challenged, albeit theoretically, in 1997.
+Now, quantum computers had already been shown to theoretically be useful in non-cryptographic research areas as well, like modelling quantum properties of particles in material sciences. Therefore, researchers worldwide started working on practical implementations of such computing devices. The size of such quantum computers is popularly determined by the amount of \textit{quantum bits}, also denoted \textit{qubits}, present in the system. The amount of qubits present in quantum computer systems has drastically increased over the years, with IBM having tripled the number of qubits from 2021 to 2022 in its Osprey quantum processor \cite{IBM_Osprey}. This indicates rapid growth and a rapidly increasing threat against the trusted number-theoretic cryptosystems Shor challenged, albeit theoretically, in 1997.
 
-With the rising interest in practical implementations of quantum computers, the National Institute of Technology and Standards (NIST, USA) called for new quantum-resistant cryptographic schemes, also called \textit{post-quantum cryptography}, to be standardized. This process was announced in 2016 and has up to this point resulted in four submission rounds. In 2022, NIST ended the third submission round by selecting the CRYSTALS-KYBER scheme as a new standard for cryptographic key-establishment algorithms as well as FALCON, CRYSTALS-Dilithium and SPHINCS+ as new standards for digital signatures. Even though four new schemes were selected for standardization, NIST called for a fourth submission round, asking for cryptographic schemes not based on lattice problems \cite{nist_third_rd_update}. \comment{Strictly speaking, there is a fourth round with remaining schemes that had been submitted already in 2017. Additionally, NIST plans an on-ramp of additional signature schemes this June.}
+With the rising interest in practical implementations of quantum computers, the National Institute of Technology and Standards (NIST, USA) called for new quantum-resistant cryptographic schemes, also called \textit{post-quantum cryptography}, to be standardized. This process was announced in 2016 and has up to this point resulted in four submission rounds. In 2022, NIST ended the third submission round by selecting the CRYSTALS-KYBER scheme as a new standard for cryptographic key-establishment algorithms as well as FALCON, CRYSTALS-Dilithium and SPHINCS+ as new standards for digital signatures. Even though four new schemes were selected for standardization, a fourth round continues with remaining schemes and some new ones. 
 
-\comment{This paragraph starts very abruptly; maybe introduce the four main PQC families first and then focus on MQ?}
-One family of post-quantum cryptosystems is that of multivariate cryptography. This branch of cryptography revolves around two mathematical problems, the MQ problem, and the IP problem. The central problem is that of the MQ problem \cite{Ding2020}.
+Generally, NIST plans to standardize schemes based on different mathematical problems, so-called \textit{PQC families}. The four main families based on \textit{coding theory}, \textit{structured lattices}, \textit{systems of multivariate polynomials}, and \textit{hash functions}.
+\td{CEHCK}
 
-\begin{defn}[The MQ Problem]\label{sec1:def:mq}
-Given a system of $m$ \phrase[Give an intuition and an example and define.]{multivariate quadratic polynomials} $\mathcal{P} = \{p^{(1)}, \dots, p^{(m)}\}$, over the ring of polynomials in $n$ variables $\eff[x_1, \dots, x_n]$, find values $\Bar{\mathbf{x}} = (\Bar{x}_1, \dots, \Bar{x}_n)$ that satisfy
+Multivariate cryptography is the branch of cryptography that revolves around two mathematical problems systems of multivariate polynomials, the MQ problem, and the IP problem. The central problem is that of the MQ problem \cite{ding2020}. The MQ problem revolves around solving multivariate quadratic polynomials, like 
 $$
-    p^{(1)}(\mathbf{\Bar{\mathbf{x}}}) =  p^{(2)}(\Bar{\mathbf{x}}) = \dots = p^{(m)}(\Bar{\mathbf{x}}) = 0 
+    p(x_0,x_1,x_2) = x_0x_1 + x_1,
 $$
-Here, $\eff = \eff_q$ is a finite field of $q$ elements. 
-\td{PUT IN PREREQUISITES?} 
-\comment{Maybe use an intuitive notion here and move the formal definition to \cref{sec:prereq}.}
-\end{defn}
+in a system of $m$ polynomials. By "solve", the idea is to find the assignments that makes $p_i(\mathbf{x}) = 0$, for all $p_i$ in a system $\mathcal{P}$.
+
+
 
 Choosing quadratic polynomials over other degrees of polynomials is often a \phrase{product} of efficiency.
 

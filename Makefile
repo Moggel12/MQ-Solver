@@ -1,6 +1,7 @@
 # Basics
 SHELL = /bin/sh
 REPORT = report/main.tex
+SLIDES = report/slides.tex
 REGSIZE = 32
 
 # C build setup
@@ -77,8 +78,11 @@ sage:
 pdf:
 	latexmk -pdf -shell-escape -silent -cd $(REPORT)
 
+slides:
+	latexmk -pdf -shell-escape -silent -cd $(SLIDES)
+
 pdfclean:
-	latexmk -C -cd $(REPORT)
+	latexmk -C -cd $(REPORT) $(SLIDES)
 	rm -f *.bbl *.xml
 
 clean:
@@ -97,4 +101,4 @@ $(STD_DIR):
 $(VEC_DIR):
 	mkdir -p $(BUILD_DIR)/$(VEC_DIR)
 
-.PHONY: clean standard vector pdf tests pdfclean sage
+.PHONY: clean standard vector pdf tests pdfclean sage slides

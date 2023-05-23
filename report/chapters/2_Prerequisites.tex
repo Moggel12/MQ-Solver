@@ -1,4 +1,12 @@
 \section{Prerequisites} \label{sec:prereq}
+\subsection{The MQ problem}
+\begin{defn}[The MQ Problem]\label{sec1:def:mq}
+    Given a system of $m$ \phrase[Give an intuition and an example and define.]{multivariate quadratic polynomials} $\mathcal{P} = \{p^{(1)}, \dots, p^{(m)}\}$, over the ring of polynomials in $n$ variables $\eff[x_1, \dots, x_n]$, find values $\Bar{\mathbf{x}} = (\Bar{x}_1, \dots, \Bar{x}_n)$ that satisfy
+    $$
+        p^{(1)}(\mathbf{\Bar{\mathbf{x}}}) =  p^{(2)}(\Bar{\mathbf{x}}) = \dots = p^{(m)}(\Bar{\mathbf{x}}) = 0 
+    $$
+    Here, $\eff = \eff_q$ is a finite field of $q$ elements. 
+\end{defn}
 
 \subsection{Bit-slicing, partial evaluation and linearization}
 Two common ideas in the space of polynomials over $\eff_2$ are those of bit-slicing and partial evaluation. While bit-slicing refers to an optimization technique, partial evaluation can be part of an optimization strategy.

@@ -1,0 +1,552 @@
+\documentclass{beamer}
+% \usepackage[TU]{fontenc}
+\usepackage{lmodern} % load a font with all the characters
+% \usepackage{unicode-math}
+
+\setlength{\parskip}{\baselineskip} 
+
+% Essential packages
+\usepackage[english,danish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{textcomp}
+\usepackage[skins,minted,breakable]{tcolorbox}
+\usepackage{booktabs}
+
+% Math packages
+\usepackage{amsmath,amsfonts,amssymb,amsthm}
+
+% Programming packages
+\usepackage{listings,newtxtt}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{courier}
+
+% Layout packages
+\usepackage{csquotes}
+\usepackage{booktabs}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{lipsum}
+\usepackage{subcaption}
+\usepackage[style=numeric-comp,maxbibnames=99]{biblatex}
+% \usepackage[hyphenbreaks]{breakurl}
+% \usepackage[htt]{hyphenat}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{outlines}
+
+\usepackage{tikz}  
+\usetikzlibrary{chains, positioning, arrows.meta, bending, shapes.arrows}
+
+\addbibresource{bibliography.bib}
+\addbibresource{iacr.bib}
+
+\newcommand{\eff}{\mathbb{F}} % Fancy F
+\newcommand{\pp}{\texttt{++}} % ++ operator
+\newcommand{\rightshift}{\texttt{ >> }} 
+\newcommand{\td}[1]{\todo[inline]{#1}} % Todo notes
+
+\title{Solving MQ-problems}
+\author{Author: \textbf{Mikkel Juul Vestergaard}\\Supervisor: \textbf{Associate Professor Ruben Niederhagen}}
+\institute{Department of Mathematics and Computer Science\\University of Southern Denmark}
+\date{Student talks, 2023}
+
+\AtBeginSection[]
+{
+  \begin{frame}
+    \frametitle{Table of Contents}
+    \tableofcontents[hideallsubsections,sectionstyle=show/shaded]
+  \end{frame}
+}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\section{Pre-preliminaries}
+\subsection{Rings}
+\begin{frame}
+    \frametitle{Rings, what are they?}
+    \begin{block}{Definition}
+        A \textit{ring} is a set $S$ with two binary operators $+$ and $\cdot$, satisfying certain conditions. These operators are typically interpreted as addition and multiplication.\footnote{\url{https://mathworld.wolfram.com/Ring.html}}
+        \begin{enumerate}
+            \item Additive and multiplicative associativity
+            \item Additive commutativity
+            \item Additive identity
+            \item Additive inverse
+            \item Distributivity (left and right) of multiplication over addition
+        \end{enumerate}
+    \end{block}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Rings, what are they?}
+    \begin{itemize}
+        \item The set of square matrices, using matrix addition and multiplication.
+        \item Integers modulo two ($\mathbb{Z}/2\mathbb{Z}$, sometimes $\mathbb{F}_2$): $S = \{0, 1\}$ with addition and multiplications modulo 2.
+        \item The complex numbers ($\mathbb{C}$): $S = \mathbb{C}$ with addition and multiplication as we know it for complex numbers 
+        \item Many more!
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Finite fields (Galois field)}
+    \begin{block}{Definition}
+        A \textit{field} is a \textit{ring} that also satisfies the properties:
+        \begin{enumerate}
+            \item Multiplicative commutativity
+            \item Multiplicative identity
+            \item Multiplicative inverses
+        \end{enumerate}
+    \end{block} \pause
+    A \underline{finite field} is a field of finite elements!
+\end{frame}
+
+\begin{frame}
+    \frametitle{Rings of polynomials?}
+    \begin{block}{Definition}
+        A \textit{polynomial ring} $R[x]$ is the ring of all polynomials in the indeterminate (variable) $x$. Coefficients are sampled from the ring $R$.
+    \end{block} 
+    Examples:
+    \begin{itemize}
+        \item<2-> For $\mathbb{R}[x]$: $3.5x^2 + 4x + 1$.
+        \item<3-> For $\mathbb{F}_2[x_0, x_1, x_2]$ (integers mod 2): $x_0x_1 + x_0 + 1$. This is a \textit{multivariate polynomial!}
+    \end{itemize}
+\end{frame}
+
+\section{Preliminaries}
+\begin{frame}
+    \frametitle{Rings of polynomials?}
+    \begin{outline}
+        \1 \textit{System} of multivariate polynomials?
+            \2 Much like the linear systems you know from linear algebra!
+            \2 Using the polynomial ring $R[x]$ we may combine multiple polynomials into a \textit{system}.
+        \1 Alright, why bother?
+            \2 Solving systems of multivariate polynomials ($R[x_0,\dots x_{n - 1}]$) is NP-hard!
+                \3 We often denote $MP$ as the problem of solving multivariate polynomials of degree $d$ in $n$ variables and $m$ polynomials.
+            \2 A commonly used version of the $MP$ problem is the $MQ$-problem.
+                \3 This is the problem of solving systems of $m$ quadratic polynomials in $n$ variables.
+                \3 This is NP-complete
+                \3 Much modern cryptography is based on the hardness of this problem
+    \end{outline}
+\end{frame}
+
+\subsection{Typical Tricks}
+\begin{frame}
+    \frametitle{Bit-slicing and linearization}
+    Typically, when we implement procedures handling systems of multivariate polynomials over $\mathbb{F}_2[x_0,\dots x_{n - 1}]$ we use \textit{bit-slicing}: \pause
+
+    Consider the polynomials 
+    \begin{equation*}
+        \begin{split}
+            p_0(x_0, x_1) &= 1 + x_1 + x_0x_1,\\
+            p_1(x_0, x_1) &= x_0 + x_1.
+        \end{split}
+    \end{equation*}
+    Noticed how the coefficients can be represented as bits in a computer? Let us use this fact!
+
+    We can combine $p_0$ and $p_1$ into a list of integers:
+    
+    \pause
+    $$
+        p = [01_2, 10_2, 11_2, 01_2].
+    $$
+    If we wish to compute something on both polynomials, we can now simply use bit-wise operators \texttt{xor} for $+$ and \texttt{and} for $\cdot$.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Bit-slicing and linearization}
+    For the sake of the algorithms in this talk, \textit{linearization} is important! \pause
+
+    For the polynomial (over $\mathbb{F}_2[x_0,x_1]$) 
+    $$
+        p(x_0, x_1) = 1 + x_0 + x_0x_1 + x_1^2, 
+    $$
+    we may \textit{remove} the quadratic term and \textit{add} a linear term instead. This yields the following polynomial:
+    $$
+        p(x_0, x_1) = 1 + x_0 + x_1 + x_0x_1,
+    $$
+    where \textit{no quadratic terms exist}!
+\end{frame}
+
+\subsection{Möbius Transform}
+\begin{frame}
+    \frametitle{Möbius transforms}
+    \textbf{Not to be confused with a similarly named transform in the realm of complex analysis and geometry!} 
+    
+    \pause
+
+    The Möbius transform can be used to obtain a \textit{boolean polynomial} (or polynomial in $\mathbb{F}_2[x_0,\dots x_{n - 1}]$) from a truth table! (see \cite{joux2009algorithmic})
+    
+    \pause 
+
+    From the \textit{truth-table} of a boolean function, we may get the ANF of a polynomial:
+    $$
+        f(x_0, \dots x_{n - 1}) = \bigoplus_{(a_0,\dots a_{n - 1}) \in \mathbb{F}_2^n} g(a_0, \dots a_{n - 1}) \prod_i x_i^{a_i}
+    $$
+
+    This is quite cool as we can interpolate boolean polynomials from a truth-table!
+    
+    \pause
+    
+    Plus, we can do the inverse as well!
+\end{frame}
+
+\begin{frame}
+    \frametitle{Gray codes}
+    Gray code or Reflected Binary Code, an ordering of the binary numeral system in which every subsequent value only differs in \textit{one} bit.
+
+    \begin{center}
+        \begin{tabular}{||c|c|c||}
+            \hline
+            Index & Binary & Gray \\
+            \hline
+            0 & $000_2$ & $000_2$\\
+            1 & $001_2$ & $001_2$\\
+            2 & $010_2$ & $011_2$\\
+            3 & $011_2$ & $010_2$\\
+            4 & $100_2$ & $110_2$\\
+            5 & $101_2$ & $111_2$\\
+            6 & $110_2$ & $101_2$\\
+            7 & $111_2$ & $100_2$\\
+            \hline
+        \end{tabular}
+    \end{center}
+\end{frame}
+
+\subsection{Fast Exhaustive Search}
+\begin{frame}
+    \frametitle{Fast Exhaustive Search for polynomials in $\mathbb{F}_2$}
+    Say we have some polynomial $p$ in the ring $\mathbf{F}_2[x_0,\dots x_{n-1}$].
+    
+    \pause
+
+    We want to find all assignments of $x_0, \dots x_{n - 1}$ that evalute to 0 on $p$ $\implies$ we want to do an exhaustive search!
+
+    But we need to do $2^n$ iterations, fully evaluating a polynomial in each? Can we do this faster, concretely?
+\end{frame}
+
+\begin{frame}
+    \frametitle{Derivatives in finite fields}
+    Instead of fully evaluating the polynomial $p$ at each input, why don't we use derivatives and Gray codes? 
+    
+    \pause 
+
+    Let us evaluate in Gray code order (for $n = 3$):
+    \begin{equation*}
+        \begin{split}
+            p(0,&0,0)\\
+            p(1,&0,0)\\
+            p(1,&1,0)\\
+            p(0,&1,0)\\
+            &\vdots\\
+            p(0,&0,1)
+        \end{split}
+    \end{equation*}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Derivatives in finite fields}
+    Now, between each of these evaluations, only \textit{one} variable changes its value, e.g. $001_2 \rightarrow 011_2$ means that only $x_0$ changes value
+
+    \pause
+
+    Now, computing $p(\mathbf{x})$ when only variable $x_i \in \mathbf{x}$ changes value can be done by adding 
+    $$
+        \frac{\partial p}{\partial x_i}(\mathbf{x}),
+    $$
+    to the previous evaluation of $p(\mathbf{x})$. 
+
+    \pause
+    
+    Further, we can treat the partial derivative above as a polynomial itself, applying this idea recursively.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Derivatives in finite fields}
+    Generally, we may compute the $j$-order partial derivative recursively, by 
+    $$
+        \frac{\partial^{j - 1} p}{\partial x_{\beta_0} \dots \partial x_{\beta_{j - 2}}}(g_i) = Q_{x_{\beta_0} \dots x_{\beta_{j - 2}}} + \frac{\partial^j p}{\partial x_{\beta_0} \dots \partial x_{\beta_{j - 1}}}(g_i).
+    $$
+    where $\mathbf{g}_i$ is Gray code encoding of $\mathbf{x}$ and $\beta_0, \dots \beta_{j - 1}$ encode the indices of all 1-bits in $\mathbf{x}$, limited by $j < d$.
+    
+    Above, $Q_{x_{\beta_0} \dots x_{\beta_{j - 1}}}$ is the \textit{stored} previous evaluation of 
+\end{frame}
+
+\begin{frame}
+    \frametitle{Derivatives in finite fields}
+    Using these ideas, the authors of \cite{ches-2010-23990} managed to create an exhaustive search algorithm that uses 
+    $$
+        2d \cdot \log n \cdot 2^n
+    $$
+    \textit{bit operations} (not asymptotic) to find all solutions (common zeros) of a polynomial system. 
+
+    The tradeoff is the storage of intermediate derivatives throughout the algorithm.
+
+    In comparison, a naive full evaluation would require 
+    $$
+        2^n \cdot \sum_{i = 0}^{d} \binom{n}{d}
+    $$
+    \textit{bit operations}, at least.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Example for the quadratic case}
+    \begin{algorithm}[H]
+        \DontPrintSemicolon
+        \SetAlgoLined
+        \caption{EVAL($p$, $n$)}\label{alg:fes_eval}
+        \KwIn{The polynomial(s) $p$, and the amount of variables $n$}
+        \KwResult{List of common zeroes of $p$}
+        $state \gets \text{INIT($p$, $n$)}$\;
+        \If{$state.y = 0$}{
+            Add $state.y$  to list of common zeroes\;
+        }
+        \While{$state.i < 2^n$}{
+            STEP($state$)\;
+            \If{$state.y = 0$}{
+                Add $state.y$  to list of common zeroes\;
+            }
+        }
+        \Return List of common zeroes
+    \end{algorithm}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Example for the quadratic case}
+    \begin{algorithm}[H]
+        \DontPrintSemicolon
+        \SetAlgoLined
+        \caption{STEP($state$)}\label{alg:fes_step}
+        \KwIn{The datastructure to store derivative tables, counter values, and the evaluation, $state.y$.}
+        $state.i \gets state.i + 1$\;
+        $k1 \gets \text{BIT}_1(state.i)$\;
+        $k2 \gets \text{BIT}_2(state.i)$\;
+        \If{k2 exists in state.i}{
+            $s.d'[k_1] \gets s.d'[k1] \oplus s.d''[k1,k2]$\;
+        }
+        $s.y \gets s.y \oplus s.d'[k1]$\;
+    \end{algorithm}
+\end{frame}
+
+\section{Dinur's Polynomial-Method Solver}
+
+\subsection{The general idea}
+\begin{frame}
+    \frametitle{Dinur's solver}
+    In \cite{eurocrypt-2021-30841}, Dinur proposed an algorithm for $MP$ problems with \textbf{exponential speedup} over exhaustive search.
+
+    The algorithm is based on the \textit{polynomial-method}, which is borrowed from circuit complexity.
+
+    To the best of my knowledge (and my supervisors), this algorithm has not been tested in practice.
+
+    It borrows ideas from other algorithms based on the same method.
+\end{frame}
+
+\begin{frame}
+    \frametitle{The Polynomial method}
+    Algorithms based on the polynomial method solve systems 
+    $$
+        P = \{p_j(\mathbf{x})\}^{m - 1}_{j = 0}
+    $$ 
+    by considering constructing a polynomial 
+    $$
+        F(\mathbf{x}) = (1 + p_0(\mathbf{x}))(1 + p_1(\mathbf{x})) \dots (1 + p_{m - 1}(\mathbf{x}))
+    $$
+    with multiplication and addition over $\eff_2$. 
+\end{frame}
+
+\begin{frame}
+    \frametitle{The Polynomial method}
+    However, since $F$ may have a rather high degree ($m \cdot d$), the methods typically instead \textit{generate} a related system, 
+    $$
+        \Tilde{P}_k \gets \left\{r_i(\mathbf{x}) = \sum_{j = 0}^{m-1}A_{i,j} \cdot p_j(\mathbf{x})\right\}^{\ell - 1}_{i = 0},
+    $$
+    with a random matrix $A$ of rank $\ell$, which allows for constructing the \textit{probabilistic polynomial}
+    $$
+        \Tilde{F}(\mathbf{x}) = (1 + r_0(\mathbf{x}))(1 + r_1(\mathbf{x})) \dots (1 + r_{\ell - 1}(\mathbf{x})) 
+    $$
+    of smaller degree ($d \cdot \ell$), assuming one chooses an $\ell < m$.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Isolating solutions}
+    \begin{block}{Variable partition}
+        For the variables $\mathbf{x} = (x_0, \dots x_{n - 1})$, we make the partition $\mathbf{x} = (\mathbf{y}, \mathbf{z}) = (y_0, \dots y_{n - n_1 - 1}, z_{0}, \dots z_{n_1 - 1})$ using some parameter $n_1$.
+    \end{block}
+
+    \begin{alertblock}{Isolated solutions}
+        A solution $\hat{\mathbf{x}} = (\hat{\mathbf{z}}, \hat{\mathbf{y}})$ to the system $P = \{p_j(\mathbf{y}, \mathbf{z})\}^m_{j = 1}$ is called \textit{isolated} (with respect to the variable partitition $(\mathbf{y}, \mathbf{z})$) if for all $\hat{\mathbf{z}}'=\hat{\mathbf{z}}$, $(\hat{\mathbf{y}}, \hat{\mathbf{z}}')$ is not a solution to $P$.
+    \end{alertblock}
+    What if we, instead of searching for \textit{any} solution, search for an isolated solution? 
+\end{frame}
+
+\begin{frame}
+    \frametitle{Recovering bits}
+        By partitioning the variables using the parameter $n_1$, we are able to \textit{enumerate} all isolated solutions of the partition using the polynomials
+        $$
+            U_0(\mathbf{y}) = \sum_{\hat{\mathbf{z}} \in \{0,1\}^{n_1}} \Tilde{F}(\mathbf{y},\hat{\mathbf{z}}), \text{ and } U_i(\mathbf{y}) = \sum_{\hat{\mathbf{z}}\in \{0,1\}^{n_1 - 1}} \Tilde{F}_{z_i \leftarrow 0}(\mathbf{y}, \hat{\mathbf{z}}),
+        $$
+        for $i = 1, \dots n_1$. \pause
+
+        In fact, using the polynomials above, we know that $U_0(\mathbf{y}) = 1$ $\implies$ $(\hat{\mathbf{y}}, \hat{\mathbf{z}})$ is an isolated solution for $P$, and where $U_i(\hat{\mathbf{y}}) = \hat{z_i} + 1$.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Interpolation}
+    Using the $U$ polynomials can help reduce the space of solutions we must search!
+
+    \pause
+
+    Since $\Tilde{F}$ is of lower degree than $F$, we may now \textit{interpolate} the $U$ polynomials directly, never actually interpolating $\Tilde{F}$.
+
+    \pause 
+
+    We may even interpolate the $U$ polynomials using the solutions to $\Tilde{P}$ in the set 
+    $$
+        \left\{ W_{w + 1}^{n - n_1} \times \{0,1\}^{n_1} \right\}
+    $$
+    instead of the full set of $2^{n - n_1}$ solutions per $U$ polynomial. 
+    
+    \pause
+
+    These solutions are computed using FES!
+\end{frame}
+
+\section{FES-Based Recovery of Solutions}
+\begin{frame}
+    \frametitle{Alternatives to the Möbius transform?}
+
+    \pause 
+
+    What if we \textit{backtrack} using the ideas of the Fast Exhaustive Search?
+
+    \pause
+
+    That is, normally in FES, we would compute 
+    $$
+        \frac{\partial^{j - 1} p}{\partial x_{\beta_0} \dots \partial x_{\beta_{j - 2}}}(g_i) = D_{x_{\beta_0} \dots x_{\beta_{j - 2}}} + \frac{\partial^j p}{\partial x_{\beta_0} \dots \partial x_{\beta_{j - 1}}}(g_i),
+    $$
+    where $Q$ stores the previous evaluation of $\frac{\partial^{j - 1} p}{\partial x_{\beta_0} \dots \partial x_{\beta_{j - 2}}}$.
+    
+    \pause
+
+    But now, we can instead compute 
+    $$
+        \frac{\partial^j p}{\partial x_{\beta_0} \dots \partial x_{\beta_{j - 1}}}(g_i) = \frac{\partial^{j - 1} p}{\partial x_{\beta_0} \dots \partial x_{\beta_{j - 2}}}(g_i) - D_{x_{\beta_0} \dots x_{\beta_{j - 2}}}
+    $$
+    and \textit{fill} the derivative table entries.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Alternatives to the Möbius transform?}
+    Using this idea, we can take construct a procedure that interpolates \textit{evaluates}, mimicking the two separate calls to the Möbius transform.
+
+    \begin{outline}
+        \1 Go through all $2^{n - n_1}$ values of the $\mathbf{y}$ bits.
+            \2 If the hamming weight of the $\mathbf{y}$ bits is larger than $d_{\Tilde{F}} - n_1 + 1$
+                \3 We have already interpolated the desired derivative table entries, and may now evaluate new points
+            \2 Else, if it is smaller
+                \3 Interpolate derivative table entries by \textit{backtracking}
+    \end{outline}
+\end{frame}
+
+\section{Optimizing}
+    \begin{frame}
+        \frametitle{Storing solutions}
+        Storing $2^{n - n_1}$ solutions in each round gets quite cumbersome!
+
+        \pause 
+
+        What if we store solutions sequentially, combing the $\mathbf{y}$ and $\mathbf{z}$ bits into an integer?
+        
+        \pause 
+
+        For the smallest case, we would need to store 
+        $$
+            4 \cdot 8 \cdot 2^{n - n_1}
+        $$
+        bytes using the proposed method! What if we instead bit-slice the $U$ polynomial evalutions?
+
+        \pause 
+
+        Now we need $4\cdot 2^{n - n_1}$ bytes, i.e. we saved a factor 8 storage!
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Better storage?}
+        Storing $2^{n - n_1}$ solutions in each round gets quite cumbersome!
+
+        \pause 
+
+        For the smallest case, we would need to store 
+        $$
+            4 \cdot 8 \cdot 2^{n - n_1}
+        $$
+        bytes using the proposed method! What if we instead bit-slice the $U$ polynomial evalutions?
+
+        \pause 
+
+        Now we need $4\cdot 2^{n - n_1}$, saved a factor 8 storage!
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{Better storage?}
+        What if we store solutions sequentially, combing the $\mathbf{y}$ and $\mathbf{z}$ bits into an integer?
+        
+        \pause 
+
+        As we are going to find 
+        $$
+            2^{n - 2n_1}
+        $$
+        candidate solutions, in expectation, we can actually save quite a large amount by storing sequentially!
+
+        This does require some amount of computation extra, since we cannot simply make a dictionary lookup.
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{AVX...?}
+        Now, what about AVX? 
+        
+        \pause
+
+        Recall that many modern x86 CPUs have 128- and 256-bit AVX registers. Can we use this to parallelize the process?
+
+        \pause
+
+        Yes! By \textit{partially evaluating} the polynomials!
+    \end{frame}
+
+    \begin{frame}
+        \frametitle{AVX... and partial evaluation!}
+        Consider the polynomial,
+        $$
+            p(x_0, x_1, x_2, x_3) = 1 + x_0 + x_2 + x_0x_2 + x_1x_3 + x_2x_3.
+        $$
+        What if we assign values to \textit{only} the two last variables, $x_2$ and $x_3$? 
+
+        \pause 
+
+        Then we would get
+        \begin{equation*}
+            p(x_0,x_1,x_2,x_3) = 
+            \begin{cases}
+                1 + x_0       & (x_2 = 0, x_3 = 0)\\
+                0             & (x_2 = 1, x_3 = 0)\\
+                1 + x_0 + x_1 & (x_2 = 0, x_3 = 1)\\
+                1 + x_1       & (x_2 = 1, x_3 = 1).
+            \end{cases}
+        \end{equation*} 
+        which we can treat like four independent polynomials!
+        
+    \end{frame}
+
+\begin{frame}
+    \frametitle{References}
+    \printbibliography
+\end{frame}
+
+
+\end{document}
+Möbius
