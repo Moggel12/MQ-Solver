@@ -47,7 +47,7 @@ def mem():
     ys = np.array([data[x] for x in xs], dtype=np.float64)
 
     p0 = (1, 1, 0)
-    params, cv = curve_fit(_exp, xs, ys, p0)
+    params, cv = curve_fit(_exp, xs, ys, p0, bounds=(0, [np.inf, np.inf, np.inf]))
     m, t, b = params
 
     squared_diffs = np.square(ys - _exp(xs, m, t, b))
@@ -83,7 +83,7 @@ def timings():
         ys = np.array(data[col], dtype=np.float64)
 
         p0 = (1, 1, 0)
-        params, cv = curve_fit(_exp, xs, ys, p0)
+        params, cv = curve_fit(_exp, xs, ys, p0,bounds=(0, [np.inf, np.inf, np.inf]))
         m, t, b = params
 
         squared_diffs = np.square(ys - _exp(xs, m, t, b))

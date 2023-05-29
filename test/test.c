@@ -71,7 +71,7 @@ void read_sub_poly_t_array_static(sub_poly_t *arr, size_t len)
   }
 }
 
-int test_compute_e_k(void)
+int test_compute_p_k(void)
 {
   size_t l = read_size_t();
   size_t n = read_size_t();
@@ -164,7 +164,7 @@ int test_compute_e_k(void)
 
   srand(RSEED);
 
-  poly_vec_t degrees = compute_e_k(mat, new_sys, old_sys, sys_len, l, n);
+  poly_vec_t degrees = compute_p_k(mat, new_sys, old_sys, sys_len, l, n);
 
   uint8_t acc = 1;
   for (unsigned int i = 0; i < n_choose_k(n, 2) + n + 1; i++)
@@ -313,7 +313,7 @@ int test_solve_sanitized()
 
 #else
 
-int test_compute_e_k(void)
+int test_compute_p_k(void)
 {
   size_t l = read_size_t();
   size_t n = read_size_t();
@@ -355,7 +355,7 @@ int test_compute_e_k(void)
     return 1;
   }
 
-  unsigned int res = compute_e_k(mat, new_sys, old_sys, l, n);
+  unsigned int res = compute_p_k(mat, new_sys, old_sys, l, n);
   srand(RSEED);
   uint8_t acc = 1;
   for (unsigned int i = 0; i < n_choose_k(n, 2) + n + 1; i++)
@@ -514,7 +514,7 @@ int main(void)
   switch (choice)
   {
     case 0:
-      return test_compute_e_k();
+      return test_compute_p_k();
     case 1:
       return test_eval();
     case 2:

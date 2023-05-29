@@ -24,7 +24,7 @@ typedef struct SolutionsStruct
 
 poly_t parity(poly_t bits) { return __builtin_parity(bits); }
 
-unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
+unsigned int compute_p_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
                          int n)
 {
   unsigned int deg = 0;
@@ -108,7 +108,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
     BEGIN_BENCH(g_ek_time)
 
-    unsigned int w = compute_e_k(rand_mat, rand_sys, system, l, n) - n1;
+    unsigned int w = compute_p_k(rand_mat, rand_sys, system, l, n) - n1;
 
     END_BENCH(g_ek_time)
 

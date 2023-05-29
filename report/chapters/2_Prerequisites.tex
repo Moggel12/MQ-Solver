@@ -1,6 +1,6 @@
-\section{Prerequisites} \label{sec:prereq}
-\subsection{The MQ problem}
-For completeness, this subsection provides a definition of the problem in focus in this thesis.
+\section{Preliminaries} \label{sec:prereq}
+\subsection{The MQ problem} \label{sec:prereq:problem}
+For completeness, this subsection defines the problem in focus in this thesis. \textit{Solutions}, in this case, are any assignments to the input variables that evaluate $0$ on the polynomial(s) in question, i.e. for $p(\hat{\mathbf{x}}) = 0$ means that $\hat{\mathbf{x}}$ is a solution to $p$, whereas $p(\hat{\mathbf{x}}') = 1$ is not a solution.
 \begin{defn}[The MQ Problem]\label{sec1:def:mq}
     Given a system of $m$ multivariate quadratic polynomials $\mathcal{P} = \{p^{(1)}, \dots, p^{(m)}\}$, over the ring of polynomials in $n$ variables $\eff[x_1, \dots, x_n]$, find values $\Bar{\mathbf{x}} = (\Bar{x}_1, \dots, \Bar{x}_n)$ that satisfy
     $$
@@ -22,7 +22,7 @@ with two terms of quadratic \textit{total degree}. However, notice that the two 
 \end{equation}
 which is what \textit{linearization} revolves around. Instead of including monomials of degree $2$ in one variable, a procedure may as well preprocess the polynomial(s) making them \textit{multilinear} like \cref{eq:multilinear_p}.
 
-\subsubsection{Partial evaluation}
+\subsubsection{Partial evaluation} \label{sec:prereq:partial_eval}
 Consider the polynomial $p$, defined over $\eff_2[x_0,x_1,x_2,x_3]$,
 $$
     p(x_0, x_1, x_2, x_3) = 1 + x_0 + x_2 + x_0x_2 + x_1x_3 + x_2x_3.
@@ -46,7 +46,7 @@ which may then be treated as four separate polynomials:
         p^{(3)}(x_0, x_1) &= 1 + x_1.
     \end{split}
 \end{equation*}
-Due to how these systems were generated, solving one of them will provide part of a solution for the original system. Using this idea, multiple independent systems can be manipulated (in parallel), while keeping a strong ''connection'' to the original system. In case a solution for one of the $p^{(i)}$s above was found, simply extending its solution by the assignments of $x_2$ and $x_3$ is enough to \textit{convert} the solution to one for $p$. Assuming sufficient memory, this approach can also be used on entire systems.
+Due to how these systems were generated, solving one of them will provide part of a solution for the original system. Using this idea, multiple independent systems can be manipulated (in parallel), while keeping a strong ''connection'' to the original system. In case a solution for one of the $p^{(i)}$s above was found, simply extending its solution by the assignments of $x_2$ and $x_3$ is enough to \textit{convert} the solution to one for $p$. I.e., $(x_0 = 1, x_1 = 0)$ is a solution for $p^{(0)}$, implying that $(x_0 = 1, x_1 = 0, x_2 = 0, x_3 = 0)$ is a solution for $p$. Assuming sufficient memory, this approach can also be used on entire systems.
 
 \subsubsection{Bit-slicing}
 Bit-slicing is another common optimization strategy when working with boolean functions, or in this case polynomials over $\eff_2$. Bit-slicing is a parallelization strategy, which is fundamentally SIMD operations on 1-bit words. The bit-sliced procedure combines multiple bits into a single register in order to use the machine's native bit-wise operations like \texttt{xor}, \texttt{or}, and \texttt{and}, as SIMD instructions on this data.
@@ -78,156 +78,221 @@ implying the evaluations be $p_0(0,1) = 0$ and $p_1(0,1) = 1$.
 The combination of multiple data into one integer, or \textit{register}, does not have to be related to polynomials either. Anytime the data can be represented by a single bit, multiple parallel operations on said data can be done simply with bit-wise operands and integers/registers.
 
 \subsection{Polynomial method for solving MQ systems} \label{sec:prereq:polymethod}
-According to \cite{Williams2014ThePM}, the polynomial method was originally a method for proving the limitations of computational devices in circuit complexity. That is, it was originally used for proving limitations on certain types of boolean circuits. Slowly, the method was adapted to algorithm design and has proven a useful tool for this. The general approach for using the polynomial method in algorithm design is to model the computational problem as a boolean circuit, converting it to a corresponding boolean polynomial (exact or probabilistic), in order to finally manipulate and compute using the polynomial. 
+According to \cite{Williams2014ThePM}, the polynomial method was originally a method for proving the limitations of computational devices in circuit complexity. That is, it was originally used for proving limitations on certain types of boolean circuits. Slowly, the method was adapted to algorithm design and has proven a useful tool for this. The general approach for using the polynomial method in algorithm design is to model the computational problem as a boolean circuit, converting it to a corresponding boolean polynomial (exact or probabilistic), to finally manipulate and compute using the polynomial. 
 
-In the field of cryptography, the polynomial method has seen multiple incarnations. Two prominent uses of the method has been for solving $MP$ systems, one being that of \cite{doi:10.1137/1.9781611974782.143} and the other being the main focus of this algorithm, \cite{eurocrypt-2021-30841}. Commonly, the system of polynomials $\mathcal{P} = \{p_i(x_0, \dots x_{n - 1})\}_{i = 0}^m$ are represented by 
+In the field of cryptography, the polynomial method has seen multiple incarnations. Two prominent uses of the method have been for solving $MP$ systems, one being that of \cite{doi:10.1137/1.9781611974782.143} and the other being the main focus of this algorithm, \cite{eurocrypt-2021-30841}. Commonly, the system of polynomials $\mathcal{P} = \{p_i(x_0, \dots x_{n - 1})\}_{i = 0}^m$ are represented by 
 $$
     P(x_0, \dots x_{n - 1}) = (1 + p_0(x_0, \dots x_{n - 1}))(1 + p_1(x_0, \dots x_{n - 1})) \dots (1 + p_m(x_0, \dots x_{n - 1}))
 $$
-with addition and multiplication being the respective operators of $\eff_2$. Due to the structure of $P$, any solution (common zero) to $\mathcal{P}$ will evaluate to 1 on $P$. For larger systems, and of large degree, $P$ can be hard to efficiently manipulate and is therefore often replaced by a polynomial, $\Tilde{P}$, also called a \textit{probabilistic polynomial}. Ensuring this probablistic polynomial has a lower degree can help more efficiently manipulate it, thereby trading determinism for efficiency.
+with addition and multiplication being the respective operators of $\eff_2$. Due to the structure of $P$, any solution (common zero) to $\mathcal{P}$ will evaluate to 1 on $P$. For larger systems, and of large degree, $P$ can be hard to efficiently manipulate and is therefore often replaced by a polynomial, $\Tilde{P}$, also called a \textit{probabilistic polynomial}. Ensuring this probabilistic polynomial has a lower degree can help to efficiently manipulate, thereby trading determinism for efficiency.
 
-Aforementioned structure using probabilistic polynomials is the basis of some of the core ideas in Dinur's polynomial method solver. The theoretical specification and properties of this algorithm are outlined in \cref{sec:dinur}. For a more in-depth look at the algorithm please refer to the original paper in \cite{eurocrypt-2021-30841}, which also lists cryptanalytic use-cases for the algorithm.
+The aforementioned structure using probabilistic polynomials is the basis of some of the core ideas in Dinur's polynomial method solver. The theoretical specification and properties of this algorithm are outlined in \cref{sec:dinur}. For a more in-depth look at the algorithm please refer to the original paper in \cite{eurocrypt-2021-30841}, which also lists cryptanalytic use cases for the algorithm.
 
 \subsection{Fast exhaustive search for multivariate polynomials} \label{sec:prereq:fes}
-\td{ADD DESCRIPTION OF PREPROCESSING POLYNOMIALS}
-\td{ADD EXAMPLE SECTION}
-The fast exhaustive search procedure for polynomials over $\eff_2$, \cite{ches-2010-23990, cryptoeprint:2013/436},
-\comment{Commas around citations are strange here...}
-is an important algorithm in the realm of practical MQ-solvers. This algorithm, typically denoted \textit{FES}, is an exhaustive search algorithm for polynomial systems with coefficients in $\eff_2$ in $n$ variables and $m$ polynomials of degree $d$. FES seeks to minimize the operations needed when computing all solutions of a system of multivariate polynomials. The algorithm can be implemented nicely
-\comment{What does 'nicely' mean?}
-in practice, with good use of the parallelization resources present in modern computers. The algorithm needs $2d\cdot \log_2n \cdot 2^n$ bit operations (in expectation)
-\comment{I believe that is the maximum... Check!}
-for systems of quadratic polynomials, and is a core element in Dinur's polynomial-method algorithm from \cite{eurocrypt-2021-30841}.
+The fast exhaustive search procedure for polynomials over $\eff_2$ was described and implemented in \cite{ches-2010-23990, cryptoeprint:2013/436, tungchoumasters},
+is an important algorithm in the realm of practical MQ-solvers. This algorithm, typically denoted \textit{FES}, is an exhaustive search algorithm for polynomial systems with coefficients in $\eff_2$ in $n$ variables and $m$ polynomials of degree $d$. FES seeks to minimize the operations needed when computing all solutions of a system of multivariate polynomials. The algorithm has proven practical for real-world purposes as it was implemented on multiple occasions, with good use of the parallelization resources present in modern computers. The algorithm computes all common zeroes in maximally $2d\cdot \log_2n \cdot 2^n$ bit operations
+for systems of degree-$d$ polynomials and is a core element in Dinur's polynomial-method algorithm from \cite{eurocrypt-2021-30841}.
 
-\comment{I would recomment to provide an intuition here (see my mail on that)
-and to move and reference the algorithms, say, at the end of Section 2.2.2.}
+To give an intuition of the algorithm, consider the polynomial
+$$
+    p(x_0, x_1, x_2) = 1 + x_0 + x_2 + x_0x_2 + x_1x_2.
+$$
+A simple way to start an exhaustive search of solutions for $p$ is by evaluating $p(0, 0, 0) = 1$, as this is simply the constant term of $p$. From this point, instead of fully re-evaluating $p$ on a new input, assigning $x_0 = 1$ and keeping the previous assignments of $x_2$ and $x_3$ means that only the terms affected by $x_0$ need to be re-evaluated. Therefore, evaluating the next assignment boils down to 
+$$
+    p(1, 0, 0) = p(0, 0, 0) + (1 + 0) = 1 + (1 + 0) = 0.
+$$
+Now, observe how the computation above is similar to 
+$$
+    p(0, 0, 0) + \frac{\partial p}{\partial x_0}(1, 0, 0),
+$$
+where $\frac{\partial p}{\partial x_0} = 1 + x_2$. Not counting how the derivative itself is obtained, evaluating $p(1, 0, 0)$ this way is cheaper than fully evaluating it term-by-term.
 
-The main FES procedure is shown in \cref{alg:fes_eval} with the helper functions \cref{alg:fes_init} and \cref{alg:fes_step}. This merely serves to give context to the following subsections.
+Using the approach just described alongside an integer counter for enumerating the variable assignments, the following evaluation would be $p(0,1,0)$. Stepping from $p(1,0,0)$ to $p(0,1,0)$ multiple bits changed, hence multiple assignments changed (in this case those for $x_0$ and $x_1$). For larger iteration counts, up to $n$ variables may change assignment between evaluations, hinting at the need for an \textit{alternative} method of enumeration. The ideal case for the derivative approach is to have only \textit{one} variable change between assignments. Enumerating all $2^n$ assignments in such a way can be done through Gray code order, i.e. $000_2, 001_2, 011_2, 010_2, 110_2, 111_2, \dots$ and so on.
+
+Finally, earlier it was hinted that computing these derivatives need to be computed efficiently. By storing computed evaluations and derivatives, future evaluations and derivatives may both be computed in this manner. This way, first-order derivatives may be computed by adding to their previous \textit{evaluation} the appropriate second-order derivative, depending on what variables changed between the current and previous evaluation of this first-order derivative. Of course, these principles can be generalized quite well to degree $d$ polynomials, stopping this \textit{recursive} idea at $d$th-order derivative.
 
 \subsubsection{Gray codes} \label{sec:prereq:fes:gray_codes}
-\td{Revisit}
 
-An essential part of the innards of FES is that of \textit{gray codes} or \textit{reflected binary codes}. This is fundamentally an ordering of the binary numbers. In this ordering, any two consecutive numbers will differ in only \textit{one} bit. An example of this is the binary encoding of the decimal 3, using three bits, being $011_2$ whereas its corresponding gray code is $010_2$.
-\comment{So --- is it an ordering of numbers or an encoding of numbers? You can
-see it as either --- but don't mix!}
-The consecutive value, decimal 4, has the binary encoding $100_2$ and gray code $110_2$. These codes have various properties making them applicable in error correction, position encoders and more. The type of gray code used in the FES procedure from \cite{ches-2010-23990, cryptoeprint:2013/436} is not the only one, as multiple other types with different additional properties exist.
+\begin{table}[t]
+    \begin{center}
+        \begin{tabular}{||c|c|c||}
+            \hline
+            Index & Binary & Gray \\
+            \hline
+            0 & $000_2$ & $000_2$\\
+            1 & $001_2$ & $001_2$\\
+            2 & $010_2$ & $011_2$\\
+            3 & $011_2$ & $010_2$\\
+            4 & $100_2$ & $110_2$\\
+            5 & $101_2$ & $111_2$\\
+            6 & $110_2$ & $101_2$\\
+            7 & $111_2$ & $100_2$\\
+            \hline
+        \end{tabular}
+    \end{center}
+    \caption{3-bit Gray codes and their corresponding binary numerals.} \label{tbl:gray}
+\end{table}
 
-To construct the sequence of all $n$-bit binary reflected gray codes, a recursive formulation can be used. The idea is, in each recursive step, to reflect-append-prepend. Starting with the sequence $0_2, 1_2$, one first \textit{reflects} the sequence (being $1_2, 0_2$) and \textit{appends} it to the original sequence. Lastly, one prepends $0$ to entries of the first half of this new sequence and a $1$ on the latter half. The sequence is now $00_2, 01_2, 11_2, 10_2$. These steps can then be repeated until the codes are formed of $n$ bits.
+An essential part of the innards of FES is that of \textit{Gray codes} or \textit{reflected binary codes}. This is fundamentally an ordering of the binary numbers. In this ordering, any two consecutive numbers will differ in only \textit{one} bit. An example of this is the binary numeral of the decimal 3, using three bits, being $011_2$ whereas its corresponding Gray code is $010_2$.
+The consecutive value, decimal 4, has the binary numeral $100_2$ and Gray code $110_2$. These codes have various properties making them applicable in error correction, position encoders and more. The type of Gray code used in the FES procedure from \cite{ches-2010-23990, cryptoeprint:2013/436} is not the only one, as multiple other types with different additional properties exist. For an example of the Gray code ordering used in FES see \cref{tbl:gray}.
 
-From the construction method just explained, it can be derived that constructing the $i$th codeword, $g_i$ can be done using the formula
+To construct the sequence of all $n$-bit binary reflected Gray codes, a recursive formulation can be used. The idea is, in each recursive step, to reflect$\rightarrow$append$\rightarrow$prepend. Starting with the sequence $0_2, 1_2$, one first \textit{reflects} the sequence (being $1_2, 0_2$) and \textit{appends} it to the original sequence. Lastly, one prepends $0$ to entries of the first half of this new sequence and $1$ on the latter half. The sequence is now $00_2, 01_2, 11_2, 10_2$. These steps can then be repeated until the codes are formed of $n$ bits.
+
+Using the approach above, a ''closed formula'' for computing the $i$th codeword can be derived. For the sake of brevity, the connection will not be described more than by noting its existence. The formula for computing the $i$th codeword is
 $$
     g_i = i \oplus (i \rightshift 1)
 $$
-\comment{The connection between the reflect-append-prepend construction and the
-formula is unclear from this explanation.}
 where $\rightshift$ denotes a logical right-shift operation in the binary representation of $i$ and $\oplus$ denotes the bit-wise \textit{xor} operation between two binary numbers. This formula can be derived by observing that inverting the bit at position $i$ of all binary encoded numbers in the sequence $0,\dots 2^{n} - 1$ will change the order of blocks of $2^i$ codewords.
 
 \subsubsection{Exhaustive Search using Gray Codes} \label{sec:prereq:fes:exh_g_code}
-
-\begin{figure}
-    \begin{minipage}[t]{.5\linewidth}
-        \begin{alg}
-            \caption{STEP($state$)}\label{alg:fes_step}
-            \KwIn{$state$}
-            $state.i \gets state.i + 1$\;
-            $k1 \gets \text{BIT}_1\text{(state.i)}$\;
-            $k2 \gets \text{BIT}_2\text{(state.i)}$\;
-            \If{k2 exists in state.i}{
-                $s.d'[k_1] \gets s.d'[k1] \oplus s.d''[k1,k2]$\;
-            }
-            $s.y \gets s.y \oplus s.d'[k1]$\;
-        \end{alg}
-        \caption{Step}
-        \label{sec2:alg:fes_step}
-    \end{minipage}
-    \begin{minipage}[t]{.5\linewidth}
-        \begin{alg}
-            \caption{EVAL($p$, $n$)}\label{alg:fes_eval}
-            \KwIn{$p$, $n$}
-            \KwResult{List of common zeroes of $p$}
-            $state \gets \text{INIT($p$, $n$)}$\;
+\begin{figure}[t]
+    \begin{alg}
+        \caption{EVAL($p$, $n$)}\label{alg:fes_eval}
+        \KwIn{$p$, $n$}
+        \KwResult{List of common zeroes of $p$}
+        $state \gets \text{INIT($p$, $n$)}$\;
+        \If{$state.y = 0$}{
+            Add $state.y$  to list of common zeroes\;
+        }
+        \While{$state.i < 2^n$}{
+            STEP($state$)\;
             \If{$state.y = 0$}{
                 Add $state.y$  to list of common zeroes\;
             }
-            \While{$state.i < 2^n$}{
-                STEP($state$)\;
-                \If{$state.y = 0$}{
-                    Add $state.y$  to list of common zeroes\;
-                }
-            }
-            \Return List of common zeroes
-        \end{alg}
-        \caption{Eval}
-        \label{sec2:alg:fes_eval}
-    \end{minipage}
-    \begin{minipage}[H]{\linewidth}
-        \begin{alg}
-            \caption{INIT($p$, $n$)}\label{alg:fes_init}
-            \KwIn{$p$, $n$}
-            State $state$\;
-            $state.i \gets 0$\;
-            $state.y \gets p.\text{constant\_coefficient()}$\;
-            \ForEach{$k = 1,\dots n-1$}{
-                \ForEach{j = 0,\dots k - 1}{
-                    $s.d''[k,j] \gets p.\text{monomial\_coefficient(k, j)}$\;
-                }
-            }
-            $s.d'[0] \gets p.\text{monomial\_coefficient(0)}$\;
-            \ForEach{k = 1,\dots n-1}{
-                $s.d'[k] \gets s.d''[k, k - 1] \oplus p.\text{monomial\_coefficient(k)}$\;
-            }
-            \Return $state$\;
-        \end{alg}
-        \label{sec2:alg:fes_init}
-    \end{minipage}
-    \caption{INIT}
-    \label{fig:fes_subparts}
+        }
+        \Return List of common zeroes
+    \end{alg}
+    \caption{Pseudo-code for the total evaluation procedure of FES (quadratic polynomials)}
 \end{figure}
 
-\begin{defn}[] \label{sec2:def:bk}
-    Let $b_k(i)$ denote the $k$th lowest significant bit
-\comment{``least significant bit''?}
-in the binary representation of the decimal $i$. If $i$ has hamming weight less than $k$, $b_k(i) = -1$.
+\begin{defn}[] \label{sec:prereq:def:bk}
+    Let $b_k(i)$ denote the $k$th least significant bit in the binary representation of the decimal $i$. If $i$ has hamming weight less than $k$, $b_k(i) = -1$.
 \end{defn}
 
-\begin{defn}[Derivatives] \label{sec2:def:deriv}
-    Let $\{\mathbf{e}_0, \dots, \mathbf{e}_{n-1}\}$ denote the canonical basis over the vector-space $(\eff_2)^n$. The derivative of a polynomial, $p$, in the ring $\eff_2[x_0,\dots,x_{n-1}]$ w.r.t. the $i$th variable is $\frac{\partial p}{\partial x_i} : \mathbf{x} \mapsto p(\mathbf{x} + \mathbf{e}_i) + p(\mathbf{x})$.
-\comment{Explain what this means.}
+\begin{defn}[Derivatives] \label{sec:prereq:deriv}
+    Let $\{\mathbf{e}_0, \dots, \mathbf{e}_{n-1}\}$ denote the canonical basis over the vector-space $(\eff_2)^n$. The derivative of a polynomial, $p$, in the ring $\eff_2[x_0,\dots,x_{n-1}]$ w.r.t. the $i$th variable is $\frac{\partial p}{\partial x_i} : \mathbf{x} \mapsto p(\mathbf{x} + \mathbf{e}_i) + p(\mathbf{x})$. This is also called the \textit{finite difference} in the $x_i$ dimension of the multivariate polynomial $p$. Recall that the $+$ operator above is over $\eff_2$, acting like an exclusive-or operation.
 \end{defn} 
 
-In order to minimize the amount of operations needed between iterations in an exhaustive search procedure, the authors of \cite{ches-2010-23990} suggests to look at inputs in gray code order.
-\comment{``gray code'' $\rightarrow$ ``Gray code'' (several times)}
-Examining inputs in gray code order allows for efficient use of partial derivatives for computing the output of one input based on the evaluation of the previous input. Inspecting \cref{sec2:def:deriv} reveals the foundation for this idea. In each iteration of the exhaustive search procedure $p(\mathbf{x}_i)$ needs to be evaluated. Using the gray code approach, only one variable in the input changes so $\mathbf{x}_i$ and $\mathbf{x}_{i - 1}$ differ in only the $j$th variable, meaning $p(\mathbf{x}_{i - 1} + \mathbf{e}_j) = p(\mathbf{x}_i)$. From \cref{sec2:def:deriv}, $$
+To minimize the number of operations needed between iterations in an exhaustive search procedure, the authors of \cite{ches-2010-23990} suggest looking at inputs in Gray code order.
+Examining inputs in Gray code order allows for efficient use of partial derivatives for computing the output of one input based on the evaluation of the previous input. Inspecting \cref{sec:prereq:deriv} reveals the foundation of this idea. In each iteration of the exhaustive search procedure $p(\mathbf{x}_i)$ needs to be evaluated. Using the Gray code approach, only one variable in the input changes so $\mathbf{x}_i$ and $\mathbf{x}_{i - 1}$ differ in only the $j$th variable, meaning $p(\mathbf{x}_{i - 1} + \mathbf{e}_j) = p(\mathbf{x}_i)$. From \cref{sec:prereq:deriv}, $$
     p(\mathbf{x} + \mathbf{e}_j) = p(\mathbf{x}) + \frac{\partial p}{\partial x_j}(\mathbf{x})
 $$ 
-which implies that the difference between two consecutive inputs in gray code order is $\frac{\partial p}{\partial x_j}(\mathbf{x}_{i - 1}) = \frac{\partial p}{\partial x_j}(\mathbf{x}_i)$, and was proven in \cite{tungchoumasters}. Therefore, storing $p(\mathbf{x}_i)$ adding $\frac{\partial p}{\partial x_j}(\mathbf{x}_{i-1})$ is sufficient for computing the next evaluation in a gray-code ordered input sequence.
+which implies that the difference between two consecutive inputs in Gray code order is $\frac{\partial p}{\partial x_j}(\mathbf{x}_{i - 1}) = \frac{\partial p}{\partial x_j}(\mathbf{x}_i)$, and was proven in \cite{tungchoumasters}. Therefore, storing $p(\mathbf{x}_i)$ adding $\frac{\partial p}{\partial x_j}(\mathbf{x}_{i-1})$ is sufficient for computing the next evaluation in a gray-code ordered input sequence.
 
-In other terms, let $i = 0,\dots 2^n-1$ denote the iteration count of the FES procedure, or alternatively the current index into the gray code sequence of $n$-bit codewords. Between two consecutive steps of FES, say $i = 10$ and $i = 11$, the gray codes $g_{10} = 1111_2$ and $g_{11} = 1110_2$ differ in only the least significant bit. Letting $\mathbf{x}_{10}$ and $\mathbf{x}_{11}$ be vector forms of $g_{10}$ and $g_{11}$, respectively, the difference between $p(\mathbf{x}_{10})$ and $p(\mathbf{x}_{11})$ is exactly $\frac{\partial p}{\partial x_0}(\mathbf{x}_{11})$. In the previous example, since $x_0$ was the only variable that changed, the partial derivative w.r.t. $x_0$ represents the only parts of $p$ that change between evaluations of $\mathbf{x}_{10}$ and $\mathbf{x}_{11}$.
+In other terms, let $i = 0,\dots 2^n-1$ denote the iteration count of the FES procedure or the current index into the Gray code sequence of $n$-bit codewords. Between two consecutive steps of FES, say $i = 10$ and $i = 11$, the Gray codes $g_{10} = 1111_2$ and $g_{11} = 1110_2$ differ in only the least significant bit. Letting $\mathbf{x}_{10}$ and $\mathbf{x}_{11}$ be vector forms of $g_{10}$ and $g_{11}$, respectively, the difference between $p(\mathbf{x}_{10})$ and $p(\mathbf{x}_{11})$ is exactly $\frac{\partial p}{\partial x_0}(\mathbf{x}_{11})$. In the previous example, since $x_0$ was the only variable that changed, the partial derivative w.r.t. $x_0$ represents the only parts of $p$ that change between evaluations of $\mathbf{x}_{10}$ and $\mathbf{x}_{11}$.
 
-Now, using the idea of derivatives will reduce the evaluation of degree $d$ polynomials to that of evaluating a degree $d-1$ polynomial. However, stopping here leaves us with what \cite{ches-2010-23990} denotes as the \textit{folklore differential technique}. Consequently, the original authors devised the FES algorithm by (amongst other things) recursively applying this derivative idea. This means that between $s = 10$ and $s = 11$, the algorithm stores the latest $\frac{\partial p}{\partial x_i}(\mathbf{x})$ that has been computed and ensures to update it by recursively looking at the only variable, $x_j$, that changed since last time $x_i$ toggled. This means that we may update $\frac{\partial f}{\partial x_i}(\mathbf{x})$ by adding $\frac{\partial^2 p}{\partial x_i \partial x_j}(\mathbf{x})$ to the stored value. For quadratic polynomials, this second derivative would be a constant (stored in a lookup table) whereas running FES on systems of degree $d$ means recursing $d$ times. 
+Now, using the idea of derivatives will reduce the evaluation of degree $d$ polynomials to that of evaluating a degree $d-1$ polynomial. However, stopping here leaves what \cite{ches-2010-23990} denotes as the \textit{folklore differential technique}. Consequently, the original authors devised the FES algorithm by (amongst other things) recursively applying this derivative idea. This means that between $s = 10$ and $s = 11$, the algorithm stores the latest $\frac{\partial p}{\partial x_i}(\mathbf{x})$ that has been computed and ensures to update it by recursively looking at the only variable, $x_j$, that changed since last time $x_i$ toggled. This means that $\frac{\partial f}{\partial x_i}(\mathbf{x})$ may be updated by adding $\frac{\partial^2 p}{\partial x_i \partial x_j}(\mathbf{x})$ to the stored value. For quadratic polynomials, this second derivative would be a constant (stored in a lookup table) whereas running FES on systems of degree $d$ means recursing $d$ times. 
 
-Letting $\mathbf{v}_i$ be the vector-form of the binary encoding of $\mathbf{x}_i$ we have that the FES procedure looks not only for $b_1(\mathbf{v}_i)$ (\cref{sec2:def:bk}) but $b_k(\mathbf{v}_i)$ for $k=1,\dots,d$. For the quadratic case in \cref{sec2:alg:fes_step} we see the procedures BIT$_1$ and BIT$_2$ representing $b_1(\mathbf{x}_i)$ and $b_2(\mathbf{x}_i)$ with \texttt{state.i} representing $\mathbf{v}_i$. The fact that we can simply use the binary encoding to find which bits are turned on and off can be derived through the construction of $n$-bit sequences of binary reflected gray codes, or see the proof in \cite{tungchoumasters}. The pseudo-code for the previously described process reside in \cref{alg:fes_step}, showing both the storage of first and second derivatives as well as the computation of \texttt{state.y} which corresponds to $p(\mathbf{x}_i)$. Clearly, this idea shows how storage is one of the weaknesses of FES, especially for polynomials of degree $d > 2$. 
+\begin{figure}[t]
+    \begin{alg}
+        \caption{INIT($p$, $n$)}\label{alg:fes_init}
+        \KwIn{$p$, $n$}
+        State $state$\;
+        $state.i \gets 0$\;
+        $state.y \gets p.\text{constant\_coefficient()}$\;
+        \ForEach{$k = 1,\dots n-1$}{
+            \ForEach{j = 0,\dots k - 1}{
+                $s.d''[k,j] \gets p.\text{monomial\_coefficient(k, j)}$\;
+            }
+        }
+        $s.d'[0] \gets p.\text{monomial\_coefficient(0)}$\;
+        \ForEach{k = 1,\dots n-1}{
+            $s.d'[k] \gets s.d''[k, k - 1] \oplus p.\text{monomial\_coefficient(k)}$\;
+        }
+        \Return $state$\;
+    \end{alg}
+    \caption{Pseudo-code for the initialization procedure of FES (quadratic polynomials)}
+\end{figure}
 
-Due to this structure, FES is required to have initialized these derivative values for whenever it encounters the \textit{first toggle} of each bit, i.e. when \texttt{state.i + 1} sets a bit in a position that so far has been untouched. Therefore, some time is spent for pre-evaluating these derivative values directly. For the quadratic case, the pre-evaluation is done in \cref{alg:fes_init}, lines 10-13, equivalently the valued stored is $\frac{\partial p}{\partial x_k \partial x_{k-1}} + a_k$ for $a_k$ being the coefficient to the monomial $x_k$. An example where this is necessary is when evaluating $p(1,1,0,0)$, at which point no previous $\frac{\partial p}{\partial x_1}$ evaluations exist (if not initialized). This derivative would need to be initialized to $\frac{\partial p}{\partial x_1}(\mathbf{e}_0) = \frac{\partial p}{\partial x_1 \partial x_0}$, as is shown in \cite{tungchoumasters}. This last example assumes $p$ is a quadratic polynomial.
+Letting $\mathbf{v}_i$ be the vector-form of the binary ''numeral'' of $\mathbf{x}_i$ the FES procedure looks not only for $b_1(\mathbf{v}_i)$ (\cref{sec:prereq:def:bk}) but $b_k(\mathbf{v}_i)$ for $k=1,\dots,d$. For the quadratic case in \cref{alg:fes_step} the procedures BIT$_1$ and BIT$_2$ represent $b_1(\mathbf{x}_i)$ and $b_2(\mathbf{x}_i)$ with \texttt{state.i} representing $\mathbf{v}_i$. The fact that the bits that are changed can be found through the binary numeral can be derived through the construction of $n$-bit sequences of binary reflected Gray codes, or see the proof in \cite{tungchoumasters}. The pseudo-code for the previously described process resides in \cref{alg:fes_step}, showing both the storage of first and second derivatives as well as the computation of \texttt{state.y} which corresponds to $p(\mathbf{x}_i)$. Clearly, this idea shows how storage is one of the weaknesses of FES, especially for polynomials of degree $d > 2$. 
 
-To see that the recursive procedure above may be further optimized, one may observe that running such a procedure on a single polynomial, $p$, of degree $d$ yields a complexity of $O(d\cdot2^n)$ and consuming $O(n^d)$ bits of memory. These facts were proven in \cite{ches-2010-23990}. This paper further introduces smaller optimizations to the theoretical construction of the algorithm, such as removing computations of a \texttt{state.x} variable, which in \cref{fig:fes_subparts} have already been applied. As is also stated in \cite{ches-2010-23990}, this initial FES version may be parallelized quite nicely, due to the evaluation procedure doing computations independently from the coefficients of $p$.
-\comment{This part is a bit unclear...}
-\comment{Maybe introduce bitslicing as a principle..?}
-This means that running an instance per $p_i \in \mathcal{P} = \{p_0, \dots p_{m-1}\}$ is possible, where each instance is essentially running on independent data. Extending the values (e.g. \texttt{state.y}) of \cref{fig:fes_subparts} to be bit-vectors instead of a singular bit then yields a version of the recursive procedure that can find all common zeroes of a system in $O(2m2^n)$ bit operations. For \cref{alg:fes_init}, \cref{alg:fes_eval} and \cref{alg:fes_step}, the pseudo-code only represents FES on single polynomials, but should still be clear how to parallelize using bit-vectors and inputting entire systems $\mathcal{P}$ (with appropriate method calls) instead of single polynomials $p$. 
+Due to this structure, FES is required to have initialized these derivative values for whenever it encounters the \textit{first toggle} of each bit, i.e. when \texttt{state.i + 1} sets a bit in a position that so far has been untouched. Therefore, some time is spent pre-evaluating these derivative values directly. For the quadratic case, the pre-evaluation is done in \cref{alg:fes_init}, lines 10-13, equivalently the valued stored is $\frac{\partial p}{\partial x_k \partial x_{k-1}} + a_k$ for $a_k$ being the coefficient to the monomial $x_k$. An example where this is necessary is when evaluating $p(1,1,0,0)$, at which point no previous $\frac{\partial p}{\partial x_1}$ evaluations exist (if not initialized). This derivative would need to be initialized to $\frac{\partial p}{\partial x_1}(\mathbf{e}_0) = \frac{\partial p}{\partial x_1 \partial x_0}$, as is shown in \cite{tungchoumasters}. This last example assumes $p$ is a quadratic polynomial.
 
-\subsubsection{Early abort and Naive evaluation} \label{sec:prereq:fes:early_naive_eval}
+To see that the recursive procedure above may be further optimized, one may observe that running such a procedure on a single polynomial, $p$, of degree $d$ yields a complexity of $O(d\cdot2^n)$ and consuming $O(n^d)$ bits of memory. These facts were proven in \cite{ches-2010-23990}. This paper further introduces smaller optimizations to the theoretical construction of the algorithm, such as removing computations of a \texttt{state.x} variable, which in \cref{alg:fes_eval}, \ref{alg:fes_init} and \ref{alg:fes_step} have already been applied. 
 
-\comment{Unclear section; what is early abort and what is naive evaluation --- and how does each affect complexity?}
+As is also stated in \cite{ches-2010-23990}, this initial FES version may be parallelized quite nicely, due to the evaluation procedure doing computations independently from the coefficients of the polynomials. This means that running an instance per $p_i \in \mathcal{P} = \{p_0, \dots p_{m-1}\}$ is possible, where each instance is essentially running on independent data. Extending the values (e.g. \texttt{state.y}) of \cref{alg:fes_eval}, \ref{alg:fes_init}, and \ref{alg:fes_step}, to be bit-vectors instead of a singular bit then yields a bit-sliced version that may use bit-wise instructions of \texttt{xor} and \texttt{and}, potentially computing a full system in one pass (in parallel). For \cref{alg:fes_init}, \cref{alg:fes_eval} and \cref{alg:fes_step}, the pseudo-code only represents FES on single polynomials, but it should still be clear how to parallelize using bit-slicing and inputting entire systems $\mathcal{P}$ (with appropriate method calls) instead of single polynomials $p$. 
 
-The complexity of $O(2m2^n)$ bit operations is neither what the FES authors claim, \cite{ches-2010-23990, cryptoeprint:2013/436}, nor what Dinur necessitates, \cite{eurocrypt-2021-30841}. Using the procedure described earlier, further ideas may be used for a more efficient exhaustive search. Using the parallelization already mentioned, the authors of \cite{ches-2010-23990, cryptoeprint:2013/436} note that using an early abort strategy alongside the recursive algorithm already mentioned yields an algorithm which finds all common zeroes of $m$ polynomials in $log_2n \cdot 2^{n+2}$ bit operations. This early abort strategy is essentially to compute the common zeroes of $k$ polynomials (with a well-chosen $k$) in parallel, followed by then sequentially computing the common zeroes of the remainder of the polynomials. This last part is what \cite{ches-2010-23990, cryptoeprint:2013/436} denotes as \textit{candidate checking} as it boils down to checking only the common zeroes of the first $k$ polynomials, as any other evaluation point trivially cannot be a common zero of all $m$ polynomials.
+\begin{figure}[t]
+    \begin{alg}
+        \caption{STEP($state$)} \label{alg:fes_step}
+        \KwIn{$state$}
+        $state.i \gets state.i + 1$\;
+        $k1 \gets \text{BIT}_1\text{(state.i)}$\;
+        $k2 \gets \text{BIT}_2\text{(state.i)}$\;
+        \If{k2 exists in state.i}{
+            $s.d'[k_1] \gets s.d'[k1] \oplus s.d''[k1,k2]$\;
+        }
+        $s.y \gets s.y \oplus s.d'[k1]$\;
+    \end{alg}
+    \caption{Pseudo-code for the procedure handling derivatives and evaluations in FES (quadratic polynomials).}
+\end{figure}
 
 \subsubsection{Partial evaluation and FES}
 
-Two important ideas for obtaining a sufficient parallelization of the combined procedure (in practice) from \cref{sec:prereq:fes:exh_g_code} and \cref{sec:prereq:fes:early_naive_eval}; using bit-vectors for collecting bit operations of multiple polynomials in the system as well as \textit{partial evaluation}. By fixing $k$ variables, say $x_{n-k}$ to $x_{n-1}$, $2^k$ new systems may be obtained in which each $p_i \in \mathcal{P}$ is partially evaluated on some corresponding permutation of $k$ bits.
-
-\comment{Explain what ``fixing'' means.}
+Two important ideas for obtaining a sufficient parallelization of the combined procedure (in practice) from \cref{sec:prereq:fes:exh_g_code}; using bit-vectors for collecting bit operations of multiple polynomials in the system as well as \textit{partial evaluation}. By fixing $k$ variables, say $x_{n-k}$ to $x_{n-1}$, $2^k$ new systems may be obtained in which each $p_i \in \mathcal{P}$ is partially evaluated on some corresponding permutation of $k$ bits. Partial evaluation is explained in more detail in \cref{sec:prereq:partial_eval}.
 
 The approach used by the authors of \cite{ches-2010-23990, cryptoeprint:2013/436} was therefore to select $w$ polynomials, fixing $k$ variables and producing $2^k$ smaller systems of $w$ polynomials which are searched using the recursive procedure described in \cref{sec:prereq:fes:exh_g_code}. Any common zero of these systems is then checked against the remaining $m-w$ polynomials. This approach achieves the proclaimed complexity of $2d\cdot\log_2 n \cdot 2^n$, as proved in \cite{ches-2010-23990}, which consequently is the one Dinur requires for his polynomial-method algorithm of \cite{eurocrypt-2021-30841}.
+
+\subsubsection{Generalized FES} \label{sec:ext:fes_interp:g_fes}
+The ideas behind a generalized FES approach are mostly similar to what has already been described. The idea is still to use derivatives in order to minimize the operations needed to compute new evaluations of the polynomial(s). However, since input polynomials may now be of degree $d > 2$, the procedure has to use the appropriate high-order derivatives.
+
+Consider the polynomial
+$$
+    p(x_0, x_1, x_2) = 1 + x_0 + x_0 x_1 + x_0 x_1 x_2
+$$
+using the FES approach detailed in \cref{sec:prereq:fes}, it is clear that 
+$$
+    \frac{\partial^2 p}{\partial x_0 \partial x_1} = 1 + x_2.
+$$
+Second-order partial derivatives are no longer constants, instead the procedure must use third-order partial derivatives for polynomials like $p$ above, or $d$-order partial derivatives for degree $d$ polynomials in general. Therefore, the derivatives must now be stored in more and/or larger tables, as the procedure has to store up to $d$-order partial derivatives. These $d$-order partial derivatives act like constants, just like second-order partial derivatives did for quadratic polynomials. All other partial derivatives of order $< d$ are to be computed similarly to the first-order partial derivatives of \cref{alg:fes_step}. 
+
+Consider \cref{alg:generalized_fes}; the algorithm is an extension of \cref{alg:fes_eval}, that now computes the zeros of any polynomial of degree $d$, using the ideas discussed above. The dictionary $D$ stores the derivative values of monomials just like $s.d'$ and $s.d''$ did in \cref{alg:fes_step} and \cref{alg:fes_init}. However, in this approach the algorithm stores all derivatives in a single dictionary. For the sake of simplicity, any lookup on an entry in $D$ that has not been initialized is defaulted to return $0$. Further, monomials can be represented as lists of the indices of 1-bits in an $n$-length bitstring, representing which of the $n$ variables are \textit{active} in the monomial. An example could be the monomial $x_0x_2x_3$ that may be represented by the bitstring (or bit-vector) $1101_2$. The key zero, $D[0]$, corresponds to $s.y$ in \cref{alg:fes_eval}.
+
+The \texttt{DERIVATIVE\_INIT()} procedure in the pseudo-code initializes the derivative table entries to their initial values. For the quadratic case (\cref{alg:fes_init}), this was a rather simple task of initializing the second-order derivative table simply as appropriate coefficients, followed by initializing the first-order derivative table to 
+$$
+    \frac{\partial p}{\partial x_k}(\mathbf{g}_{2^k}) = \frac{\partial^2 p}{\partial x_{k} \partial x_{k - 1}} + c_k
+$$
+where $c_k$ is the coefficient to the monomial $x_k$. Notice, the notation from \cref{sec:prereq:fes:exh_g_code}, $\mathbf{g}_{2^k}$, is used to denote the gray code value of $2^k$ as a vector in $\eff_2^n$. In the general case, the goal is the same, however, for a potentially larger degree. This means that the general approach is to initialize entries to 
+$$
+    \frac{\partial^j p}{\partial x_{\alpha_1} \dots \partial x_{\alpha_j}}(\mathbf{g}_{2^{\alpha_1} + \dots + 2^{\alpha_j}})
+$$
+with $\alpha_1 \dots, \alpha_j$ being the contents of the bit-vector representation of monomials described earlier. Again, formal proofs for why these initializations are used can be found in \cite{tungchoumasters}.
+
+The early parts of the for-loop at \cref{alg:generalized_fes:step} is the generalized version of the stepping procedure, \cref{alg:fes_step}. Instead of only computing the positions of the two least significant one bits, for counter value $i$, the procedure instead computes the positions of the least $d$ 1-bits. The amount of bit positions stored depends on whether or not the counter value $i$ has $\leq d$ bits, if more the procedure only chooses the first $d$ bits. The $Depth$ variable in the pseudo-code represents the number of bits chosen, or how \textit{deep} the "recursion" should go. Inspecting \cref{alg:generalized_fes:step:compute}, it should be clear that new derivative values are computed in a recursive manner, where low-order derivatives are computed by adding the high-order derivatives, i.e.
+\begin{equation} \label{eq:fes_recurse}
+    \frac{\partial^{j - 1} p}{\partial x_{K_0} \dots \partial x_{K_{j - 2}}}(\mathbf{g}_i) = Q_{x_{K_0} \dots x_{K_{j - 1}}} + \frac{\partial^j p}{\partial x_{K_0} \dots \partial x_{K_{j - 1}}}(\mathbf{g}_i).
+\end{equation}
+Here, $Q_{x_{K_0} \dots x_{K_{j - 1}}}$ is the previous evaluation of $\frac{\partial^{j - 1} p}{\partial x_{K_0} \dots \partial x_{K_{j - 2}}}$, i.e. the entry stored in the derivative table. It should be noted here that recursively applying the equation above will resolve when reaching the base case of $\partial^0 p = p$, being the polynomial $p$ itself.
+
+Now, since the procedure stores the evaluation of $p(\mathbf{g}_i)$ in $D[0]$, the only missing part is to check if the evaluation is a common zero. This takes places at \cref{alg:alg:generalized_fes:check} and onwards.
+
+\begin{figure}[ht]
+    \begin{alg}
+        \KwIn{A polynomial $p$ alongside its number of variables $n$ and degree $d$.}
+        \KwResult{All zeros of the polynomial $p$.}
+        $Solutions \gets []$\;
+        $k \gets 0$\;
+        $D \gets \text{DICT(default: 0)}$\;
+        $D[0] \gets p.\text{constant\_coefficient()}$\;
+        \ForEach{$Mon$ in $p$.monomials()}{
+            $D[Mon.\text{bits()}] \gets \text{DERIVATIVE\_INIT}(Mon)$\; \label{alg:generalized_fes:init}
+        }
+        \ForEach{$i = 0, \dots 2^n - 1$}{ \label{alg:generalized_fes:step}
+            $Depth \gets \min(\text{HAMMING\_WEIGHT}(i), d)$\;
+            $K \gets \text{BITS}(i, Depth)$\;
+            \ForEach{$j = Depth \dots, 1$}{
+                $D[K_{0\dots j - 1}] \gets D[K_{0\dots j - 1}]] \oplus D[K_{0\dots j}]$\; \label{alg:generalized_fes:step:compute}
+            }
+            \If{$D[0] = 0$}{ \label{alg:alg:generalized_fes:check}
+                $Solutions[k] \gets \text{GRAY}(i)$\;
+                $k\pp$\;
+            }
+        }
+        \Return{Solutions}
+        \caption{GENERALIZED\_FES($p$, $n$, $d$)} \label{alg:generalized_fes}
+    \end{alg}
+    \caption{A generalized FES procedure for degree $d$ polynomials.}
+\end{figure}
 
 \subsection{Polynomial interpolation} \label{sec:prereq:poly_interp}
 Polynomial interpolation is quite an important concept in terms of Dinur's polynomial-method algorithm. The Möbius transform, as described in \cite{joux2009algorithmic}, enables obtaining the algebraic normal form (ANF) of a boolean function using its truth table as input. The algebraic normal form of a boolean function $f$ on $n$ variables is written
@@ -263,7 +328,7 @@ Now, a nice property of the Möbius transform is that it is an involution, and s
             }
         }
     \end{alg}
-    \caption{Layout of an implementation of the Möbius transform.}
+    \caption{Pseudo-code of an implementation of the Möbius transform.}
     \label{alg:mob}
 \end{figure}
 
@@ -271,26 +336,11 @@ There are different ways of computing the Möbius transform in practice. One met
 
 Finally, using the Möbius transform for fully evaluating a polynomial may be a viable option, comparing it against naively evaluating the polynomial on all inputs one by one. The works of \cite{fse-2011-23547} show how one may approach such use of the Möbius transform, using the constructs above in tandem, and argues for its complexity.
 
-\subsubsection{Transformations on sparse data}
+\subsubsection{Transformations on sparse data} \label{sec:prereq:poly_interp:sparse}
 When interpolating polynomials, not all $2^n$ assignments of the $n$ variables are needed. In \cite{eurocrypt-2021-30841} it was noted that the Möbius transform algorithm may be adapted to work with 
 $$
     \sum_{i = 0}^{d} \binom{n}{i}
 $$
 evaluations in the input array, for a degree $d \leq n$ polynomial of $n$ variables. For this to work, only evaluations of low hamming weight input vectors ($\leq d$) are used, instead of a full evaluation. It was also argued in \cite{eurocrypt-2021-30841} that such an adaptation would yield a time complexity of $\leq n \cdot \sum_{i = 0}^{d}\binom{n}{i}$ bit operations.
-
-\subsection{Platform and architecture}
-
-This section serves to describe the platform and architecture used for building, testing, and benchmarking the programs written for this thesis. For a description of the actual implementation see \cref{sec:impl}.
-
-The compiler and operating systems used in this thesis are GCC and GNU/Linux. Therefore, running a non-GNU/Linux operating system or compiling using a non-GCC C/C++ compiler is not guaranteed to work. In case you want to run it in a containerized environment, refer to the accompanying Dockerfile. Although most modern CISC CPUs are based on 64-bit instructions, compilation targets also exist for 32, 16, and 8-bit platforms.
-\td{ADD DOCKERFILE TO REPOSITORY}
-
-Some of the most important instruction sets present today, other than the common CPU instructions like addition and move/load, are SIMD (Single Instruction Multiple Data) instruction sets. Three such instruction sets are SSE2 (Steaming SIMD Extensions), AVX (Advanced Vector Extensions), and AVX2. These are all present on modern Wintel-compatible CPUs, however, some also include the AVX512 instruction set. The compilation targets in this thesis only support up to AVX/AVX2. These instruction sets allow using 128-bit and 256-bit vector registers for computation on multiple data elements in one instruction. AVX512 enables further support for 256-bit vector registers while also supporting 512-bit vector registers.
-
-The AVX/AVX2 instructions operate on the \texttt{ymm}[0-15] 256-bit registers, while the SSE2 instructions operate on the \texttt{xmm}[0-15] 128-bit registers. These instruction sets support loads/stores, bit-wise operations, addition, subtraction, shuffling, and much more. The data packed into a vector may be both floating point data or integer data, however, in this project only integer data is necessary. The integer sizes packed into vector registers may also vary, depending on the needs. As will become clear when discussing optimizations to the C code, this project either uses 8- or 16-bit integers. To examine the full extent of these instruction sets, as well as their latencies and throughputs, refer to the respective documentation at the CPU manufacturer (such as Intel or AMD).
-
-The parts of the code that make use of vector instructions do not use GCCs inline assembly or separate assembly files. Instead, the programs using vector instructions make use of GCC intrinsic functions for these instruction sets, i.e. those documented in \cite{IntelIntr}. How these instructions are used can be read in \cref{sec:impl:opt:parallel}.
-
-\td{NOTE ABOUT MULTICORE?}
 
 \newpage

@@ -8,13 +8,13 @@
 #if defined(_DEBUG)
 
 #if defined(REG128) || defined(REG256)
-poly_vec_t compute_e_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
+poly_vec_t compute_p_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
                        size_t sys_len, int l, int n);
 
 void fix_poly(poly_t *system, poly_t *fixed_system, poly_t *assignment,
               int new_n, int n);
 #else
-unsigned int compute_e_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
+unsigned int compute_p_k(poly_t *mat, poly_t *new_sys, poly_t *old_sys, int l,
                          int n);
 
 extern size_t solver_rounds;

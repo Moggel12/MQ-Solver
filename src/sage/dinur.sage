@@ -326,13 +326,13 @@ def solve(system, ring, fes_recovery=True, c_debugging=False):
         print("Commencing round", k)
         A = gen_matrix_rank_l(l, m)
         
-        E_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
+        P_k = [sum(GF(2)(A[i][j]) * system[j] for j in range(m)) for i in range(l)]
 
-        w = sum(f.degree() for f in E_k) - n1 
+        w = sum(f.degree() for f in P_k) - n1 
 
         _time_output_potentials -= time.time()
 
-        curr_potential_sol = output_potentials(E_k, ring, n1, w, fes_recovery) 
+        curr_potential_sol = output_potentials(P_k, ring, n1, w, fes_recovery) 
 
         _time_output_potentials += time.time()
 
@@ -385,7 +385,7 @@ def c_benchmark(system_tuples):
     bench_fun(size, c_systems_list, Type.SZ(n), Type.SZ(m))
 
 # TEST NUM: 0
-def test_c_compute_e_k_SAN(sys_tuple):
+def test_c_compute_p_k_SAN(sys_tuple):
     srand(int(RSEED))  
     if C_VECTORIZED:
         amnt = C_VECTOR_SIZE

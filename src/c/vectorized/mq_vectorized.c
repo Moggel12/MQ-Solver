@@ -12,7 +12,7 @@
 #include "utils.h"
 #include "vector_utils.h"
 
-poly_vec_t compute_e_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
+poly_vec_t compute_p_k(poly_t *mat, poly_vec_t *new_sys, poly_t *old_sys,
                        size_t sys_len, int l, int n)
 {
   poly_vec_t deg = VEC_0;
@@ -180,7 +180,7 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
     BEGIN_BENCH(g_ek_time)
 
     poly_vec_t w = VEC_SUB(
-        compute_e_k(rand_mat, rand_sys, fixed_system, sys_len, l, new_n),
+        compute_p_k(rand_mat, rand_sys, fixed_system, sys_len, l, new_n),
         VEC_ASSIGN_ONE(n1));  // TODO: Change to take in arrays and compute
                               // vector (do not vectorize parities).
 
