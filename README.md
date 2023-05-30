@@ -16,6 +16,10 @@ Compiling code using the root directory Makefile will also preparse the `src/sag
 
 While the Makefile defaults to using 32-bit integers for bit-sliced polynomials and for representing the variables, this can be changed by calling make with `REGSIZE=<Upper limit of bits>`, with these upper limits being one of {8, 16, 32, 64, 128, 256}. Specifying 128 or 256 bits implies that AVX or AVX2 instructions, respectively, are available on the CPU.
 
+## Docker
+
+The repository also contains a Dockerfile with an Ubuntu image and all the necessary packages installed to compile and run this project. Simply build an image from this Dockerfile and share the repository with the container!  
+
 ## Executing the code
 Both the C code and the Sage code can be run using the `run.py` script. This script handles running benchmarks, tests, and generating polynomial systems (for testing purposes). The script is also a front-end to the solver. If the *shared library* (`bin/mq.so`) has been compiled, the script can run a `-O3` optimized solver, essentially acting as a front-end to the shared library.
 
