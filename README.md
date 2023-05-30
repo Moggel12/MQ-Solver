@@ -4,7 +4,7 @@
 
 The report PDF can be compiled by running `make pdf`, and can be cleaned up by running `make pdfclean`. 
 
-Note: The LaTeX code for the report uses the `minted` package, which expects `pygments` package (or `python-pygments`) to be installed on the system.
+Note: The LaTeX code for the report uses the `minted` package, which expects `pygments` package (or `python-pygments`) to be installed on the system. The report also uses the `multifootnote` LaTeX package, so be sure to have this installed or check it is present in your TeX distribution (may depend on the version).
 
 ## Compiling code
 
