@@ -53,7 +53,7 @@ The functions available for testing can be found by using the `-l` (`--list`) fl
 
 Whenever a test fails on an interactively generated file, the necessary information is dumped into an *MQ-challenges*-like file that can be easily loaded using `-f` (`--file`) in later calls. The format of the dumped file is `<digest of file>_<name of failed test function>_system.txt`.
 
-**Running tests using `-t` (`--test`), or running the script with no flags, requires that the default make target was compiled and that a `bin/mq.so` is present in the project root.**
+**Running some tests using `-t` (`--test`), or running the script as solver front-end, requires that the default make target was compiled (potentially with a different `REGSIZE`) and that a `bin/mq.so` is present in the project root.**
 
 ### Benchmarking code
 
