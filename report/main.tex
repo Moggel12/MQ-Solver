@@ -205,9 +205,12 @@
 \begin{abstract}
     I 2021 præsenterede Itai Dinur en algoritme til at løse systemer af $m$ multivariate polynomier af orden $d$ i $n$ variable, over legemet $\eff_2$. Algoritmen er baseret på \textit{polynomie metoden} fra feltet kredsløbs kompleksitet. I artiklen viste Dinur at hans algoritme slår såkaldte ''brute force'' algoritmer med en eksponentiel forøgelse i hastighed. Helt konkret blev algoritmen bevist til at have en tidskompleksitet på $n^2 \cdot 2^{0.815n}$ bit operationer for kvadratiske polynomier, samt et hukommelsesforbrug på $n^2 \cdot 2^{0.63n}$ bits efter optimering af hukommelsesforbruget. Kvadratiske polynomie systemer er fokuset i dette speciale.
     
-    I dette speciale testes denne algoritme i praksis og de praktiske målinger på algoritmer bliver holdt op mod teorien. Generelt fremviser dette speciale tre implementationer af algoritmen, i form af en prototype, en hurtigere C implementation, samt en AVX-optimeret C implementation. Begge C implementationer kan også køres på flerkernede CPU'er. Koden kan enten køres gennem et dertilhørende script, eller ved brug af det dynamiske bibliotek der kan kompileres i projektet. Koden i dette speciale antages at blive kørt på GNU/Linux platforme og at blive kompileret med GCC.
+    I dette speciale testes denne algoritme i praksis og de praktiske målinger på algoritmen bliver holdt op mod teorien. Generelt fremviser dette speciale tre implementationer af algoritmen, i form af en Python/SageMath prototype, en hurtigere C implementation, samt en AVX-optimeret C implementation. Begge C implementationer kan også køres på flerkernede CPU'er. Koden kan enten køres gennem et dertilhørende script, eller ved brug af det dynamiske bibliotek der kan kompileres i projektet. Koden i dette speciale antages at blive kørt på GNU/Linux platforme og at blive kompileret med GCC. Koden til dette speciale kan findes ved:
+\begin{center}
+    \url{https://github.com/Moggel12/MQ-Solver}.
+\end{center}
 
-    I praksis udfordrede implementationerne fra dette speciale ikke tilsvarende implementationer af konkurrende algoritmer, hverken i form af hukommelse eller tid. Dog viste det sig at optimeringer lavet, i praksis, i C implementationerne udgjorde en signifikant fordel når man sammenligner med teori-nære implementationer af algoritmen. Algoritmen viste sig at have interessante egenskaber i praksis, til trods for at den ikke opnåede samme konkurrencedygtighed som den gør teoretisk. Særligt C implementationerne i dette speciale opnåede ikke deres fulde potentiale, så muligheder for fremtidige optimeringer bliver også fremlagt.
+    I praksis udfordrede implementationerne fra dette speciale ikke tilsvarende implementationer af konkurrende algoritmer, hverken i form af hukommelse eller tid. Dog viste det sig at optimeringer lavet, i praksis, i C implementationerne udgjorde en signifikant fordel når man sammenligner med teori-nære implementationer af algoritmen. Mere specifikt løste den hurtigste af C implementationerne et system på 48 variable og 48 polynomier på 25 timer, kørt på en maskine med 128 CPU-kerner (256 tråde) hvortil alle tråde var i brug. Algoritmen viste sig at have interessante egenskaber i praksis, til trods for at den ikke opnåede samme konkurrencedygtighed som den gør teoretisk. Særligt C implementationerne i dette speciale opnåede ikke deres fulde potentiale, så muligheder for fremtidige optimeringer bliver også fremlagt.
     
     Specialet præsenterer også en \textit{formentlig} ny måde at interpolere polynomier over legemet $\eff_2$, som et alternativ til Möbius transformationen. Denne algoritme bliver ikke analyseret teoretisk, men bliver brugt af begge C implementationer i dette projekt og bliver målt i praksis.
 \end{abstract}
@@ -223,7 +226,6 @@
 \pagenumbering{arabic}
 \pagestyle{fancy}
 
-\td{ADD CODE LISTINGS}
 % Core contents
 \input{chapters/1_introduction}
 \input{chapters/2_Prerequisites.tex}

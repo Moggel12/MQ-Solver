@@ -1,8 +1,8 @@
 \section{Preliminaries} \label{sec:prereq}
 \subsection{The MQ problem} \label{sec:prereq:problem}
-For completeness, this subsection defines the problem in focus in this thesis. \textit{Solutions}, in this case, are any assignments to the input variables that evaluate $0$ on the polynomial(s) in question, i.e. for $p(\hat{\mathbf{x}}) = 0$ means that $\hat{\mathbf{x}}$ is a solution to $p$, whereas $p(\hat{\mathbf{x}}') = 1$ is not a solution.
+For completeness, this subsection defines the problem in focus in this thesis. \textit{Solutions}, in this case, are any assignments to the input variables that evaluate $0$ on the polynomial(s) in question, i.e. $p(\hat{\mathbf{x}}) = 0$ means that $\hat{\mathbf{x}}$ is a solution to $p$, whereas $p(\hat{\mathbf{x}}') = 1$ is not a solution.
 \begin{defn}[The MQ Problem]\label{sec1:def:mq}
-    Given a system of $m$ multivariate quadratic polynomials $\mathcal{P} = \{p^{(1)}, \dots, p^{(m)}\}$, over the ring of polynomials in $n$ variables $\eff[x_1, \dots, x_n]$, find values $\Bar{\mathbf{x}} = (\Bar{x}_1, \dots, \Bar{x}_n)$ that satisfy
+    Given a system of $m$ multivariate quadratic polynomials $\mathcal{P} = \{p^{(1)}, \dots, p^{(m)}\}$, over the ring of polynomials in $n$ variables $\eff[x_0, \dots, x_{n - 1}]$, find values $\Bar{\mathbf{x}} = (\Bar{x}_0, \dots, \Bar{x}_{n - 1})$ that satisfy
     $$
         p^{(1)}(\mathbf{\Bar{\mathbf{x}}}) =  p^{(2)}(\Bar{\mathbf{x}}) = \dots = p^{(m)}(\Bar{\mathbf{x}}) = 0 
     $$

@@ -66,7 +66,7 @@ $$
 
 Nevertheless, from the theoretical 512 \texttt{MiB} of storage, the standard implementation manages to cut down the memory consumption, based on the experimental evidence. Also note, even though bit-slicing the $(n_1 + 1) \times 2^{n - n_1}$ table theoretically yields a smaller memory consumption than the experimental one, for the same parameter sizes, this does prove a time-memory trade-off. Packing solutions sequentially can yield more cache-friendliness, especially considering that the access patterns in the table of solutions is quite linear no matter how the solutions are iterated. Another point is that a $(n_1 + 1) \times 2^{n - n_1}$ (even if bit-sliced) requires one to potentially iterate all $2^{n - n_1}$ keys, instead of only ever accessing the relevant solutions.
 
-In \cref{fig:three_mem}, a more general comparison of memory strategies is shown. The curves are shown up to $n = 32$, since the samples stem from an implementation using 32-bit integers for solutions. The \textit{full-sized} and \textit{bit-sliced} curves represent the theoretical values as a function of $n$, where $n_1 = \lceil \frac{n}{5.4} \rceil$. The third curve is fit from averages across five runs for 10 different parameter sets. Clearly, this more general picture shows the same story as the single sample from \cref{fig:mem_dinur}. Of course, the curve may be more accurate if more samples were used, or the averages computed for more systems. Therefore, \cref{fig:three_mem} should not be taken as an exact science, but does hint at the aforementioned trend in the relationship between the three memory strategies. Also, the major \textit{hitches} in the blue and green curves stem directly from the value of $n_1$ changing, which would yield quite different results if the $\frac{n}{2.7d}$ were used specifically (as proposed in \cite{eurocrypt-2021-30841}).
+In \cref{fig:three_mem}, a more general comparison of memory strategies is shown. The curves are shown up to $n = 32$, since the samples stem from an implementation using 32-bit integers for solutions. The \textit{full-sized} and \textit{bit-sliced} curves represent the theoretical values as a function of $n$, where $n_1 = \lceil \frac{n}{5.4} \rceil$. The third curve is fitted from averages across five runs for 10 different parameter sets. Clearly, this more general picture shows the same story as the single sample from \cref{fig:mem_dinur}. Of course, the curve may be more accurate if more samples were used, or the averages computed for more systems. Therefore, \cref{fig:three_mem} should not be taken as an exact science, but does hint at the aforementioned trend in the relationship between the three memory strategies. Also, the major \textit{hitches} in the blue and green curves stem directly from the value of $n_1$ changing, which would yield quite different results if the $\frac{n}{2.7d}$ were used specifically (as proposed in \cite{eurocrypt-2021-30841}).
 
 \begin{figure}[t]
     \centering
@@ -102,7 +102,7 @@ In \cref{fig:three_mem}, a more general comparison of memory strategies is shown
         \legend{Extrapolated, Full-sized table, Bit-sliced table}
         \end{axis}
     \end{tikzpicture}
-    \caption{Three strategies for storing solutions, where one curve was fit from actual memory consumption data on systems from $n = m = 20$ to $n = m = 30$. The two others are purely based on theoretically expected values. Memory data is sampled from \texttt{/proc/<pid>/status}. The red curve shows the \textit{actual} memory consumption.} \label{fig:three_mem}
+    \caption{Three strategies for storing solutions, where one curve was fitted from actual memory consumption data on systems from $n = m = 20$ to $n = m = 30$. The two others are purely based on theoretically expected values. Memory data is sampled from \texttt{/proc/<pid>/status}. The red curve was fitted from \textit{actual} memory consumption.} \label{fig:three_mem}
 \end{figure}
 
 Now, to sum up, the memory consumption of the standard implementation: The implementation acts much as expected theoretically, given how solutions are stored. Although the consumed memory is less than a by-the-books storage mechanism, the trend is still exponential and therefore a great bottleneck. With \textit{compact} storage mechanism used for solutions, it uses more memory than if elements were bit-sliced. If $n > 32$, the extrapolated red curve would need to be revised on samples from an implementation using 64-bit integers, which would also drastically increase memory consumption (potentially $31$ wasted bits in each integer). The two theoretical curves would also need to be revised when $n > 37$, as the evaluations of the $U$ polynomials ($n_1 + 1$ bits) no longer fits into a byte. However, the general nature is still tending towards that shown in \cref{fig:three_mem}. Finally, due to the non-deterministic nature of the solver, the number of solutions stored may differ when running the solver on one system multiple times. Expectedly, no drastic changes would occur with high frequency, but it is still a risk.
@@ -292,7 +292,7 @@ By fitting exponential curves onto the data from \cref{tbl:total_comp_perf} one 
             \legend{Standard, AVX (256-bit), FES} 
         \end{axis}
     \end{tikzpicture}
-    \caption{A plot of the fitted curves for all three procedures, expressing \textit{solve}-time as a function of $n$.} \label{fig:time_dinur_fes}
+    \caption{A plot of the fitted curves for all three procedures, expressing \textit{solve}-time as a function of $n$. The curves are fitted from actual timings, specifically the samples of \cref{tbl:total_comp_perf}.} \label{fig:time_dinur_fes}
 \end{figure}
 
 Further, the largest contributor to solve times for both implementations of the algorithm is the FES-based recovery. This is expected, given that this procedure replaces the Möbius transform interpolation and evaluation, both being large contributors to the complexity of the original algorithm. With \cref{tbl:fes_comp_perf} the distribution of time spent evaluating and interpolating can be read, as well as the overall recovery time. Of course, this recovery time also includes checking evaluations for $U_0(\hat{\mathbf{y}}) = 1$, and household tasks like memory allocation. These contributions do affect the timings quite a lot, but for now, the thesis will focus on total timings for evaluation and interpolation.
@@ -314,7 +314,7 @@ Further, the largest contributor to solve times for both implementations of the 
                 color=blue,
                 domain=15:75,
                 samples=500,
-            ] {(4.515335132855728e-06 * 2^(1.0492286454281707 * x) + 154.5501396250078)/1000};
+            ] {(4.515323644415954e-06 * 2^(0.7272699624665934 * x) + 154.55031285117195)/1000};
             \addplot [
                 color=black,
                 domain=15:75,
@@ -323,7 +323,7 @@ Further, the largest contributor to solve times for both implementations of the 
             \legend{AVX (256-bit), FES}
         \end{axis}
     \end{tikzpicture}
-    \caption{A zoom-in on the curves for the vectorized implementation and basic FES implementation, expressing \textit{solve}-time as a function of $n$.} \label{fig:time_avx_fes}
+    \caption{A zoom-in on the curves for the vectorized implementation and basic FES implementation, expressing \textit{solve}-time as a function of $n$. The curves are fitted from actual timings, specifically the samples of \cref{tbl:total_comp_perf}.} \label{fig:time_avx_fes}
 \end{figure}
 From the samples in \cref{tbl:fes_comp_perf}, larger parameter sizes seem to change the balance of interpolation and evaluation. In the lower rows of the table, interpolation is the slowest part but in the upper rows, the roles are reversed. It was expected that interpolation would be the slowest of the two, as this included both running \texttt{fes\_eval\_parity()} internally, as well as interpolating derivative table entries. Examining the evaluation part of \texttt{fes\_recover()}, many operations are rather simple, except indexing. It turns out that the indexing operation is quite a heavy operation when computed as in \cref{lst:c:index}. This computation is also performed often, and as $n - n_1$ increases, the amount of evaluations expectedly increases. The heaviest operation of the evaluation is indexing and must for this reason also act as a large contributor to interpolation times, especially on smaller parameter sizes. To be more clear, as $n$ increases, more vectors in $\{0,1\}^{n - n_1}$ will have a hamming-weight greater than \texttt{deg}, triggering evaluation instead of interpolation (see \cref{alg:fes_recover}).
 

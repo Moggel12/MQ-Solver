@@ -1,5 +1,10 @@
 \section{Implementation} \label{sec:impl}
-The accompanying git repository contains more than one implementation, or \textit{variant}, of Dinur's original algorithm. These variants are divided into two C implementations and a prototype SageMath implementation. C function declarations can be found in the \texttt{inc/} folder and other code can be found under \texttt{src/}.
+The accompanying git repository contains more than one implementation, or \textit{variant}, of Dinur's original algorithm. These variants are divided into two C implementations and a prototype SageMath implementation. C function declarations can be found in the \texttt{inc/} folder and other code can be found under \texttt{src/}. These implementations, alongside everything else worked on for this thesis, can be found at 
+\begin{center}
+    \url{https://github.com/Moggel12/MQ-Solver}.
+\end{center}
+
+\newpage
 
 For alternative implementations of some of the procedures described in \cref{sec:prereq}, see \cite{ches-2010-23990}, \cite{cryptoeprint:2013/436}, and \cite{crypto-2022-32130}.
 
@@ -334,13 +339,13 @@ Generally, most steps of Dinur's polynomial-method solver benefit from bit-slici
 
         \draw
             (master) edge[below, anchor=south, sloped] node{$\mathcal{P}^{(0)}$} (p0)
-            (p0) edge[bend left, above, anchor=south, sloped] node{$sol$} (master)
+            (p0) edge[bend left, above, anchor=south, sloped] node{$subsol$} (master)
             (master) edge[bend left, below, sloped, anchor=south] node{$\mathcal{P}^{(1)}$} (p1)
-            (p1) edge[bend left, above, sloped, anchor=south] node{$sol$} (master)
+            (p1) edge[bend left, above, sloped, anchor=south] node{$subsol$} (master)
             (master) edge[below, sloped, anchor=south] node{$\mathcal{P}^{(2^{n_p})}$} (pn)
-            (pn) edge [bend right, above, sloped, anchor=south] node{$sol$} (master);
+            (pn) edge [bend right, above, sloped, anchor=south] node{$subsol$} (master);
     \end{tikzpicture}
-    \caption{Visual example of the parallelization strategy for solving a system $\mathcal{P}$ on multicore architectures. Each $\mathcal{P}^{(i)}$ is a partially evaluated system. Once a core returns a solution, the \texttt{run.py} script appends to it the values of the fixed variables for that core. Here, $n_{p} = \lfloor \log_2 q \rfloor$ and $q$ is the amount of cores.} \label{fig:multicore_visual}
+    \caption{Visual example of the parallelization strategy for solving a system $\mathcal{P}$ on multicore architectures. Each $\mathcal{P}^{(i)}$ is a partially evaluated system. Once a core returns a solution, the \texttt{run.py} script appends to it the values of the fixture for that core. Here, $n_{p} = \lfloor \log_2 q \rfloor$ and $q$ is the amount of cores.} \label{fig:multicore_visual}
 \end{figure}
 
 \paragraph{Multicore.} Another optimization strategy is the use of multicore CPUs. In order to solve larger systems, a good solver would make use of as many of the resources available as possible. Through the \texttt{run.py} script, the solver can be spawned in a multicore context, wherein each core runs a separate \textit{instance} of the input system.
@@ -436,7 +441,7 @@ Using appropriate Make-flags (see \cref{sec:impl:compile}) the \texttt{mq.so} li
             \draw [fill=green, fill opacity=0.5] (mat_lin1-1-5.north west) rectangle (mat_lin1-1-8.south east);
         \end{scope}
     \end{tikzpicture}
-    \caption{Visualization of how the $\Tilde{\mathcal{P}}^{(i)}_k$ sub-systems are parallelized in a 128-bit AVX register, using integer sizes of 16-bits. One row above corresponds to how \texttt{poly\_vec\_t} types are used in the vectorized codebase.} \label{fig:avx_parallel_vis}
+    \caption{Visualization of how the $\Tilde{\mathcal{P}}^{(i)}_k$ sub-systems are parallelized in a 128-bit AVX register, using integer sizes of 16-bits ($n_1 + 1 \leq 16$). This case would fix 1 variable, creating two new systems $\mathcal{P}^{(0)}$ and $\mathcal{P}^{(1)}$, each with their sub-systems, $\Tilde{\mathcal{P}}^{(i)}_k$. One row above corresponds to how \texttt{poly\_vec\_t} types are used in the vectorized codebase. The structure for the derivative table entries is similar to a row above.} \label{fig:avx_parallel_vis}
 \end{figure}
 
 Since the \texttt{solve()} function internally sets 
