@@ -2,11 +2,11 @@
 \subsection{The MQ problem} \label{sec:prereq:problem}
 For completeness, this subsection defines the problem in focus in this thesis. \textit{Solutions}, in this case, are any assignments to the input variables that evaluate $0$ on the polynomial(s) in question, i.e. $p(\hat{\mathbf{x}}) = 0$ means that $\hat{\mathbf{x}}$ is a solution to $p$, whereas $p(\hat{\mathbf{x}}') = 1$ is not a solution.
 \begin{defn}[The MQ Problem]\label{sec1:def:mq}
-    Given a system of $m$ multivariate quadratic polynomials $\mathcal{P} = \{p^{(1)}, \dots, p^{(m)}\}$, over the ring of polynomials in $n$ variables $\eff[x_0, \dots, x_{n - 1}]$, find values $\Bar{\mathbf{x}} = (\Bar{x}_0, \dots, \Bar{x}_{n - 1})$ that satisfy
+    Given a system of $m$ multivariate quadratic polynomials $\mathcal{P} = \{p_{1}, \dots, p_{m}\}$, over the ring of polynomials in $n$ variables $\eff[x_0, \dots, x_{n - 1}]$, find values $\Bar{\mathbf{x}} = (\Bar{x}_0, \dots, \Bar{x}_{n - 1})$ that satisfy
     $$
-        p^{(1)}(\mathbf{\Bar{\mathbf{x}}}) =  p^{(2)}(\Bar{\mathbf{x}}) = \dots = p^{(m)}(\Bar{\mathbf{x}}) = 0 
+        p_{1}(\mathbf{\Bar{\mathbf{x}}}) =  p_{2}(\Bar{\mathbf{x}}) = \dots = p_{m}(\Bar{\mathbf{x}}) = 0 
     $$
-    Here, $\eff = \eff_q$ is a finite field of $q$ elements. 
+    Here, $\eff = \eff_q$ is a finite field of $q$ elements. For this thesis $q = 2$.
 \end{defn}
 
 \subsection{Bit-slicing, partial evaluation and linearization}
@@ -49,7 +49,7 @@ which may then be treated as four separate polynomials:
 Due to how these systems were generated, solving one of them will provide part of a solution for the original system. Using this idea, multiple independent systems can be manipulated (in parallel), while keeping a strong ''connection'' to the original system. In case a solution for one of the $p^{(i)}$s above was found, simply extending its solution by the assignments of $x_2$ and $x_3$ is enough to \textit{convert} the solution to one for $p$. I.e., $(x_0 = 1, x_1 = 0)$ is a solution for $p^{(0)}$, implying that $(x_0 = 1, x_1 = 0, x_2 = 0, x_3 = 0)$ is a solution for $p$. Assuming sufficient memory, this approach can also be used on entire systems.
 
 \subsubsection{Bit-slicing}
-Bit-slicing is another common optimization strategy when working with boolean functions, or in this case polynomials over $\eff_2$. Bit-slicing is a parallelization strategy, which is fundamentally SIMD operations on 1-bit words. The bit-sliced procedure combines multiple bits into a single register in order to use the machine's native bit-wise operations like \texttt{xor}, \texttt{or}, and \texttt{and}, as SIMD instructions on this data.
+Bit-slicing is another common optimization strategy when working with boolean functions, or in this case polynomials over $\eff_2$. Bit-slicing is a parallelization strategy, which is fundamentally SIMD operations on 1-bit words. The bit-sliced procedure combines multiple bits into a single register in order to use the machine's native bit-wise operations like \texttt{xor}, \texttt{or}, and \texttt{and}, as SIMD instructions on this data. This approach is a cheap method for operating on multiple polynomials (potentially entire systems) at once, as when evaluating some input on the entire system. In that case, the operations performed on the individual polynomial terms are the same and so the operations may as well be performed at the same time.
 
 A small example of bit-slicing could be the following polynomials
 \begin{equation*}
@@ -75,7 +75,7 @@ is how the system is represented, \textit{bit-sliced}. Using the bit-wise operan
 \end{equation*}
 implying the evaluations be $p_0(0,1) = 0$ and $p_1(0,1) = 1$.
 
-The combination of multiple data into one integer, or \textit{register}, does not have to be related to polynomials either. Anytime the data can be represented by a single bit, multiple parallel operations on said data can be done simply with bit-wise operands and integers/registers.
+The combination of multiple data into one integer, or \textit{register}, does not have to be related to polynomials either. Anytime the data can be represented like this, multiple parallel operations on said data can be done simply with bit-wise operands and integers/registers.
 
 \subsection{Polynomial method for solving MQ systems} \label{sec:prereq:polymethod}
 According to \cite{Williams2014ThePM}, the polynomial method was originally a method for proving the limitations of computational devices in circuit complexity. That is, it was originally used for proving limitations on certain types of boolean circuits. Slowly, the method was adapted to algorithm design and has proven a useful tool for this. The general approach for using the polynomial method in algorithm design is to model the computational problem as a boolean circuit, converting it to a corresponding boolean polynomial (exact or probabilistic), to finally manipulate and compute using the polynomial. 
