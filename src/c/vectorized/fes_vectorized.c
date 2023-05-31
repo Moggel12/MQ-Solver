@@ -322,15 +322,15 @@ static inline void step(state *s, unsigned int n1)
 {
   s->i = INC(s->i);
 
-  unsigned int k1 = bit1(s->i);
-  unsigned int k2 = bit2(s->i);
+  unsigned int alpha1 = bit1(s->i);
+  unsigned int alpha2 = bit2(s->i);
 
-  if (k2 < (-1u))
+  if (alpha2 < (-1u))
   {
-    s->d1[k1] = VEC_GF2_ADD(s->d1[k1], s->d2[k2 * n1 + k1]);
+    s->d1[alpha1] = VEC_GF2_ADD(s->d1[alpha1], s->d2[alpha2 * n1 + alpha1]);
   }
 
-  s->y = VEC_GF2_ADD(s->y, s->d1[k1]);
+  s->y = VEC_GF2_ADD(s->y, s->d1[alpha1]);
 }
 
 state *fes_eval_parity(poly_vec_t *systems, unsigned int n, unsigned int n1,
@@ -430,8 +430,8 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
   if (!d) return 1;
   memset(d, 0, d_size * sizeof(poly_vec_t));
 
-  unsigned int *k = calloc(max_deg, sizeof(unsigned int));
-  if (!k) return 1;
+  unsigned int *alpha = calloc(max_deg, sizeof(unsigned int));
+  if (!alpha) return 1;
 
   poly_vec_t parities = VEC_0;
 
@@ -439,7 +439,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
 
   if (!s)
   {
-    free(k);
+    free(alpha);
     free(d);
     free(prefix);
     return 1;
@@ -468,7 +468,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
 
         destroy_state(s);
         free(prefix);
-        free(k);
+        free(alpha);
         free(d);
 
         return 0;
@@ -489,17 +489,17 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
       g_recover_eval++;
       BEGIN_BENCH(g_recover_eval_time)
 
-      poly_t len_k = bits(si, k, max_deg);
+      poly_t len_alpha = bits(si, alpha, max_deg);
 
-      for (unsigned int j = len_k; j-- > 0;)
+      for (unsigned int j = len_alpha; j-- > 0;)
       {
         mask = ~VEC_GT(VEC_ASSIGN_ONE(j), deg);
 
         unsigned int idx =
-            (j == 0) ? 0 : monomial_to_index(si, n - n1, k[j - 1]);
+            (j == 0) ? 0 : monomial_to_index(si, n - n1, alpha[j - 1]);
 
         poly_vec_t added =
-            VEC_GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, k[j])]);
+            VEC_GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, alpha[j])]);
 
         d[idx] = VEC_BLEND(d[idx], added, mask);
       }
@@ -511,7 +511,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
       g_recover_interp++;
       BEGIN_BENCH(g_recover_interp_time)
 
-      poly_t len_k = bits(si, k, max_deg);
+      poly_t len_alpha = bits(si, alpha, max_deg);
 
       unsigned int gray_si = GRAY(si);
 
@@ -528,7 +528,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
 
       if (!s)
       {
-        free(k);
+        free(alpha);
         free(d);
         free(prefix);
         return 1;
@@ -539,7 +539,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
 
       parities = VEC_0;
 
-      for (unsigned int j = 1; j <= len_k; j++)
+      for (unsigned int j = 1; j <= len_alpha; j++)
       {
         mask = ~VEC_GT(VEC_ASSIGN_ONE(j), deg);
 
@@ -548,16 +548,16 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
         if (j < n)
         {
           tmp =
-              VEC_BLEND(tmp, d[monomial_to_index(si, n - n1, k[j - 1])], mask);
+              VEC_BLEND(tmp, d[monomial_to_index(si, n - n1, alpha[j - 1])], mask);
         }
 
         unsigned int idx =
-            (j == 1) ? 0 : monomial_to_index(si, n - n1, k[j - 2]);
+            (j == 1) ? 0 : monomial_to_index(si, n - n1, alpha[j - 2]);
 
         poly_vec_t added = VEC_GF2_ADD(d[idx], prev);
 
-        d[monomial_to_index(si, n - n1, k[j - 1])] =
-            VEC_BLEND(d[monomial_to_index(si, n - n1, k[j - 1])], added, mask);
+        d[monomial_to_index(si, n - n1, alpha[j - 1])] =
+            VEC_BLEND(d[monomial_to_index(si, n - n1, alpha[j - 1])], added, mask);
 
         if (j < n)
         {
@@ -591,7 +591,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
 
           destroy_state(s);
           free(prefix);
-          free(k);
+          free(alpha);
           free(d);
 
           return 0;
@@ -601,7 +601,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
   }
   destroy_state(s);
   free(prefix);
-  free(k);
+  free(alpha);
   free(d);
 
   return 2;

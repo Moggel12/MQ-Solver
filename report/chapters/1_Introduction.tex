@@ -8,7 +8,7 @@ With the rising interest in practical implementations of quantum computers, the 
 
 Generally, NIST plans to standardize schemes based on different mathematical problems, so-called \textit{PQC families}. The four main families are based on \textit{coding theory}, \textit{structured lattices}, \textit{systems of multivariate polynomials}, and \textit{hash-based}.
 
-Multivariate cryptography is the branch of cryptography that revolves around two mathematical problems systems of multivariate polynomials, the MP problem, and the IP problem. The central problem is that of the MP problem \cite{ding2020}, typically specialized to the MQ problem. The MQ problem revolves around solving multivariate \textit{quadratic} polynomials, like 
+Multivariate cryptography revolves around two mathematical problems based on systems of multivariate polynomials, the MP problem, and the IP problem. The central problem is that of the MP problem \cite{ding2020}, typically specialized to the MQ problem. The MQ problem revolves around solving multivariate \textit{quadratic} polynomials, like 
 $$
     p(x_0,x_1,x_2) = x_0x_1 + x_1,
 $$
@@ -28,7 +28,7 @@ The work on efficient MQ-solvers is therefore an important part of standardizing
 \end{center}
 
 \subsection{Alternative methods for solving multivariate systems over $\eff_2$}
-This subsection introduces alternatives to the algorithm focused on in this thesis. The subsection does not does not describe these alternatives in-depth, however, will refer to relevant materials that do so. The section is neither an exhaustive survey of related algorithms.
+This subsection introduces alternatives to the algorithm focused on in this thesis. The subsection does not describe these alternatives in-depth, however, will refer to relevant materials that do so. The section is neither an exhaustive survey of related algorithms.
 
 \paragraph{Gröbner basis solvers.} The concept of a Gröbner basis was introduced by Bruno Buchberger and has been at the core of many algorithms for solving multivariate systems over a finite field. Two important solvers based on the idea of Gröbner bases are $F_4$ and $F_5$ by Jean-Charles Faugère in \cite{FAUGERE199961} and \cite{10.1145/780506.780516}. These algorithms have proven quite useful both in practical implementations and in cryptanalysis. One problem with these algorithms is when applied to overdetermined polynomial systems, i.e. $m > n$, as they typically sequentially manipulate pairs of polynomials. 
 

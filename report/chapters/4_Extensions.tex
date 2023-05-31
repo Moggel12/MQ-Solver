@@ -1,8 +1,8 @@
 \section{Extensions} \label{sec:ext}
-The spatial complexity of Dinur's polynomial-method algorithm is one of the greatest hindrances to an implementation of the solver being viable in practice. This problem was also acknowledged by Dinur in \cite{eurocrypt-2021-30841} and mitigation was introduced as the \textit{memory efficient Möbius transform}. This section introduces an alternative to the original proposal.
+The spatial complexity of Dinur's polynomial-method algorithm is one of the greatest hindrances to an implementation of the solver being viable in practice. This problem was also acknowledged by Dinur in \cite{eurocrypt-2021-30841} and a mitigation was introduced as the \textit{memory efficient Möbius transform}. This section introduces an alternative to the original proposal.
  
 \subsection{Polynomial interpolation using FES} \label{sec:ext:fes_interp}
-As an alternative to the Möbius transforms used in \cref{alg:output}, interpolation based on the same principles as the FES procedure of \cite{ches-2010-23990} may be used. In order to introduce this procedure recall the \textit{generalized FES}, introduced in \cref{sec:ext:fes_interp:g_fes}. The generalized approach is described in detail in \cite{tungchoumasters} if more information is needed. Since this FES-based approach is to replace the interpolation and evaluation in the Möbius transform, the procedure must be able to handle polynomials of variable degrees.
+As an alternative to the Möbius transforms used in \cref{alg:output}, interpolation based on the same principles as the FES procedure of \cite{ches-2010-23990} may be used. In order to introduce this procedure recall the \textit{generalized FES}, introduced in \cref{sec:ext:fes_interp:g_fes}. The generalized approach is described in detail in \cite{tungchoumasters} if more information is needed. Since this alternative FES-based approach is supposed to replace the interpolation and evaluation in the Möbius transform, the procedure must be able to handle polynomials of variable degrees.
 
 In \cite{eurocrypt-2021-30841}, using FES for evaluation instead of the Möbius transform was hinted at, however, such an approach was dismissed due to the initialization overhead. This overhead, however, is not present when fully evaluating polynomials using the Möbius transform. While the arguments make sense, the approach to be discussed here does not require an initialization phase, thereby making it a more viable replacement of the Möbius transforms executed in \cref{alg:output}.
 
@@ -15,19 +15,19 @@ In \cite{eurocrypt-2021-30841}, using FES for evaluation instead of the Möbius 
         $R[0], D[0] \gets S[0], S[0]$\;
         \ForEach{$i = 1 \dots, 2^n - 1$}{
             $Depth \gets \min(\text{HAMMING\_WEIGHT}(i), d)$\;
-            $K \gets \text{BITS}(i, Depth)$\; \label{alg:fes_recover:bits}
+            $\alpha \gets \text{BITS}(i, Depth)$\; \label{alg:fes_recover:bits}
             \eIf{$\text{HAMMING\_WEIGHT}(i) > d$}{
                 \ForEach{$j = Depth \dots, 1$}{
-                    $D[K_{0\dots j - 1}] \gets D[K_{0\dots j - 1}] \oplus D[K_{0...j}]$\;
+                    $D[\alpha_{0\dots j - 1}] \gets D[\alpha_{0\dots j - 1}] \oplus D[\alpha_{0...j}]$\;
                 }
             }{
                 $Q \gets D[0]$\;
                 $D[0] \gets S[\text{GRAY}(i)]$\;
                 \ForEach{$j = 1 \dots, Depth$}{
                     \If{$j < Depth$}{
-                        $Tmp \gets D[K_{0\dots j}]$\;
+                        $Tmp \gets D[\alpha_{0\dots j}]$\;
                     }
-                    $D[K_{0\dots j}] \gets D[K_{0\dots j - 1}] \oplus Q$\;
+                    $D[\alpha_{0\dots j}] \gets D[\alpha_{0\dots j - 1}] \oplus Q$\;
                     \If{$j < Depth$}{
                         $Q \gets Tmp$\;
                     }
@@ -47,15 +47,17 @@ At last, comes an introduction to more \textit{novel} ideas; the FES-based inter
 
 \paragraph{Interpolation using FES.} Observe how derivative table entries are updated using the principles of \cref{eq:fes_recurse}. Reversing the computation allows for \textit{backtracking} from an evaluation to a derivative table entry, i.e. computing 
 \begin{equation} \label{eq:reverse_fes}    
-\frac{\partial^j p}{\partial x_{K_0} \dots \partial x_{K_{j - 1}}}(\mathbf{g}_i) = \frac{\partial^{j - 1} p}{\partial x_{K_0} \dots \partial x_{K_{j - 2}}}(\mathbf{g}_i) - Q_{x_{K_0} \dots x_{K_{j - 1}}}
+\frac{\partial^j p}{\partial x_{\alpha_0} \dots \partial x_{\alpha_{j - 1}}}(\mathbf{x}_i) = \frac{\partial^{j - 1} p}{\partial x_{\alpha_0} \dots \partial x_{\alpha_{j - 2}}}(\mathbf{x}_i) - Q_{x_{\alpha_0} \dots x_{\alpha_{j - 1}}}
 \end{equation}
-meaning that the high-order derivatives may be computed from the values of low-order derivatives. By unpacking or unrolling the equation above through recursively applying the equality, it becomes clear that once more $\partial^0 p = p$, which is now the base case. A procedure where the input is the full truth table of the polynomial $p$ could compute the derivative table entries in reverse order of what is done in \cref{alg:generalized_fes}, using \cref{eq:reverse_fes}. Going through all evaluations and using the reversed equation above will result in the same state (of the derivative table) as just after the initialization phase of \cref{alg:generalized_fes}. This idea is important, however, inverting the initialization phase is not useful for this thesis, so it will not be discussed further. Just note that if one were to invert this, the coefficients of the polynomial could be obtained directly, hence interpolating the polynomial.
+meaning that the high-order derivatives may be computed from the values of low-order derivatives. By unpacking or unrolling the equation above through recursively applying the equality, it becomes clear that $\partial^0 p = p$ is now the base case. A procedure where the input is the full truth table of the polynomial $p$ could compute the derivative table entries in reverse order of what is done in \cref{alg:generalized_fes}, using \cref{eq:reverse_fes}. Going through all evaluations and using the reversed equation above will result in the same state (of the derivative table) as just after the initialization phase of \cref{alg:generalized_fes}. This idea is important, however, inverting the initialization phase is not useful for this thesis, so it will not be discussed further. Just note that if one were to invert this, the coefficients of the polynomial could be obtained directly, hence interpolating the polynomial.
 
-\paragraph{Recovery of all solutions using interpolation.} Going back to \cref{alg:output}, the idea here is to introduce an alternative way of recovering solutions. Recall that currently, the recovery approach is to interpolate the $U$ polynomials using the Möbius transform, followed by fully evaluating all of them using a separate run of the Möbius transform. Using the ideas discussed earlier in this section, this can alternatively be done in one pass-through of the input truth table (the same as given to the Möbius transform for interpolation).
+\paragraph{Recovery of all solutions using interpolation.} Going back to \cref{alg:output}, the idea here is to introduce an alternative way of recovering solutions. Recall that currently, the recovery approach is to interpolate the $U$ polynomials using the Möbius transform, followed by fully evaluating all of them using a separate run of the Möbius transform. Using the ideas discussed earlier in this section, this can also be done in one pass-through of the input truth table (the same \textit{sparse} table as given to the Möbius transform for interpolation).
 
-As is needed in \cref{alg:output}, recovering the full truth table of a boolean polynomial $p$, of degree $d$, can be done using a combination of the ideas discussed in this section. For the procedure to work, the interpolation points must be the same as for the sparse Möbius transform (see \cref{sec:prereq:poly_interp} and \cref{sec:dinur:dinur_alg}). This means that evaluations of $\Tilde{\mathcal{P}}_k$ on inputs with hamming-weight $\leq d$ are required. Now, a hybrid approach of generalized FES and FES-based interpolation can be used to obtain all evaluations of the $U$ polynomials. 
+As in \cref{alg:output}, recovering the full truth table of a boolean polynomial $p$, of degree $d$, can be done using a combination of the ideas discussed in this section. For the procedure to work, the interpolation points must be the same as for the sparse Möbius transform (see \cref{sec:prereq:poly_interp} and \cref{sec:dinur:dinur_alg}). This means that evaluations of $\Tilde{\mathcal{P}}_k$ on inputs with hamming-weight $\leq d$ are required. Now, a hybrid approach of generalized FES and FES-based interpolation can be used to \textit{recover} all evaluations of the $U$ polynomials. 
 
-The hybrid approach is shown in \cref{alg:fes_recover}, in which the \textit{then} part of the outer-most conditional is the evaluation part, while the \textit{else} is the interpolation part. The evaluation part of the procedure is more-or-less the same as \cref{alg:generalized_fes:step:compute} in \cref{alg:generalized_fes}. The interpolation part is a more descriptive version of \cref{eq:reverse_fes}. Notice, since the goal was to \textit{only} recover the full truth table and not fully interpolate $p$, the algorithm may ignore inverting the initialization phase (as \cref{alg:generalized_fes:init} in \cref{alg:generalized_fes}, or \cref{alg:fes_init}). If the goal was to also fully interpolate $p$, this could be added after looping through all $2^n - 1$ inputs. Also, since the procedure interpolates derivative entries before evaluating, there is no need for the original setup phase of FES, like \cref{alg:fes_init} or \cref{alg:generalized_fes:init} in \cref{alg:generalized_fes}. 
+The hybrid approach is shown in \cref{alg:fes_recover}, in which the \textit{then} part of the outer-most conditional is the evaluation part, while the \textit{else} is the interpolation part. The evaluation part of the procedure is more-or-less the same as \cref{alg:generalized_fes:step:compute} in \cref{alg:generalized_fes}. The interpolation part, on the other hand, is a more descriptive version of \cref{eq:reverse_fes}. Since the goal was to \textit{only} recover the full truth table and not fully interpolate $p$, the algorithm may ignore inverting the initialization phase (as \cref{alg:generalized_fes:init} in \cref{alg:generalized_fes}, or \cref{alg:fes_init}). If the goal was to also fully interpolate $p$, this process could be added after looping through all $2^n$ inputs. 
+
+Also, notice how the interpolation phase is counteracting the need for a set-up phase. Since the procedure interpolates derivative entries for low-hamming-weight inputs before the evaluation phases on large-hamming-weight inputs, there is no need for a an initialization phase for the evaluation part (like \cref{alg:fes_init} or \cref{alg:generalized_fes:init} in \cref{alg:generalized_fes}). In essence, the interpolation correctly sets up and updates the derivative table entries from the \textit{sparse} set of input evaluations until the evaluation phase starts taking over by updating derivatives and evaluating inputs.
 
 For clarity, the pseudo-code in \cref{alg:fes_recover} requires the input $n$, which is the number of variables. In the case of Dinur's solver, the number of variables is $n - n_1$, as the procedure should interpolate the $U$ polynomials.
 

@@ -107,13 +107,13 @@ def update(s, f, n, n1, prefix):
 
 def step(s):
     s.i = s.i + 1
-    k1 = bit1(s.i)
-    k2 = bit2(s.i)
+    alpha1 = bit1(s.i)
+    alpha2 = bit2(s.i)
 
-    if k2:
-        s.d1[k1] ^^= s.d2[k2][k1]
+    if alpha2:
+        s.d1[alpha1] ^^= s.d2[alpha2][alpha1]
 
-    s.y ^^= s.d1[k1]
+    s.y ^^= s.d1[alpha1]
 
 def fes_eval(f, n, n1 = None, prefix=[], s = None, compute_parity=False):
 

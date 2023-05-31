@@ -321,15 +321,15 @@ static inline void step(state *s, unsigned int n1)
 {
   s->i = INC(s->i);
 
-  unsigned int k1 = bit1(s->i);
-  unsigned int k2 = bit2(s->i);
+  unsigned int alpha1 = bit1(s->i);
+  unsigned int alpha2 = bit2(s->i);
 
-  if (k2 < (-1u))
+  if (alpha2 < (-1u))
   {
-    s->d1[k1] = GF2_ADD(s->d1[k1], s->d2[k2 * n1 + k1]);
+    s->d1[alpha1] = GF2_ADD(s->d1[alpha1], s->d2[alpha2 * n1 + alpha1]);
   }
 
-  s->y = GF2_ADD(s->y, s->d1[k1]);
+  s->y = GF2_ADD(s->y, s->d1[alpha1]);
 }
 
 state *fes_eval_parity(poly_t *system, unsigned int n, unsigned int n1,
@@ -468,8 +468,8 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
   poly_t *d = calloc(d_size, sizeof(poly_t)); // %\phantomsection\label{src:c:d_alloc}%
   if (!d) return 1;
 
-  unsigned int *k = calloc(deg, sizeof(unsigned int));
-  if (!k) return 1;
+  unsigned int *alpha = calloc(deg, sizeof(unsigned int));
+  if (!alpha) return 1;
 
   poly_t parities = INT_0;
 
@@ -477,7 +477,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
   if (!s)
   {
-    free(k);
+    free(alpha);
     free(d);
     free(prefix);
     return 1;
@@ -500,14 +500,14 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
       BEGIN_BENCH(g_recover_eval_time)
 
-      unsigned int len_k = bits(si, k, deg);
+      unsigned int len_alpha = bits(si, alpha, deg);
 
-      for (unsigned int j = len_k; j-- > 0;)
+      for (unsigned int j = len_alpha; j-- > 0;)
       {
         unsigned int idx =
-            (j == 0) ? 0 : monomial_to_index(si, n - n1, k[j - 1]);
+            (j == 0) ? 0 : monomial_to_index(si, n - n1, alpha[j - 1]);
 
-        d[idx] = GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, k[j])]);
+        d[idx] = GF2_ADD(d[idx], d[monomial_to_index(si, n - n1, alpha[j])]);
       }
 
       END_BENCH(g_recover_eval_time)
@@ -518,7 +518,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
       BEGIN_BENCH(g_recover_interp_time)
 
-      unsigned int len_k = bits(si, k, deg);
+      unsigned int len_alpha = bits(si, alpha, deg);
       unsigned int gray_si = si ^ (si >> 1);
       for (unsigned int pos = 0; pos < (n - n1); pos++)
       {
@@ -533,7 +533,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
       if (!s)
       {
-        free(k);
+        free(alpha);
         free(d);
         free(prefix);
         return 1;
@@ -544,19 +544,19 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
 
       parities = INT_0;
 
-      for (unsigned int j = 1; j <= len_k; j++)
+      for (unsigned int j = 1; j <= len_alpha; j++)
       {
         unsigned int tmp;
 
         if (j < n)
         {
-          tmp = d[monomial_to_index(si, n - n1, k[j - 1])];
+          tmp = d[monomial_to_index(si, n - n1, alpha[j - 1])];
         }
 
         unsigned int idx =
-            (j == 1) ? 0 : monomial_to_index(si, n - n1, k[j - 2]);
+            (j == 1) ? 0 : monomial_to_index(si, n - n1, alpha[j - 2]);
 
-        d[monomial_to_index(si, n - n1, k[j - 1])] = GF2_ADD(d[idx], prev);
+        d[monomial_to_index(si, n - n1, alpha[j - 1])] = GF2_ADD(d[idx], prev);
 
         if (j < n)
         {
@@ -575,7 +575,7 @@ uint8_t fes_recover(poly_t *system, unsigned int n, unsigned int n1,
   }
   destroy_state(s);
   free(prefix);
-  free(k);
+  free(alpha);
   free(d);
 
   return 0;

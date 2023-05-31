@@ -73,18 +73,18 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
             # We have the required derivatives; compute the missing evluation value.
             fes_time_eval -= time.time()
 
-            k = bits(si)[:degree]
+            alpha = bits(si)[:degree]
 
-            for j in reversed(range(0, len(k))):
+            for j in reversed(range(0, len(alpha))):
 
-                d[sum([2^i for i in k[:j]])] = int(d[sum([2^i for i in k[:j]])]) ^^ int(d[sum([2^i for i in k[:j+1]])])
+                d[sum([2^i for i in alpha[:j]])] = int(d[sum([2^i for i in alpha[:j]])]) ^^ int(d[sum([2^i for i in alpha[:j+1]])])
 
             fes_time_eval += time.time()
         else:
             # We need to interpolate derivatives.
             fes_time_inter -= time.time()
 
-            k = bits(si)[:degree]
+            alpha = bits(si)[:degree]
     
             prefix = [pos for pos,b in enumerate(reversed(bin(si ^^ (si >> 1))[2:])) if b == "1"]
 
@@ -98,14 +98,14 @@ def fes_recover(system, n, n1, degree, ring=None):    # parameter f for debuggin
             d[0] = new_parities
 
 
-            for j in range(1, len(k)+1):
+            for j in range(1, len(alpha)+1):
 
-                if j < len(k):
-                    tmp = d[sum([2^i for i in k[:j]])]
+                if j < len(alpha):
+                    tmp = d[sum([2^i for i in alpha[:j]])]
 
-                d[sum([2^i for i in k[:j]])] = int(d[sum([2^i for i in k[:j-1]])]) ^^ int(prev)
+                d[sum([2^i for i in alpha[:j]])] = int(d[sum([2^i for i in alpha[:j-1]])]) ^^ int(prev)
 
-                if j < len(k):
+                if j < len(alpha):
                     prev = tmp
 
             fes_time_eval += time.time()
