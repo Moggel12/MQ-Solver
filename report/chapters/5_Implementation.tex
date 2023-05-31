@@ -1,4 +1,4 @@
-\section{Implementation} \label{sec:impl}
+\chapter{Implementation} \label{sec:impl}
 The accompanying git repository contains more than one implementation, or \textit{variant}, of Dinur's original algorithm. These variants are divided into two C implementations and a prototype SageMath implementation. C function declarations can be found in the \texttt{inc/} folder and other code can be found under \texttt{src/}. These implementations, alongside everything else worked on for this thesis, can be found at 
 \begin{center}
     \url{https://github.com/Moggel12/MQ-Solver}.
@@ -6,7 +6,7 @@ The accompanying git repository contains more than one implementation, or \texti
 
 For alternative implementations of some of the procedures described in \cref{sec:prereq}, see \cite{ches-2010-23990}, \cite{cryptoeprint:2013/436}, and \cite{crypto-2022-32130}.
 
-\subsection{Platform and architecture}
+\section{Platform and architecture}
 
 This section describes the platform and architecture used for building, testing, and benchmarking the programs written for this thesis. For a description of the actual implementation see the previous subsections.
 
@@ -20,7 +20,7 @@ The parts of the code that make use of vector instructions do not use GCCs inlin
 
 Finally, the implementations can also be told to use most of the resources present on multicore platforms. Currently, the code only supports allocating a power-of-two amount of CPU cores, so certain CPUs may not be fully utilized. The code also does not distinguish between the \textit{performance} and \textit{efficiency} type cores found in certain contemporary CPUs.
 
-\subsection{SageMath code} \label{sec:impl:sage}
+\section{SageMath code} \label{sec:impl:sage}
 As was implied earlier, the SageMath implementation of Dinur's algorithm works mostly as a prototype or testing ground for the C implementation. Some optimizations have been tested in this version of the code, prior to it being implemented in C, however, these optimizations worked on an algorithmic level more than on a machine level.  This prototype allowed for approximating the bottleneck areas of the algorithm while essentially also working as a proof-of-concept for using Dinur's algorithm in practice. These approximations of course were rougher in some areas than others, due to the overhead imposed by SageMath and Python.
 
 The prototype implements the three procedures described by Dinur in \cite{eurocrypt-2021-30841}, more or less described as the pseudo-code is presented. The three main procedures described by Dinur can be found in \texttt{src/sage/dinur.sage} with some accompanying convenience and test functions. A bit-sliced version of the FES procedure, described in \cite{ches-2010-23990} and \cref{sec:prereq:fes}, for quadratic polynomials can be found in \texttt{src/sage/fes.sage}. This implementation is not as heavily optimized as those in \cite{ches-2010-23990} and \cite{cryptoeprint:2013/436}, simply due to the SageMath-induced overhead counteracting fine-adjusted optimizations. The prototype code also introduces a FES-based recovery procedure, acting as an alternative to the Möbius Transform originally described by Dinur (see \cref{sec:ext}). The Möbius Transform was implemented in \texttt{src/sage/mob\_new.sage} and allows for a \textit{sparse}-transform used for interpolating the $U$-polynomials. This implementation is rather naive as it interpolates these polynomials \textit{symbolically} using the polynomial classes from SageMath. The choice of switching between FES-based interpolation and using the Möbius transform is a simple boolean switch in the \texttt{solve()} and \texttt{output\_potentials()} functions in \texttt{src/sage/dinur.sage}.
@@ -29,7 +29,7 @@ The tests for the SageMath procedures can be found in the same file as the proce
 
 Other than the prototype code implemented in SageMath, a \textit{front-end} was also implemented allowing for easier loading systems, generation systems, and calling of the optimized C code. For more on this, see \cref{sec:impl:interface}.
 
-\subsubsection{Dinur's core procedures}
+\subsection{Dinur's core procedures}
 \paragraph{SageMath implementation of \texttt{SOLVE()}.} The top-level \texttt{solve()} procedure can be found in the \texttt{src/sage/dinur.sage} file. To test it, one may call the \texttt{test\_sage\_solve()} function with appropriate parameters. This implementation of Dinur's algorithm tries to mimic the pseudo-code (see \cref{alg:solve}) closely, e.g. by using dictionaries for comparing potential solutions from the current round with those of earlier rounds. However, by close inspection, one might see that there are few differences between the implementation and the pseudo-code still. In the pseudo-code, Dinur parameterizes the variable $n_1$, allowing variation on how it is chosen. The SageMath implementation fixes this to 
 $$
     n_1 \approx \lceil \frac{n}{5.4} \rceil.
@@ -74,7 +74,7 @@ The most notable difference between the two approaches is the combination of int
 \pylisting{src/sage/dinur.sage}{158}{159} 
 As already discussed, regarding \texttt{output\_solutions()}, this choice was merely made due to memory concerns as the \texttt{defaultdict} serves as a way of doing lookups on non-existing keys without taking up too much valuable memory.
 
-\subsubsection{FES procedures} \label{sec:impl:fes}
+\subsection{FES procedures} \label{sec:impl:fes}
 
 \paragraph{Bruteforce and FES as we know it:} One aspect of the \texttt{compute\_u\_values()} process that is different from \cite{eurocrypt-2021-30841} is the \texttt{bruteforce()} procedure. The description in \cite{eurocrypt-2021-30841} leaves much to the imagination as it is only really stated that the FES procedure of \cite{cryptoeprint:2013/436} and \cite{ches-2010-23990} would be used to evaluate the sparse set of inputs, $W^{n - n_1}_{w + 1} \times \{0,1\}^{n_1}$. However, Dinur does make arguments for two general approaches and their performance penalties/impacts. These alternatives are described as either simply iterating through the set $W^{n - n_1}_{w + 1}$ while going through all $\{0,1\}^{n_1}$ values at each such iteration, or the use of \textit{monotonic Gray codes}. The structure of monotonic Gray codes was briefly mentioned in \cref{sec:prereq:fes:gray_codes}. Due to simplicity and the negligible performance penalty, the choice here was to use the former approach. 
 
@@ -147,16 +147,16 @@ Given that this approach is a variant of FES, the evaluation in \texttt{d[0]} is
 
 As mentioned in \cref{alg:fes_recover}, combining interpolation and evaluation into one procedure allows for a single pass-through of the $2^{n - n_1}$ evaluations needed for the $U$ polynomials. This way, the procedure does not need to store both exponentially-sized arrays for representing the $U$ polynomials plus the $Evals$ array of \cref{alg:output}. However, the derivative table is still quite large, and the computational needs for interpolation and evaluation are still expensive. For an evaluation of using FES-based recovery, see \cref{sec:eval}.
 
-\subsubsection{Möbius Transform and utilities}
+\subsection{Möbius Transform and utilities}
 \paragraph{Brief note on the Möbius transform.} As mentioned earlier, the Möbius transform implementation(s) can be found in \texttt{src/sage/mob\_new.sage}. The procedure \texttt{mob\_transform()} represents the Möbius transform, however, instead of using lists as described in \cref{sec:prereq:poly_interp} the representation uses the built-in SageMath representation of boolean polynomials. This oddity is the reason that \cref{lst:sage:output_mob} is as comprehensive. Implementing the Möbius transform as described in \cref{sec:prereq:poly_interp}, alongside the \textit{sparse} Möbius transform, will make much of the code in \cref{lst:sage:output_mob} redundant and more readable. By using the boolean polynomial classes of SageMath, computing the Möbius transform is done through the recursive formula specified in \cref{sec:prereq:poly_interp}. Implementing the sparse interpolation can be done by filtering out high-degree monomials after fully interpolating the polynomial from its sparse set of solutions when the transform is computed in this ''symbolic'' way. For inspiration on implementing the Möbius transform less symbolically, implementations like that of \cite{cryptoeprint:2022/1412} are worth a look.
 
 \paragraph{Utilities.} The SageMath codebase in \texttt{src/sage/} provide quite a few extra utility functions, depending on the goal. The \texttt{src/sage/utils.sage} file provides procedures for reading and writing Fukuoka MQ-challenge style files\footnote{\url{https://www.mqchallenge.org/}}, bit-slicing multilinear quadratic polynomials, generating polynomial systems, fetching C functions from the shared library, and more. These utilities are used throughout the SageMath codebase and also in the \texttt{run.py} script, in order to handle smaller tasks that would not require a dedicated SageMath file. Should one seek to extend parts of the SageMath code, or the \texttt{run.py} script, this file should be kept in mind.
 
-\subsection{Core algorithms in C} \label{sec:impl:c}
+\section{Core algorithms in C} \label{sec:impl:c}
 
 In many areas, the standard C implementation takes a similar approach to program design as the SageMath counterpart (see \cref{sec:impl:sage}). However, unlike the intent with the SageMath prototype, the purpose of the C code was to test test the algorithm and see what kinds of optimizations are beneficial for it. This subsection seeks to describe the general idea behind the C implementation, drawing parallels to the similar parts in the SageMath code and describing the difference alongside their design choices. Evaluating the usefulness of these optimizations is postponed to \cref{sec:eval}. This subsection focuses on the \textit{shared library} compile-target (see \cref{sec:impl:compile}) as well as the \textit{standardized} implementation, plus any utilities that overlap between codebases.
 
-\subsubsection{Solve, and other top-level procedures} \label{sec:impl:c:solve}
+\subsection{Solve, and other top-level procedures} \label{sec:impl:c:solve}
 The main entry point into the library is the \texttt{solve()} procedure, residing in \texttt{src/c/standard/mq.c}. This procedure for the most part acts like its SageMath counterpart. However, the \texttt{solve()} procedure expects a bit-sliced system of polynomials in its \texttt{poly\_t *system} parameter. Further, the procedure expects that the monomial ordering is graded lexicographic ordering and that the polynomials in the system have been \textit{linearized}, i.e. the system consists solely of multilinear polynomials. Examining the function declaration, the other parameters should be somewhat self-explanatory:
 \clisting{inc/mq.h}{40}{40}
 The latter parameter, \texttt{sol}, is an out-parameter containing the solution found, if any.
@@ -212,7 +212,7 @@ In this snippet, the code ensures to convert the $\mathbf{y}$-bits into its Gray
 
 If no solution was found, or an error occurred along the way, the procedure returns $1$. Therefore, if a $1$ is returned from a call to \texttt{solve()} the value in the \texttt{sol} pointer represents an invalid solution. Returning a zero conversely means success and that \texttt{sol} contains a valid solution.
 
-\subsubsection{FES} \label{sec:impl:c:fes}
+\subsection{FES} \label{sec:impl:c:fes}
 \paragraph{FES-recovery in C.} Examining the \texttt{src/c/standard/fes.c} file many of the procedures have a corresponding implementation in the SageMath code. Procedures like \texttt{init()}, \texttt{update()}, \texttt{step()}, and the various bit-indexing functions are implemented by the same principles in both the C codebases and the SageMath codebase. Therefore, procedures like these will not be discussed greatly in this section.
 
 Since the implementations of \cref{alg:solve} in C both solely make use of the \texttt{fes\_recover()} approach from \cref{sec:ext}, this section will mainly describe the approach taken for the non-vectorized version of \texttt{fes\_recover()}. Finally, at the end of the section a simple FES implementation for quadratic systems, as described in \cref{sec:prereq:fes}, will be described.
@@ -265,7 +265,7 @@ If the goal is to run FES more in line with \cite{cryptoeprint:2013/436} or \cit
 \clisting{inc/fes.h}{90}{90}
 This procedure is not as heavily optimized as the GPU version of \cite{ches-2010-23990}, or the FPGA version of \cite{cryptoeprint:2013/436}, but has received the same level of \textit{care} as the procedure \texttt{fes\_eval\_parity()} used inside \texttt{fes\_recover()}. The solutions found are stored in the parameter \texttt{poly\_t *solutions} and the return value holds the amount found.
 
-\subsubsection{Utilities and benchmarking} \label{sec:impl:c:util_bench}
+\subsection{Utilities and benchmarking} \label{sec:impl:c:util_bench}
 Besides the C procedure discussed up to this point, a few more can be found in \texttt{src/c/standard/utils.c} and \texttt{src/c/standard/benchmark.c}. The most notable utility procedures are the \texttt{gen\_matrix()} procedure and the \texttt{eval()} procedure. The former was briefly described in \cref{sec:impl:c:solve}, whereas the latter is simply a procedure that evaluates a bit-sliced system on some \textit{full} assignment of variables, in parallel. Declarations for these procedures can be found in \texttt{inc/utils.h}, if needed for extending or reusing the codebase.
 
 When the shared library is compiled, a few benchmarking tools are also available. First off, if the goal is to solely benchmark the solver, the procedure 
@@ -277,10 +277,10 @@ If a non-vectorized variant of the codebase was compiled, a benchmarking procedu
 This procedure acts much the same way as \texttt{e2e\_benchmark()}, just now solely for FES. Computed timings are stored in separate global variables than those used by \texttt{e2e\_benchmark()}.
 
 Benchmark timings are computed using the \texttt{BEGIN\_BENCH()} and \texttt{END\_BENCH()} mac\-ros, as well as \texttt{READ\_BENCH()}. The names should make the purposes of the macros more understandable. Should there be interest in adding more benchmarks; declaring an extern variable in \texttt{inc/benchmark.h} for storing timings (or another type of benchmark value), initializing it to a suitable value in a user-chosen position, and then adding appropriate macro-calls at the points of interest is sufficient.
-\subsection{Optimizations} \label{sec:impl:opt}
+\section{Optimizations} \label{sec:impl:opt}
 Different kinds of optimizations were implemented either directly in the codebase described in \cref{sec:impl:c} or in the alternative codebase in \texttt{src/c/vectorized/}. This subsection seeks to go through the most prominent optimizations and why they are used.
 
-\subsubsection{FES-based recovery} \label{sec:impl:opt:fes_rec}
+\subsection{FES-based recovery} \label{sec:impl:opt:fes_rec}
 \paragraph{Internal optimizations to FES-recover.} For the C codebases, the choice of procedures for interpolating and evaluating the $U$ polynomials was \texttt{fes\_recover()}. One benefit of going with \texttt{fes\_recover()} is that interpolation and evaluation of these polynomials can be done in \textit{one} pass-through of their $2^{n - n_1}$ evaluations, instead of two separate calls to the Möbius transform.
 
 Another effect of using the \texttt{fes\_recover()} approach was the ability to more easily store only the potential solutions, instead of allocating memory for all evaluations. Alternatively, as is described in \cref{sec:dinur:dinur_alg}, the procedure would have to store all 
@@ -305,7 +305,7 @@ In total, the memory consumption of \texttt{fes\_recover()} is lowered, and in e
 
 Since each iteration of the outer-most loop of \cref{alg:fes_recover} (and thereby its implementations), discretely, either evaluate or interpolate, integrating filtering and translation directly into \texttt{fes\_recover()} was quite simple. Other than allowing for tighter packing of potential solutions in the returned array, this process also removes the need for a separate loop that filters and translates by going through all $2^{n - n_1}$ evaluations (\cref{alg:output:recover} in \cref{alg:output}). Therefore, the time taken to go through all solutions once more, in order to \textit{post-process}, is no longer effecting the total solve time. Of course, as already mentioned, this comes at the cost of potentially having a heavier computational load at each iteration of \texttt{fes\_recover()}.
 
-\subsubsection{Vectorization and parallelization} \label{sec:impl:opt:parallel}
+\subsection{Vectorization and parallelization} \label{sec:impl:opt:parallel}
 Various methods of parallelizing the procedure were used, including the use of SIMD instructions and multicore CPUs. Of course, the shared library is compiled with GCCs \texttt{-O3} flag, which implies quite a few optimizations occur at compile-time. However, some optimizations can be hard to determine statically and so active care was taken to provide further optimizations. 
 
 A smaller method of optimizing storage is the use of the different Make flags available. The Make flags can currently tell the solver what size of integer the input systems (bit-sliced) and their solutions should be stored in. This can help reduce the overall memory footprint. Currently, the SIMD implementation divides $\mathcal{P}$ and $\Tilde{\mathcal{P}_k}$ into separate integer sizes, which is a feature that is not readily available in the non-SIMD version. Using smaller integer sizes for the smaller systems $\Tilde{\mathcal{P}}_k$ allows for storing more polynomial terms in a cacheline, boosting performance to some extent. As these terms are accessed quite frequently, and in an almost sequential manner, this can boost performance on a low level. Therefore, having separate integer sizes for $\mathcal{P}$, $\Tilde{\mathcal{P}}_k$, and possibly also solutions, could prove beneficial for the standard version as well.
@@ -486,7 +486,7 @@ shows how the vectorized codebase handles evaluations of $U$ polynomials. As an 
 
 Because evaluations of $U$ the polynomials are computed and checked simultaneously, no large lists of solutions are stored. This will drastically affect memory consumption and entirely mitigates the need for storing solutions. The cost of this is that the procedure potentially skips some solutions as each round of \texttt{solve()} in \texttt{src/c/vectorized/mq\_vectorized.c} logically corresponds to computing four rounds in the \textit{standard} version and throwing away all potential solutions found if none was found in said group of four rounds. 
 
-\subsection{C abstractions} \label{sec:impl:c_abstr}
+\section{C abstractions} \label{sec:impl:c_abstr}
 The C codebases contain certain levels of abstractions, in order to make them more extendable. One example of this is the use of macros. Recall from previous subsections that many places in the C code, macro-like functions such as \texttt{INT\_IS\_ZERO}, \texttt{INT\_IDX}, or \texttt{GF2\_MUL} are called (\cref{lst:c:index}, \cref{lst:c:history_check} to give some example listings). These macros are used as an abstractional layer in order to hide the structure of the underlying \texttt{poly\_t} type. If the goal is to extend the codebase to support wider integer types, allowing for larger systems bit-sliced into integers, these macros help hide the operands used. This could be used in case the wider integer type does not support certain operations. E.g., GCC has support for 128-bit integers on target machines with wide enough integer modes, however, these do have limitations in certain areas and may therefore require workarounds that can be hidden using the aforementioned macros. The macros defined for integers can be found in \texttt{inc/mq\_uni.h}.
 
 Likewise, the vectorized codebase hides many operations behind macros for the same reason. These macros can be found in \texttt{inc/mq\_vec.h} which internally makes use of either \texttt{inc/vec128\_config.h} or \texttt{inc/vec256\_config.h}. The latter two header files also include relevant macros for stating how many variables to fix given the Make flags used, the number of elements in a vector register (given the integer sizes stored in it), and other constants. Say the goal is to extend the codebase to use AVX512 as well, or future AVX (maybe even Intels AMX instructions): The process is a matter of creating a file similar to \texttt{inc/vec128\_config.h} or \texttt{inc/vec256\_config.h}, adding an appropriate conditional case in \texttt{inc/mq\_vec.h}, and finally running the code. Exactly which macros need to be present in the newly added vector-config header is described in \texttt{inc/mq\_vec.h}. 
@@ -495,10 +495,10 @@ Depending on how exotic the vector instruction set is, it may be necessary to ad
 
 Ensuring that macros like \texttt{FIXED\_VARS} and \texttt{VECTOR\_ELEMENTS} are set correctly, ensures that the vectorized codebase is automatically set up, at compile time, for fixing the correct amount of variables and only storing four rounds for each fixed polynomial, as described in \cref{sec:impl:opt}.
 
-\subsection{Testing the code}
+\section{Testing the code}
 The following subsection contains some brief notes on the testing methodology and how it was executed. For more on how to run and test different areas of the codebase, see the \texttt{README.md} file in the accompanying Git repository.
 
-\subsubsection{SageMath}
+\subsection{SageMath}
 
 For each of the procedures implemented in Python or SageMath, the accompanying test procedures can be found in the same file as the procedure being tested. For example, the tests related to \texttt{bruteforce()} and \texttt{fes\_eval()} can be found in \texttt{src/sage/fes.sage}, while tests related to \texttt{solve()}, \texttt{output\_potentials()} and \texttt{compute\_u\_values()} are found in \texttt{src/sage/dinur.sage}.
 
@@ -508,7 +508,7 @@ The snippet above is directly computing the sums related to the $U_i$ polynomial
 
 These tests can be executed using the \texttt{run.py} script with the \texttt{-t} flag, specifying what test should be run. To list all available tests, use the \texttt{-l} flag. Information about the \texttt{run.py} script can be found in the accompanying \texttt{README.md} file and partly in \cref{sec:impl:interface}.
 
-\subsubsection{C code}
+\subsection{C code}
 
 For the C implementation, there are different levels of tests. Either one may compile the \texttt{bin/test} binary, using the appropriate Make flags and targets (see \cref{sec:impl:compile}), or one may run tests using the shared library \texttt{bin/mq.so} (if compiled). In both cases, the results of the C implementations are compared against relevant reference points in the SageMath code implementations. This way, going from the unit tests for the SageMath code, the C code can be directly compared to the verified SageMath code. The test functions for the C code may also be run via the \texttt{run.py} script.
 
@@ -518,7 +518,7 @@ The alternative is to test different functions using the \texttt{bin/mq.so} shar
 
 It could be argued here that more tests should exist, especially for the C codebase. Many new procedures were introduced in both the \textit{standard} and \textit{vectorized} codebases, implying that further testing of these individual parts should have taken place on a more granular level. 
 
-\subsection{Interface for running the C code} \label{sec:impl:interface}
+\section{Interface for running the C code} \label{sec:impl:interface}
 The C code was developed to be usable via multiple means. Once a compiled shared library is available, the code can either be loaded into other projects that support \texttt{.so} files, or it can be run as a complete solution via \texttt{run.py}. 
 
 Running the solver as a script, an invocation without any flags results in a single-core solve routine using the version of the build that was specified at compile time (in essence; \textit{standard} or \textit{vectorized}). The invocation will either ask for a path to an MQ-challenge\footnote{\url{https://www.mqchallenge.org/}} style text file from which the system may be loaded, or for relevant parameters in order to generate the systems before solving. Giving the \texttt{-p} or \texttt{--parallelize} flag when invoking \texttt{run.py} allows the script to parallelize the solver by fixing variables according to how many CPU cores are present on the system. This last part was described in \cref{sec:impl:opt}.
@@ -529,12 +529,9 @@ Note, common for any function that takes a \texttt{poly\_t} array (or \texttt{po
 
 The C code can of course also be executed via the \texttt{bin/test} executable, which may be compiled with the accompanying Makefile. However, this executable is made to primarily work in tandem with tests in the SageMath code, therefore it is probably not of great interest to execute the solver this way.
 
-\subsection{Compilation and compile-time parameters} \label{sec:impl:compile}
+\section{Compilation and compile-time parameters} \label{sec:impl:compile}
 The accompanying Makefile can conform to multiple platforms using either vectorized instructions or building for machines with different register sizes. Building any of these different targets requires altering the \texttt{REGSIZE} flag, and/or the \texttt{INTSIZE} flag, when calling \texttt{make}. Setting \texttt{REGSIZE} to 8, 16, 32, or 64 means building the non-vectorized version, but regulates the integer sizes used to store the polynomials and solutions to the given width. Specifying 128 or 256 means that the build uses 128-bit or 256-bit registers, respectively. When specifying \texttt{REGSIZE} as one of the vector sizes, the \texttt{INTSIZE} flag controls the size of integers stored in these AVX vectors. The options for \texttt{INTSIZE} on vectorized builds is either \texttt{INTSIZE=8} or \texttt{INTSIZE=16}.
 
 The default target creates the file \texttt{bin/mq.so}, ready for dynamic linking into other projects, optimized with \texttt{-O3}. The contents of this shared library are described in \cref{sec:impl:c}. Running \texttt{make tests} will create an executable \texttt{bin/test} with memory sanitizers and debug flags enabled. 
 
 While compiling any of the targets, the makefile generates a few extra files as well. One file is \texttt{src/sage/.compile\_config}, ensuring better interoperability between the SageMath code and the C code. A more prominent file is the \texttt{inc/binom.h} file generated. The \texttt{inc/binom.h} file is a header file containing a lookup table \textit{of sufficient size} alongside the necessary macros to do lookups quickly. This lookup table is generated by the Makefile which internally calls the \texttt{binom.py} script and saves the output in \texttt{inc/binom.h}. The lookup table is used by the indexing function \texttt{monomial\_to\_index()}.
-
-
-\newpage

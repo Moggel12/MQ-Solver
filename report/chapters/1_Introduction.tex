@@ -1,5 +1,5 @@
-\section{Introduction} \label{sec:intro}
-\subsection{Motivation}
+\chapter{Introduction} \label{sec:intro}
+\section{Motivation}
 With the rise of modern-day technology, privacy and data security are more critical than ever. Cryptographic schemes based on conjectured hard mathematical problems are a key building block in enabling such properties for modern technologies. In \cite{Shor_1997}, Peter Shor proposed an algorithm that would enable computationally efficient attacks on many currently in-use cryptographic schemes using sufficiently large quantum computers. Although Shor's algorithm posed a threat to cryptographic schemes based on number theoretic problems, like RSA and DSA, an actual sufficiently-sized quantum computer was yet to be seen. 
 
 Now, quantum computers had already been shown to theoretically be useful in non-cryptographic research areas as well, like modeling quantum properties of particles in material sciences. Therefore, researchers worldwide started working on practical implementations of such computing devices. The size of such quantum computers is popularly determined by the amount of \textit{quantum bits}, also denoted \textit{qubits}, present in the system. The amount of qubits present in quantum computer systems has drastically increased over the years, with IBM having tripled the number of qubits from 2021 to 2022 in its Osprey quantum processor \cite{IBM_Osprey}. This indicates rapid growth and a rapidly increasing threat against the trusted number-theoretic cryptosystems Shor challenged, albeit theoretically, in 1997.
@@ -27,7 +27,7 @@ The work on efficient MQ-solvers is therefore an important part of standardizing
     \url{https://github.com/Moggel12/MQ-Solver}.
 \end{center}
 
-\subsection{Alternative methods for solving multivariate systems over $\eff_2$}
+\section{Alternative methods for solving multivariate systems over $\eff_2$}
 This subsection introduces alternatives to the algorithm focused on in this thesis. The subsection does not does not describe these alternatives in-depth, however, will refer to relevant materials that do so. The section is neither an exhaustive survey of related algorithms.
 
 \paragraph{Gröbner basis solvers.} The concept of a Gröbner basis was introduced by Bruno Buchberger and has been at the core of many algorithms for solving multivariate systems over a finite field. Two important solvers based on the idea of Gröbner bases are $F_4$ and $F_5$ by Jean-Charles Faugère in \cite{FAUGERE199961} and \cite{10.1145/780506.780516}. These algorithms have proven quite useful both in practical implementations and in cryptanalysis. One problem with these algorithms is when applied to overdetermined polynomial systems, i.e. $m > n$, as they typically sequentially manipulate pairs of polynomials. 
@@ -39,5 +39,3 @@ This subsection introduces alternatives to the algorithm focused on in this thes
 \paragraph{Crossbred.} In \cite{cryptoeprint:2017/372}, a hybridized algorithm was introduced by Joux and Vitse which was shown, experimentally, to beat previous solve methods. The method uses a combination of manipulations of the input system via a Macaulay matrix representation alongside an exhaustive search on smaller, related, systems. In practice, the procedure holds a fair share of the top 5 performing algorithms in the Fukuoka MQ-challenges\multifootnotetag{foot:mq}.
 
 \multifootnotetagtext[foot:mq]{\url{https://www.mqchallenge.org/}}
-
-\newpage
