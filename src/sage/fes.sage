@@ -241,7 +241,7 @@ def test_c_fes_eval(sys_tuple):
     system, n, _, ring, _ = sys_tuple
     n1 = int(ceil(n/(5.4)))
     # d = randint(1, n - n1)
-    d = 4 # TODO
+    d = 4 
     print(system)
     print(n, n1, d)
     system = bitslice(system, ring.gens())

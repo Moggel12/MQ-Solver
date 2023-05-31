@@ -94,7 +94,7 @@ poly_t bits(poly_t i, unsigned int *arr, poly_t arr_len)
   return sum;
 }
 
-// TODO: Check if vector is needed here
+
 unsigned int monomial_to_index(size_t mon, unsigned int n,
                                unsigned int boundary)
 {

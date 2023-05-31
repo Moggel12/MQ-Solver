@@ -181,9 +181,9 @@ uint8_t solve(poly_t *system, unsigned int n, unsigned int m, poly_t *sol)
 
     poly_vec_t w = VEC_SUB(
         compute_p_k(rand_mat, rand_sys, fixed_system, sys_len, l, new_n),
-        VEC_ASSIGN_ONE(n1));  // TODO: Change to take in arrays and compute
-                              // vector (do not vectorize parities).
+        VEC_ASSIGN_ONE(n1));
 
+    
     END_BENCH(g_ek_time)
 
     BEGIN_BENCH(g_recover_time);

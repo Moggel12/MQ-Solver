@@ -34,7 +34,7 @@ def part_eval(system, prefix, n, n1, s):
     U_parities = fes_eval(system, n, n1, prefix, s, True)
     return s, U_parities
 
-def mon_to_idx(mon, n): # TODO: Remove
+def mon_to_idx(mon, n):
     d = 0
     index = 0
     index_d = 0
@@ -47,7 +47,7 @@ def mon_to_idx(mon, n): # TODO: Remove
         index = index_d - index
     return index
 
-def bin_str(i, n): # TODO: Remove
+def bin_str(i, n):
     s = bin(i)[2:]
     l = len(s)
     return "0"*(n - l) + s

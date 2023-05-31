@@ -3,8 +3,8 @@
 
 #include <immintrin.h>
 
-// TODO: Add support for computing parity across a vector (both 256 and 128, no
-// matter which integer size).
+
+
 
 #define _avx_xor(a, b) _mm256_xor_si256(a, b)
 #define _avx_and(a, b) _mm256_and_si256(a, b)
@@ -13,7 +13,7 @@
 #define _avx_testz(a, b) _mm256_testz_si256(a, b)
 #define _avx_zero _mm256_setzero_si256()
 
-// TODO: Fix naming and stuff.
+
 
 #if defined(INT8)  ////////////////////////////////////// EPI8
 

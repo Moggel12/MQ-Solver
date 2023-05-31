@@ -75,8 +75,9 @@ $(TEST_TARGET): $(TEST_OBJ)
 sage:
 	make -C src/sage 
 
+# Hacky? Yes
 pdf:
-	latexmk -pdf -shell-escape -silent -cd $(REPORT)
+	latexmk -pdf -interaction=nonstopmode -shell-escape -cd $(REPORT) ||:
 
 slides:
 	latexmk -pdf -shell-escape -silent -cd $(SLIDES)

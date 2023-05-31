@@ -10,7 +10,7 @@
 #include "mq_vec.h"
 #endif
 
-#define MAX_HISTORY 30  // TODO, change back
+#define MAX_HISTORY 30 
 
 #if defined(_DEBUG)
 #define RSEED 42

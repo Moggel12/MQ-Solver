@@ -48,7 +48,7 @@ unsigned int read_uint()
   return val;
 }
 
-#if defined(REG128) || defined(REG256)  // TODO: Fix tests
+#if defined(REG128) || defined(REG256) 
 
 sub_poly_t *read_sub_poly_t_array(size_t len)
 {

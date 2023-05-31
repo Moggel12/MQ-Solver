@@ -203,7 +203,7 @@ Here, each iteration then goes through the \texttt{poly\_t}s stored in the histo
 until it encounters a historic solution with a larger non-Gray code $\mathbf{y}$ value; 
 \clisting{src/c/standard/mq.c}{165}{168}
 or one where the historic solution and the newly found solution are identical;
-\clisting{src/c/standard/mq.c}{169}{170}
+\clisting{src/c/standard/mq.c}{169}{169}
 This ensures that the procedure checks only the strictly necessary historic solutions, linearly. The linear search could also be replaced with a binary search-like strategy. Alternatively, a dictionary could of course be implemented, however, it is unclear whether or not this would prove a dramatic benefit. Another alternative would be to allocate all $2^{n - n_1} \times (n_1 + 1)$ entries in a table as originally proposed in \cite{eurocrypt-2021-30841}. Of course, choosing to allocate room for all evaluations of the $U$ polynomials will drastically limit the problem sizes that the algorithm may handle in practice (on machines without unlimited memory).
 
 Finally, should the procedure encounter identical potential solutions, the code acts more or less as expected:
@@ -234,7 +234,7 @@ The most interesting would be the derivative table \texttt{poyl\_t *d} allocated
     d_{size} = \sum_{i = 0}^{d} \binom{n - n_1}{i}.
 \end{equation}
 The indexing itself is computed using the \texttt{monomial\_to\_index()} function (from \texttt{src/c/standard/fes.c}), in order to work with the size of the table \texttt{d}:
-\clisting[label={lst:c:index}]{src/c/standard/fes.c}{94}{112}
+\clisting[label={lst:c:index}]{src/c/standard/fes.c}{94}{115}
 The reasoning behind this different indexing scheme can be found in \cref{sec:impl:opt:fes_rec}.
 
 Once all tables and values have been set up, the procedure starts computing the \textit{parities}, or evaluations, of the $U$ polynomials. Like in the SageMath code, this is done using a procedure called \texttt{part\_eval()}, handling \texttt{state} updates and calls to \texttt{fes\_eval\_parity()}. Now, notice that \texttt{fes\_eval\_parity()} is a separate procedure from \texttt{fes\_eval\_solutions()}. Instead of combining this alternative FES version, where parities are computed instead of storing solutions, the C code separates them, allowing for better readability and extendability. In the \textit{standard} C codebase, the \texttt{fes\_eval\_solutions()} computes and stores solutions to the input system, while \texttt{fes\_eval\_parities()} computes the parities from \cref{alg:uvalue}.
@@ -475,7 +475,7 @@ The procedure takes both the original system \texttt{poly\_t *system} (non-fixed
 Going into \texttt{src/c/vectorized/fes.c}, much of the code may seem similar to that explained in \cref{sec:impl:c}. Much of the logic is on an abstract level the same, but instead of using \texttt{poly\_t *} to represent systems, most procedures instead use \texttt{poly\_vec\_t *}. The various function-like macros prepended with \texttt{VEC\_} represent an abstraction layer over the AVX intrinsics used to work with AVX registers. Recall that each AVX register contains four rounds worth of sub-systems, for evaluations of $\mathcal{P}$ on some fixture. Therefore, snippets like 
 \clisting[label={lst:c:vector_parity}]{src/c/vectorized/fes_vectorized.c}{364}{370}
 display how the aforementioned ''lock-stepping'' works in practice. The non-vectorized version of the above snippet is
-\clisting{src/c/standard/fes.c}{353}{357}
+\clisting{src/c/standard/fes.c}{357}{361}
 for which the differences between the vectorized and non-vectorized versions show. Both snippets are from \texttt{fes\_eval\_parity()} in the vectorized and non-vectorized versions, respectively. Since the vectorized version runs multiple bit-sliced systems in parallel during the execution, conditionals have to be handled differently. E.g. for each system in the vector \texttt{s->y}, in \cref{lst:c:vector_parity}, a combination of AVX \textit{masks} and \textit{blends} are used to mimic multiple parallel conditional checks at once. These principles are the same throughout \texttt{src/c/vectorized/fes\_vectorized.c}.
 
 To quickly summarize the idea of AVX masks and blends: An AVX mask represents the evaluation of some logical statement in each of the vector elements, e.g. comparing equality between two vector registers would return a mask where the indices with \textit{equality} store all 1-bits and those with \textit{inequality} store all 0-bits. A use-case for such an AVX mask is \textit{blending}, in which elements between two vectors are blended depending on some specified mask. This blending can also be interpreted as a \textit{filtering} mechanism with a vector of ''defaults''.

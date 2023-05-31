@@ -20,14 +20,14 @@
  * system. */
 typedef struct state
 {
-  poly_t i; /*! The value of the input variables assigned. */  // TODO
+  poly_t i; /*! The value of the input variables assigned. */
   poly_vec_t y;    /*! The evaluation of the system on s->i. */
   poly_vec_t *d1;  /*! The first derivatives of the system evaluated on s->i. */
   poly_vec_t *d2;  /*! The second derivative of the system (constants). */
   uint8_t *prefix; /*! The prefix used for the partial evaluation. */
 } state;
 
-// TODO: Update documentation of fes_recover
+
 /*!
  * Computes the evaluations of all 2^(n - n1) inputs for the U_i polynomials in
  * Dinur's polynomial-method algorithm. The resulting evaluations are in a
@@ -51,7 +51,7 @@ uint8_t fes_recover_vectorized(poly_t *system, poly_vec_t *e_k_systems,
  * system. */
 typedef struct state
 {
-  poly_t i; /*! The value of the input variables assigned. */  // TODO
+  poly_t i; /*! The value of the input variables assigned. */ 
   poly_t y;        /*! The evaluation of the system on s->i. */
   poly_t *d1;      /*! The first derivatives of the system evaluated on s->i. */
   poly_t *d2;      /*! The second derivative of the system (constants). */
@@ -89,7 +89,7 @@ unsigned int bruteforce(poly_t *system, unsigned int n, unsigned int n1,
  */
 unsigned int fes(poly_t *system, unsigned int n, poly_t *solutions);
 
-// TODO: Update documentation of fes_recover
+
 /*!
  * Computes the evaluations of all 2^(n - n1) inputs for the U_i polynomials in
  * Dinur's polynomial-method algorithm. The resulting evaluations are in a

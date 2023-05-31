@@ -1,7 +1,7 @@
 #ifndef MQ_VEC_H
 #define MQ_VEC_H
-// TODO: Make checks to see if API below is available compile-time and change to
-// use this API instead of VEC_
+
+
 
 /*
  * These need to be available either through macros or as C functions (for
@@ -43,7 +43,7 @@
 #define VEC_AND(a, b) _mm_and_si128(a, b)
 
 #define VEC_BLEND(a, b, mask) _mm_blendv_epi8(a, b, mask)
-#define VEC_0 _mm_setzero_si128()  // TODO
+#define VEC_0 _mm_setzero_si128() 
 
 #elif defined( \
     REG256)  ////////////// 256 bits, split register into multiple systems
@@ -54,7 +54,7 @@
 #define VEC_GF2_MUL(a, b) _mm256_and_si256(a, b)
 #define VEC_AND(a, b) _mm256_and_si256(a, b)
 
-#define VEC_0 _mm256_setzero_si256()  // TODO
+#define VEC_0 _mm256_setzero_si256()
 #define VEC_BLEND(a, b, mask) _mm256_blendv_epi8(a, b, mask)
 
 #endif
