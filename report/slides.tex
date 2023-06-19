@@ -46,10 +46,10 @@
 \newcommand{\rightshift}{\texttt{ >> }} 
 \newcommand{\td}[1]{\todo[inline]{#1}} % Todo notes
 
-\title{Solving MQ-problems}
+\title{Implementation and Evaluation of Dinur's MQ Solver Algorithm}
 \author{Author: Mikkel Juul Vestergaard\\Supervisor: Associate Professor Ruben Niederhagen}
 \institute{Department of Mathematics and Computer Science\\University of Southern Denmark}
-\date{Student talks, 2023}
+\date{Thesis Defence, 2023}
 
 \AtBeginSection[]
 {
@@ -63,58 +63,128 @@
 
 \frame{\titlepage}
 
-\section{Pre-preliminaries}
-\subsection{Rings}
+\section{Preface}
 \begin{frame}
-    \frametitle{Rings, what are they?}
-    \begin{block}{Definition}
-        A \textit{ring} is a set $S$ with two binary operators $+$ and $\cdot$, satisfying certain conditions. These operators are typically interpreted as addition and multiplication.\footnote{\url{https://mathworld.wolfram.com/Ring.html}}
-        \begin{enumerate}
-            \item Additive and multiplicative associativity
-            \item Additive commutativity
-            \item Additive identity
-            \item Additive inverse
-            \item Distributivity (left and right) of multiplication over addition
-        \end{enumerate}
-    \end{block}
+    \frametitle{The goals of this thesis.}
+    \enquote{\textelp{} I will provide an environment for solving multivariate polynomial systems using the algorithm proposed Itai Dinur \textelp{} based on traditional desktop computers, HPC hosts or a subset of these. \textelp{} the implementation of the algorithm in question will have host-specific traits \textelp{} I will further produce a report, shedding light on the practical performance of the algorithm from [1].}\footnote{[1] refers to the paper by Itai Dinur, introducing his polynomial-method algorithm.}
 \end{frame}
 
+\section{Introduction}
 \begin{frame}
-    \frametitle{Rings, what are they?}
+    \frametitle{Polynomials?}
+    A mathematical expression or function in some variable(s), coefficients and declared through the operators:
     \begin{itemize}
-        \item The set of square matrices, using matrix addition and multiplication.
-        \item Integers modulo two ($\mathbb{Z}/2\mathbb{Z}$, sometimes $\mathbb{F}_2$): $S = \{0, 1\}$ with addition and multiplications modulo 2.
-        \item The complex numbers ($\mathbb{C}$): $S = \mathbb{C}$ with addition and multiplication as we know it for complex numbers 
-        \item Many more!
+        \item Addition.
+        \item Subtraction.
+        \item Multiplication.
+        \item Exponentiation using non-negative integers.
     \end{itemize}
 \end{frame}
 
 \begin{frame}
-    \frametitle{Finite fields (Galois field)}
-    \begin{block}{Definition}
-        A \textit{field} is a \textit{ring} that also satisfies the properties:
-        \begin{enumerate}
-            \item Multiplicative commutativity
-            \item Multiplicative identity
-            \item Multiplicative inverses
-        \end{enumerate}
-    \end{block} \pause
-    A \underline{finite field} is a field of finite elements!
+    \frametitle{Polynomials.}
+    Some simple polynomials as mathematical functions:
+    \begin{equation*}
+        \begin{split}
+            p(x) &= 4x + 1\\
+            f(x) &= 2x^2 + 3
+        \end{split}
+    \end{equation*}
+    and expressions:
+    \begin{equation*}
+        \begin{split}
+            &x^{10}\\
+            &x^5 + 10x^3
+        \end{split}
+    \end{equation*}
+
 \end{frame}
 
 \begin{frame}
-    \frametitle{Rings of polynomials?}
-    \begin{block}{Definition}
-        A \textit{polynomial ring} $R[x]$ is the ring of all polynomials in the indeterminate (variable) $x$. Coefficients are sampled from the ring $R$.
-    \end{block} 
-    Examples:
-    \begin{itemize}
-        \item<2-> For $\mathbb{R}[x]$: $3.5x^2 + 4x + 1$.
-        \item<3-> For $\mathbb{F}_2[x_0, x_1, x_2]$ (integers mod 2): $x_0x_1 + x_0 + 1$. This is a \textit{multivariate polynomial!}
-    \end{itemize}
+    \frametitle{Multivariate polynomials.}
+    So, what are these \textit{multivariate} polynomials?
+    
+    \pause 
+
+    Well, just polynomials in \textit{multiple} variables!
+
+    \pause 
+
+    Typically we denote these variables by subscript (of course starting from $0$).
+
+    E.g. $x_0, x_1, \dots x_{n - 1}$, however, we can still of course call them $x, y, z$, etc.
+
+    \pause 
+
+    For a notational shorthand, 
+    $$
+        \mathbf{x} = (x_0, x_1, \dots x_{n - 1})
+    $$ 
+    for $n$ variables, and likewise for variables denoted by $y$s and $z$s.
 \end{frame}
 
-\section{Preliminaries}
+\begin{frame}
+    \frametitle{Multivariate polynomials.}
+    So how do these look?
+
+    \pause 
+
+    Quite simply, they look like the polynomials we just saw but with more variables!
+
+    \pause 
+    For example:
+    \begin{equation*}
+        \begin{split}
+            p_0(x_0, x_1, x_2, x_3) &= 5x_3^4 + x_0^2 + 4x_1 + 10\\
+            p_1(x_0, x_1, x_2, x_3) &= 3x_1x_2x_3 + 2x_0^2
+        \end{split}
+    \end{equation*}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Boolean multivariate polynomials!}
+    But in fact, sometimes we want to restrict multivariate polynomials. How may we do that?
+
+    \pause 
+
+    We may restrict the \textit{coefficients} and \textit{variable} assignments.
+    
+    In this case, the coefficients are restricted to $0$s and $1$s, and the same goes for the assignments we can make to the variables!
+
+    \pause 
+
+    I.e. we restrict the multivariate polynomials to look like 
+    \begin{equation*}
+        \begin{split}
+            &x_0x_1 + x_0\\
+            &x_0^2 + x_1x_2
+        \end{split}
+    \end{equation*}
+    \pause 
+    
+    Polynomials of this sort are often called \textit{boolean} polynomials, or in this case \textit{boolean multivariate polynomials}.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Boolean multivariate polynomials! (Extended)}
+    The operations of multiplication and addition 
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{What is the ''MQ-problem''?}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Dinur's algorithm.}
+\end{frame}
+
+\section{Contributions}
+\begin{frame}
+    \frametitle{}
+\end{frame}
+
+% \section{Preliminaries}
 \begin{frame}
     \frametitle{Rings of polynomials?}
     \begin{outline}
