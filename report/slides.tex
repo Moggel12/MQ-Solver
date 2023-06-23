@@ -83,7 +83,15 @@
 \section{Preface}
 \begin{frame}
     \frametitle{The goals of this thesis.}
-    \enquote{\textelp{} I will provide an environment for solving multivariate polynomial systems using the algorithm proposed Itai Dinur \textelp{} based on traditional desktop computers, HPC hosts or a subset of these. \textelp{} the implementation of the algorithm in question will have host-specific traits \textelp{} I will further produce a report, shedding light on the practical performance of the algorithm from [1].}\footnote{[1] refers to the paper by Itai Dinur, introducing his polynomial-method algorithm.}
+    Goals:
+    \begin{itemize}
+        \item Environment for solving systems of multivariate polynomials using Itai Dinur's.polynomial-method algorithm.
+        \item Software should run on desktop computers, HPC hosts, or a subset of these.
+        \item Host-specific traits for implementation.
+        \item Extendable code.
+        \item Performance capture.
+        \item Report shedding light on the practical performance of the algorithm.
+    \end{itemize}
 \end{frame}
 
 \section{Introduction}
@@ -825,6 +833,19 @@
            ]{metrics/fes_dinur/bench_recover.csv}
         \end{center}
     \end{table}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Future works}
+    Examples:
+    \begin{itemize}
+        \item Find the problem with amount of potential solutions.
+        \item Check impact of $n_1$.
+        \item Proper Möbius transform setup.
+        \item Further multicore and AVX support.
+        \item Loop unrolling.
+        \item Variable fixation.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}
