@@ -85,7 +85,7 @@
     \frametitle{The goals of this thesis.}
     Goals:
     \begin{itemize}
-        \item Environment for solving systems of multivariate polynomials using Itai Dinur's.polynomial-method algorithm.
+        \item Environment for solving systems of multivariate polynomials using Itai Dinur's polynomial-method algorithm.
         \item Software should run on desktop computers, HPC hosts, or a subset of these.
         \item Host-specific traits for implementation.
         \item Extendable code.
@@ -171,8 +171,6 @@
     \frametitle{Boolean multivariate polynomials!}
     But in fact, sometimes we want to restrict multivariate polynomials. How may we do that?
 
-    \pause 
-
     We may restrict the \textit{coefficients} and \textit{variable} assignments.
     
     In this case, the coefficients are restricted to $0$s and $1$s, and the same goes for the assignments we can make to the variables!
@@ -186,8 +184,7 @@
             &x_0^2 + x_1x_2
         \end{split}
     \end{equation*}
-    \pause 
-    
+
     Polynomials of this sort are often called \textit{boolean} polynomials, or in this case \textit{boolean multivariate polynomials}.
 \end{frame}
 
@@ -208,11 +205,10 @@
     Well, the MQ-problem relates to multivariate polynomials. How so, you ask?
     \pause
     \begin{outline}
-        \1 A system of boolean multivariate polynomials.
+        \1 A system of multivariate polynomials.
             \2 $m$ polynomials. 
             \2 $n$ variables.
             \2 The polynomials are of degree $d$.
-            \2 Coefficients are $0$ or $1$.
             \2 From this point on, systems of polynomials are written as $\mathcal{P} = \{p_0, p_1, p_2, \dots p_{m-1}\}$
     \end{outline}
 
@@ -220,7 +216,7 @@
 
     We typically say that a \textit{solution} to a system $\mathcal{P}$ is an assignment of the variables of the polynomial s.t. 
     $$
-        p_{0}(\hat{\mathbf{x}}) = p_{1}(\hat{\mathbf{x}}) = \dots = p_{n-1}(\hat{\mathbf{x}}) = 0
+        p_{0}(\hat{\mathbf{x}}) = p_{1}(\hat{\mathbf{x}}) = \dots = p_{m-1}(\hat{\mathbf{x}}) = 0
     $$
 \end{frame}
 
@@ -283,18 +279,6 @@
 
 \begin{frame}
     \frametitle{Isolating solutions}
-    \begin{block}{Variable partition}
-        For the variables $\mathbf{x} = (x_0, \dots x_{n - 1})$, we make the partition $\mathbf{x} = (\mathbf{y}, \mathbf{z}) = (y_0, \dots y_{n - n_1 - 1}, z_{0}, \dots z_{n_1 - 1})$ using some parameter $n_1$.
-    \end{block}
-
-    \begin{alertblock}{Isolated solutions}
-        A solution $\hat{\mathbf{x}} = (\hat{\mathbf{y}},\hat{\mathbf{z}})$ to a system $\mathcal{P} = \{p_j(\mathbf{y}, \mathbf{z})\}^m_{j = 1}$ is called \textit{isolated} (with respect to the variable partitition $(\mathbf{y}, \mathbf{z})$) if for all $\hat{\mathbf{z}}'=\hat{\mathbf{z}}$, $(\hat{\mathbf{y}}, \hat{\mathbf{z}}')$ is not a solution to $\mathcal{P}$.
-    \end{alertblock}
-    What if we, instead of searching for \textit{any} solution, search for an isolated solution? 
-\end{frame}
-
-\begin{frame}
-    \frametitle{Isolating solutions, why?}
     Let us consider a system with polynomials $p_0$ and $p_1$, over $6$ variables. 
 
     \pause
@@ -335,11 +319,11 @@
         $$
         for $i = 1, \dots n_1$. \pause
 
-        Using the $U$ polynomials above, it turns out that $U_0(\hat{\mathbf{y}}) = 1$ tells us that $(\hat{\mathbf{y}}, \hat{\mathbf{z}})$ is an \textit{isolated solution}! But what is $\hat{\mathbf{z}}$?
+        $U_0(\hat{\mathbf{y}}) = 1$ $\implies$ $\hat{\mathbf{y}}$ is part of an \textit{isolated solution}.
 
         \pause 
 
-        Actually, it is $U_i(\hat{\mathbf{y}}) = z_{i - 1} + 1$, i.e. $U_i$ (for $i = 1, \dots n_1$) can \textit{recover} the $\mathbf{z}$-bits of an isolated solution.
+        $U_i(\hat{\mathbf{y}}) = z_{i - 1} + 1$ can be used to \textit{recover} the $\mathbf{z}$-values of an \textit{isolated} solution.
 \end{frame}
 
 \begin{frame}
@@ -393,7 +377,7 @@
 \end{frame}
 
 \begin{frame}[fragile]
-    \frametitle{Möbius transforms}
+    \frametitle{Möbius transform}
     The Möbius transform can take as input the evaluations of a polynomial and can be used to output a mathematical expression of it.
     \pause
 \begin{figure}[t]
@@ -409,7 +393,7 @@
                 anchor=center,
             },
         ] (mat) {
-            x_0 & x_1   & p(x_0, x_1)\\ 
+            x_0 & x_1   & U_0(x_0, x_1)\\ 
             \hline\\
             0   & 0     & 0\\ 
             \hline\\
@@ -417,11 +401,11 @@
             \hline\\
             0   & 1     & 1\\
             \hline\\
-            1   & 1     & 1\\
+            1   & 1     & \alt<3>{1}{-}\\
             \hline\\
         };
 
-        \node[right=1.5cm of mat] (poly) {$p(x_0,x_1) = x_0 + x_1 + x_0x_1$};
+        \node[right=1.5cm of mat] (poly) {$U_0(x_0,x_1) = x_0 + x_1 + x_0x_1$};
         
         \only<2>{\draw [-stealth] (mat.east) -- (poly.west) node[above=10pt, pos=0.5] {};}
         \only<3>{\draw [stealth-stealth] (mat.east) -- (poly.west) node[above=10pt, pos=0.5] {};}
@@ -494,10 +478,6 @@
 
     \pause 
 
-    This thesis introduced the idea of interpolating boolean polynomials using the principles and ideas of FES!
-
-    \pause 
-
     Let us shortly recap those.
 
 \end{frame}
@@ -525,19 +505,8 @@
 \end{frame}
 
 \begin{frame}
-    \frametitle{Fast exhaustive search (FES) for polynomials in $\mathbb{F}_2$}
-    Say we have some polynomial $p$ in the ring $\mathbb{F}_2[x_0,\dots x_{n-1}$].
-    
-    \pause
-
-    We want to find all assignments of $x_0, \dots x_{n - 1}$ that evalute to 0 on $p$ $\implies$ we want to do an exhaustive search!
-
-    But we need to do $2^n$ iterations, each \textit{fully} evaluating a polynomial. Can we do this concretely faster?
-\end{frame}
-
-\begin{frame}
     \frametitle{Derivatives in finite fields}
-    Instead of \textit{fully} evaluating the polynomial $p$ at each input, why don't we use derivatives and Gray codes? 
+    We can actually use derivatives of $p$, and Gray code ordering, to compute \textit{all} solutions quite efficiently.
     
     \pause 
 
@@ -552,23 +521,6 @@
             p(0,&0,1)
         \end{split}
     \end{equation*}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Derivatives in finite fields}
-    Now, between each of these evaluations, only \textit{one} variable changes its value, e.g. $001_2 \rightarrow 011_2$ means that only $x_1$ changes value
-
-    \pause
-
-    Now, to compute some $p(\hat{\mathbf{x}})$ when only variable $x_i \in \mathbf{x}$ changes value, simply add 
-    $$
-        \frac{\partial p}{\partial x_i}(\hat{\mathbf{x}}),
-    $$
-    to the previous evaluation of $p$. 
-
-    \pause
-    
-    Further, we can treat the partial derivative above as a polynomial itself, applying this idea recursively.
 \end{frame}
 
 \begin{frame}
@@ -645,6 +597,7 @@
                 xlabel=Values of $n$,
                 ylabel=Memory consumption (\texttt{MiB}),
                 ymode=log,
+                legend cell align=left,
                 log ticks with fixed point,
                 xtick={15,20,25,30},
                 height=8cm,
@@ -683,6 +636,7 @@
             \begin{axis}[
                 xlabel=Values of $n$,
                 ymode=log,
+                legend cell align=left,
                 log ticks with fixed point,
                 ylabel=Memory consumption (\texttt{MiB}),
                 xtick={15,20,25,30},
@@ -717,6 +671,7 @@
             \begin{axis}[
                 xlabel={Value of $n$},
                 ylabel={Average solve time (seconds)},
+                legend cell align=left,
                 ymode=log,
                 ymajorgrids=true,
                 grid style=dashed,
@@ -839,7 +794,7 @@
     \frametitle{Future works}
     Examples:
     \begin{itemize}
-        \item Find the problem with amount of potential solutions.
+        \item Find the problem with the number of potential solutions.
         \item Check impact of $n_1$.
         \item Proper Möbius transform setup.
         \item Further multicore and AVX support.
