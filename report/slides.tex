@@ -261,7 +261,7 @@
     $$
     with multiplication and addition acting as noted earlier.
 
-    Notice how a solution to $\mathcal{P}$ evaluates to $1$ on $F$.
+    Also, notice how only solutions to $\mathcal{P}$ evaluate to $1$ on $F$.
 \end{frame}
 
 \begin{frame}
@@ -357,8 +357,8 @@
             }
             \only<3>{
                 U_0({\color{cyan}1}, {\color{cyan}1}, {\color{cyan}0}, {\color{cyan}0}) &= 1 \text{ \color{green}\cmark}\\
-                U_1({\color{cyan}1}, {\color{cyan}1}, {\color{cyan}0}, {\color{cyan}0}) &= {\color{purple}z_0} + 1 = 0\\
-                U_2({\color{cyan}1}, {\color{cyan}1}, {\color{cyan}0}, {\color{cyan}0}) &= {\color{purple}z_1} + 1 = 1
+                U_1({\color{cyan}1}, {\color{cyan}1}, {\color{cyan}0}, {\color{cyan}0}) &= {\color{purple}z_0} + 1 = 1\\
+                U_2({\color{cyan}1}, {\color{cyan}1}, {\color{cyan}0}, {\color{cyan}0}) &= {\color{purple}z_1} + 1 = 0
             }
         \end{split}
     \end{equation*}
@@ -430,7 +430,7 @@
             \2<6-> Evaluate the $U$ polynomials on all possible inputs (Möbius transform).
             \2<7-> Go through evaluations and check for \textit{isolated solutions} for $\tilde{\mathcal{P}}_k$ (not necessarily one for $\mathcal{P}$).
             \2<8-> Check for overlaps in potential solutions found this round and potential solutions found in earlier rounds ($k_1 < k$).
-                \3<9-> Overlap $\implies$ Solution to $\mathcal{P}$ found!
+                \3<9-> Overlap $\implies$ Check if solution to $\mathcal{P}$.
     \end{outline}
 \end{frame}
 
@@ -895,15 +895,15 @@
 \begin{frame}
     \frametitle{Appendix: Regression explainability}
     \begin{itemize}
-        \item[] Standard C (Memory): $R^2 = 0.9882576562071881$
+        \item[] Standard C (Memory): $R^2 = 0.9883$
         \vspace{0.5cm}
-        \item[] AVX C (Memory): $R^2 = 0.9827860479149417$
+        \item[] AVX C (Memory): $R^2 = 0.9828$
         \vspace{0.5cm}
-        \item[] Standard C (Timings): $R^2 = 0.9726777811319699$
+        \item[] Standard C (Timings): $R^2 = 0.9727$
         \vspace{0.5cm}
-        \item[] AVX C (Timings): $R^2 = 0.9961879594206944$
+        \item[] AVX C (Timings): $R^2 = 0.9962$
         \vspace{0.5cm}
-        \item[] FES (Timings): $R^2 = 0.9999552224508338$
+        \item[] FES (Timings): $R^2 = 1.0000$
     \end{itemize}
 \end{frame}
 
