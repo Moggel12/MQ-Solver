@@ -80,20 +80,6 @@
 
 \frame{\titlepage}
 
-\section{Preface}
-\begin{frame}
-    \frametitle{The goals of this thesis.}
-    Goals:
-    \begin{itemize}
-        \item Environment for solving systems of multivariate polynomials using Itai Dinur's polynomial-method algorithm.
-        \item Software should run on desktop computers, HPC hosts, or a subset of these.
-        \item Host-specific traits for implementation.
-        \item Extendable code.
-        \item Performance capture.
-        \item Report shedding light on the practical performance of the algorithm.
-    \end{itemize}
-\end{frame}
-
 \section{Introduction}
 \subsection{Polynomials 101}
 \begin{frame}
@@ -107,77 +93,77 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}
-    \frametitle{Polynomials.}
-    Some simple polynomials as mathematical functions:
-    \begin{equation*}
-        \begin{split}
-            p(x) &= 4x + 1\\
-            f(x) &= 2x^2 + 3
-        \end{split}
-    \end{equation*}
-    and expressions:
-    \begin{equation*}
-        \begin{split}
-            &x^{10}\\
-            &x^5 + 10x^3
-        \end{split}
-    \end{equation*}
+% \begin{frame}
+%     \frametitle{Polynomials.}
+%     Some simple polynomials as mathematical functions:
+%     \begin{equation*}
+%         \begin{split}
+%             p(x) &= 4x + 1\\
+%             f(x) &= 2x^2 + 3
+%         \end{split}
+%     \end{equation*}
+%     and expressions:
+%     \begin{equation*}
+%         \begin{split}
+%             &x^{10}\\
+%             &x^5 + 10x^3
+%         \end{split}
+%     \end{equation*}
 
-\end{frame}
+% \end{frame}
 
-\begin{frame}
-    \frametitle{Multivariate polynomials.}
-    So, what are these \textit{multivariate} polynomials?
+% \begin{frame}
+%     \frametitle{Multivariate polynomials.}
+%     So, what are these \textit{multivariate} polynomials?
     
-    \pause 
+%     \pause 
 
-    Well, just polynomials in \textit{multiple} variables!
+%     Well, just polynomials in \textit{multiple} variables!
 
-    \pause 
+%     \pause 
 
-    Typically we denote these variables by subscript (of course starting from $0$).
+%     Typically we denote these variables by subscript (of course starting from $0$).
 
-    E.g. $x_0, x_1, \dots x_{n - 1}$, however, we can still of course call them $x, y, z$, etc.
+%     E.g. $x_0, x_1, \dots x_{n - 1}$, however, we can still of course call them $x, y, z$, etc.
 
-    \pause 
+%     \pause 
 
-    For a notational shorthand, 
-    $$
-        \mathbf{x} = (x_0, x_1, \dots x_{n - 1})
-    $$ 
-    for $n$ variables, and likewise for variables denoted by $y$s and $z$s.
-\end{frame}
+%     For a notational shorthand, 
+%     $$
+%         \mathbf{x} = (x_0, x_1, \dots x_{n - 1})
+%     $$ 
+%     for $n$ variables, and likewise for variables denoted by $y$s and $z$s.
+% \end{frame}
+
+% \begin{frame}
+%     \frametitle{Multivariate polynomials.}
+%     So how do these look?
+
+%     \pause 
+
+%     Quite simply, they look like the polynomials we just saw but with more variables!
+
+%     \pause 
+%     For example:
+%     \begin{equation*}
+%         \begin{split}
+%             p_0(x_0, x_1, x_2, x_3) &= 5x_3^4 + x_0^2 + 4x_1 + 10\\
+%             p_1(x_0, x_1, x_2, x_3) &= 3x_1x_2x_3 + 2x_0^2
+%         \end{split}
+%     \end{equation*}
+% \end{frame}
 
 \begin{frame}
-    \frametitle{Multivariate polynomials.}
-    So how do these look?
+    \frametitle{Boolean multivariate polynomials?}
+    Polynomials as we know them, just with more variables: $x_0, x_1, \dots x_{n - 1}$ (or $x, y, z, etc.$).
 
     \pause 
-
-    Quite simply, they look like the polynomials we just saw but with more variables!
-
-    \pause 
-    For example:
-    \begin{equation*}
-        \begin{split}
-            p_0(x_0, x_1, x_2, x_3) &= 5x_3^4 + x_0^2 + 4x_1 + 10\\
-            p_1(x_0, x_1, x_2, x_3) &= 3x_1x_2x_3 + 2x_0^2
-        \end{split}
-    \end{equation*}
-\end{frame}
-
-\begin{frame}
-    \frametitle{Boolean multivariate polynomials!}
-    But in fact, sometimes we want to restrict multivariate polynomials. How may we do that?
-
-    We may restrict the \textit{coefficients} and \textit{variable} assignments.
     
-    In this case, the coefficients are restricted to $0$s and $1$s, and the same goes for the assignments we can make to the variables!
+    Coefficients and variable assignments may only be 0 and 1.
 
     \pause 
 
-    I.e. we restrict the multivariate polynomials to look like 
+    I.e. these polynomials may look like 
     \begin{equation*}
         \begin{split}
             &x_0x_1 + x_0\\
@@ -185,18 +171,10 @@
         \end{split}
     \end{equation*}
 
-    Polynomials of this sort are often called \textit{boolean} polynomials, or in this case \textit{boolean multivariate polynomials}.
-\end{frame}
+    \pause
 
-\begin{frame}
-    \frametitle{Boolean multivariate polynomials! (Extended)}
-    The operations of multiplication and addition in this context are a bit different.
+    For shorthand notation: $\mathbf{x} = (x_0, x_1, \dots x_{n - 1})$.
 
-    \pause 
-
-    Mathematically, we say that these operations are performed \textit{modulo two}. However, this simply means that we \textit{wrap} any operations with a result larger than one around to zero. E.g. $1 + 1 + 1 = 1$ (as $1 + 1 = 0$).
-
-    Multiplication is as we know, with $1 \cdot 1 = 1$ and $0 \cdot 1 = 0$.
 \end{frame}
 
 \subsection{What is the ''MQ-problem''?}
@@ -235,6 +213,28 @@
             \2 This is also very hard for a computer to solve while having nice properties for real implementations.
             \2 Much modern cryptography is based on the hardness of this problem.
     \end{outline}
+\end{frame}
+
+\begin{frame}
+    \frametitle{So why is this problem \textit{hard}?}
+    For \textit{boolean} multivariate polynomials, searching through all possible variable assignments is slow in the worst case!
+
+    \pause 
+
+    \begin{equation*}
+        \begin{array}{cccccc}
+            p(  & x_0,  & x_1,      & \dots    & x_{n - 1}                  & )\\
+                & \uncover<3->{2}     & \uncover<4->{\cdot 2}   & \uncover<5->{\cdots}  & \uncover<6->{\cdot 2}  & \uncover<7->{= 2^n}
+        \end{array}
+    \end{equation*}
+    
+    \pause[8]
+
+    $2^n$ grows quickly, making it hard for computers to work with large problem sizes.
+
+    \pause[9]
+
+    Can we search through \textit{fewer} than all $n$ variables to find a solution?
 \end{frame}
 
 \subsection{The algorithm}
@@ -313,17 +313,21 @@
 
 \begin{frame}
     \frametitle{Recovering bits}
-        By partitioning the variables using the parameter $n_1$, we are able to \textit{enumerate} all isolated solutions of the partition using the polynomials
-        $$
-            U_0(\mathbf{y}) = \sum_{\hat{\mathbf{z}} \in \{0,1\}^{n_1}} \Tilde{F}(\mathbf{y},\hat{\mathbf{z}}), \text{ and } U_i(\mathbf{y}) = \sum_{\hat{\mathbf{z}}\in \{0,1\}^{n_1 - 1}} \Tilde{F}_{z_i \leftarrow 0}(\mathbf{y}, \hat{\mathbf{z}}),
-        $$
-        for $i = 1, \dots n_1$. \pause
+        We can actually create the polynomials
+        \begin{itemize}
+            \item[] $U_0(\mathbf{y})$: Count parity of evaluations to $\tilde{F}(\mathbf{y}, \hat{\mathbf{z}})$ for all assignments of $\hat{\mathbf{z}}$.
+            \vspace{0.5cm}
+            \item[] $U_i(\mathbf{y})$, for $i = 1, \dots n_1$: Count parity of evaluations to $\tilde{F}(\mathbf{y}, \hat{\mathbf{z}})$ for all assignments of $\hat{\mathbf{z}}$ with $z_{i - 1} = 0$.
+        \end{itemize}
 
-        $U_0(\hat{\mathbf{y}}) = 1$ $\implies$ $\hat{\mathbf{y}}$ is part of an \textit{isolated solution}.
+        \pause
+
+        This means that\\
+        $\hat{\mathbf{y}}$ is part of an \textit{isolated solution} $\implies$ $U_0(\hat{\mathbf{y}}) = 1$,
 
         \pause 
 
-        $U_i(\hat{\mathbf{y}}) = z_{i - 1} + 1$ can be used to \textit{recover} the $\mathbf{z}$-values of an \textit{isolated} solution.
+        $\hat{\mathbf{y}}$ is part of an \textit{isolated solution} $\implies$ $U_i(\hat{\mathbf{y}}) = z_{i - 1} + 1$.
 \end{frame}
 
 \begin{frame}
@@ -414,9 +418,39 @@
 \end{figure}
 \end{frame}
 
-\section{Contributions}
-\subsection{Software suite}
+\begin{frame}
+    \frametitle{Algorithm recap}
+    To solve a system $\mathcal{P}$ in $n$ variables, split $\mathbf{x}$ into the partition $(\mathbf{y}, \mathbf{z})$ based on the parameter $n_1$.
 
+    \begin{outline}
+        \1<2-> For $k = 0, 1, \dots$.
+            \2<3-> Generate smaller system $\tilde{\mathcal{P}}_k$.
+            \2<4-> Compute a subset of the evaluations of the $U$ polynomials.
+            \2<5-> Interpolate $U$ polynomials (Möbius transform).
+            \2<6-> Evaluate the $U$ polynomials on all possible inputs (Möbius transform).
+            \2<7-> Go through evaluations and check for \textit{isolated solutions} for $\tilde{\mathcal{P}}_k$ (not necessarily one for $\mathcal{P}$).
+            \2<8-> Check for overlaps in potential solutions found this round and potential solutions found in earlier rounds ($k_1 < k$).
+                \3<9-> Overlap $\implies$ Solution to $\mathcal{P}$ found!
+    \end{outline}
+\end{frame}
+
+\section{Contributions}
+
+\subsection{Goals}
+\begin{frame}
+    \frametitle{The goals of this thesis.}
+    Goals:
+    \begin{itemize}
+        \item Environment for solving systems of multivariate polynomials using Itai Dinur's polynomial-method algorithm.
+        \item Software should run on desktop computers, HPC hosts, or a subset of these.
+        \item Host-specific traits for implementation.
+        \item Extendable code.
+        \item Performance capture.
+        \item Report shedding light on the practical performance of the algorithm.
+    \end{itemize}
+\end{frame}
+
+\subsection{Software suite}
 \begin{frame}
     \frametitle{Repository contents}
     Divided into three implementations, each with its own Makefile target.
@@ -589,6 +623,14 @@
 
 \subsection{Evaluation}
 \begin{frame}
+    \frametitle{Memory: Expectations}
+    \begin{itemize}
+        \item Compacted potential solutions in standard C implementation provide more efficient storage.
+        \item The AVX implementation memory consumption (as a function) grows slower due to not storing potential solutions.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
     \frametitle{Memory: Standard C implementation and theoretical consumption}
     \begin{figure}[t]
         \centering
@@ -664,6 +706,15 @@
 \end{frame}
 
 \begin{frame}
+    \frametitle{Timings: Expectation}
+    \begin{itemize}
+        \item Both C variants outperform the simple FES implementation.
+        \item The interpolation phase is bottlenecked FES-based recovery.
+        \item Multicore scales well.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
     \frametitle{Timings: Standard, AVX, and FES}
     \begin{figure}[t]
         \centering
@@ -701,7 +752,48 @@
 \end{frame}
 
 \begin{frame}
-    \frametitle{Timings: Standard, AVX, and FES}
+    \frametitle{Timings: Breakdown}
+    \begin{figure}[t]
+        \centering
+        \input{metrics/fes_dinur/solve.pgf}
+    \end{figure}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Conclusion}
+    \begin{outline}
+        \1 Provided an extendable practical implementation of Dinur's polynomial-method solver.
+            \2 Three implementations:
+                \3 SageMath prototyping.
+                \3 Less optimized C implementation.
+                \3 AVX optimized C implementation.
+        \1 Benchmarks on the practical performance of the algorithm.
+        \1 Introduction of polynomial interpolation using the principles of the FES procedure.
+    \end{outline}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Future work}
+    Examples:
+    \begin{itemize}
+        \item Find the problem with the number of potential solutions.
+        \item Check impact of $n_1$.
+        \item Proper Möbius transform setup.
+        \item Further multicore and AVX support.
+        \item Loop unrolling.
+        \item Variable fixation.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{References}
+    \printbibliography
+\end{frame}
+
+\section{Appendix}
+
+\begin{frame}
+    \frametitle{Appendix: Standard, AVX, and FES timings}
     \begin{table}[t]
         \begin{center}
             \pgfplotstabletypeset[
@@ -746,7 +838,7 @@
 \end{frame}
 
 \begin{frame}
-    \frametitle{Timings: FES-recovery}
+    \frametitle{Appendix: FES-recovery timings for standard C implementation}
     \begin{table}[t]
         \begin{center}
             \pgfplotstabletypeset[
@@ -791,23 +883,28 @@
 \end{frame}
 
 \begin{frame}
-    \frametitle{Future works}
-    Examples:
-    \begin{itemize}
-        \item Find the problem with the number of potential solutions.
-        \item Check impact of $n_1$.
-        \item Proper Möbius transform setup.
-        \item Further multicore and AVX support.
-        \item Loop unrolling.
-        \item Variable fixation.
-    \end{itemize}
+    \frametitle{Appendix: $U$ polynomials}
+    \begin{equation*}
+        \begin{split}
+            U_0(\mathbf{y}) &= \sum_{\hat{\mathbf{z}} \in \{0,1\}^{n_1}} \Tilde{F}(\mathbf{y},\hat{\mathbf{z}}),\\
+            U_i(\mathbf{y}) &= \sum_{\hat{\mathbf{z}}\in \{0,1\}^{n_1 - 1}} \Tilde{F}_{z_{i - 1} \leftarrow 0}(\mathbf{y}, \hat{\mathbf{z}}), \text{ for } i = 1, \dots n_1.
+        \end{split}
+    \end{equation*}
 \end{frame}
 
 \begin{frame}
-    \frametitle{References}
-    \printbibliography
+    \frametitle{Appendix: Regression explainability}
+    \begin{itemize}
+        \item[] Standard C (Memory): $R^2 = 0.9882576562071881$
+        \vspace{0.5cm}
+        \item[] AVX C (Memory): $R^2 = 0.9827860479149417$
+        \vspace{0.5cm}
+        \item[] Standard C (Timings): $R^2 = 0.9726777811319699$
+        \vspace{0.5cm}
+        \item[] AVX C (Timings): $R^2 = 0.9961879594206944$
+        \vspace{0.5cm}
+        \item[] FES (Timings): $R^2 = 0.9999552224508338$
+    \end{itemize}
 \end{frame}
 
-
 \end{document}
-Möbius
